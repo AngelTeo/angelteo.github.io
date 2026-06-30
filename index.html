@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<title>Academee — Management Platform</title>
+<style>
+  :root{
+    --bg:#FAF7F2;
+    --sur:#FFFFFF;
+    --bdr:rgba(0,0,0,.08);
+    --txt:#2A1F1A;
+    --mut:#7A6A5E;
+    --hint:#A89889;
+    --acc:#5C1010;
+    --acc2:#7A1818;
+    --srk:#C45C5C;
+    --gak:#E8A04E;
+    --atc:#7AB05A;
+    --srt:#8B6CAE;
+    --hr:#993556;
+    --warn:#BA7517;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+    background:var(--bg);
+    color:var(--txt);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow-x:hidden;
+  }
+  /* Header */
+  header{
+    padding:24px 36px;
+    background:var(--acc);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid rgba(0,0,0,.1);
+  }
+  .brand{
+    display:flex;align-items:baseline;gap:14px;
+  }
+  .brand-name{
+    font-size:22px;font-weight:600;letter-spacing:.5px;
+  }
+  .brand-tag{
+    font-size:11px;font-weight:400;opacity:.7;text-transform:uppercase;letter-spacing:1.2px;
+  }
+  .header-meta{
+    font-size:11px;opacity:.65;font-variant-numeric:tabular-nums;
+  }
+
+  /* Main container */
+  main{
+    flex:1;
+    max-width:1200px;
+    margin:0 auto;
+    padding:48px 36px 64px;
+    width:100%;
+  }
+  .intro{
+    margin-bottom:36px;
+  }
+  .intro h1{
+    font-size:26px;font-weight:500;margin-bottom:6px;letter-spacing:-.3px;
+  }
+  .intro p{
+    color:var(--mut);font-size:13px;line-height:1.6;max-width:560px;
+  }
+
+  /* Section title */
+  .section-title{
+    font-size:10px;font-weight:600;color:var(--mut);
+    text-transform:uppercase;letter-spacing:1.5px;
+    margin:32px 0 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .section-title::after{
+    content:'';flex:1;height:1px;background:var(--bdr);
+  }
+
+  /* App grid */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+    gap:14px;
+  }
+  .app-card{
+    background:var(--sur);
+    border:1px solid var(--bdr);
+    border-radius:10px;
+    padding:18px 20px;
+    text-decoration:none;
+    color:inherit;
+    display:flex;flex-direction:column;gap:8px;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+  }
+  .app-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    border-color:rgba(0,0,0,.14);
+  }
+  .app-card::before{
+    content:'';
+    position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--card-color,var(--acc));
+  }
+  .app-card.disabled{
+    opacity:.45;
+    cursor:not-allowed;
+    pointer-events:none;
+  }
+  .app-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  }
+  .app-name{
+    font-size:15px;font-weight:600;letter-spacing:-.1px;
+  }
+  .app-status{
+    font-size:9px;font-weight:600;
+    padding:2px 7px;border-radius:10px;
+    text-transform:uppercase;letter-spacing:.6px;
+    background:rgba(15,110,86,.1);color:var(--gak);
+    white-space:nowrap;
+  }
+  .app-status.planned{
+    background:rgba(122,106,94,.12);color:var(--mut);
+  }
+  .app-status.beta{
+    background:rgba(186,117,23,.12);color:var(--warn);
+  }
+  .app-desc{
+    font-size:12px;color:var(--mut);line-height:1.5;
+  }
+  .app-meta{
+    margin-top:6px;font-size:10px;color:var(--hint);
+    display:flex;align-items:center;gap:6px;
+    font-variant-numeric:tabular-nums;
+  }
+  .app-meta-dot{
+    width:4px;height:4px;border-radius:50%;background:var(--card-color,var(--acc));
+  }
+
+  /* Footer */
+  footer{
+    padding:18px 36px;
+    border-top:1px solid var(--bdr);
+    font-size:10px;color:var(--hint);
+    display:flex;justify-content:space-between;align-items:center;
+    background:var(--sur);
+  }
+  footer a{
+    color:var(--mut);text-decoration:none;
+  }
+  footer a:hover{color:var(--acc)}
+
+  @media (max-width:600px){
+    header{padding:18px 20px}
+    main{padding:32px 20px}
+    .brand-name{font-size:18px}
+    .grid{grid-template-columns:1fr;gap:10px}
+  }
+  /* Auth */
+  #auth-screen{display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg)}
+  #auth-box{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:32px 28px;width:340px;max-width:90vw;text-align:center}
+  #auth-box h2{font-size:18px;font-weight:600;margin-bottom:4px;color:var(--acc)}
+  #auth-box p{font-size:12px;color:var(--mut);margin-bottom:20px}
+  #auth-box input{width:100%;padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;margin-bottom:10px;font-family:inherit}
+  #auth-box button{width:100%;padding:10px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:6px}
+  .btn-login{background:var(--acc);color:#fff}
+  .btn-magic{background:var(--bg);color:var(--mut);border:1px solid var(--bdr)!important}
+  #auth-err{color:#A32D2D;font-size:11px;min-height:16px;margin-bottom:8px}
+  #app-wrap{display:none;flex-direction:column;min-height:100vh}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div id="auth-box">
+    <h2>Academee</h2>
+    <p>Management Platform · Login</p>
+    <div id="auth-err"></div>
+    <input type="email" id="auth-email" placeholder="Email">
+    <input type="password" id="auth-pass" placeholder="Password">
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <button class="btn-magic" onclick="doMagicLink()">Send Magic Link</button>
+  </div>
+</div>
+
+<div id="app-wrap">
+
+<header>
+  <div class="brand">
+    <span class="brand-name">Academee</span>
+    <span class="brand-tag">Management Platform</span>
+  </div>
+  <div class="header-meta" id="header-meta"></div>
+</header>
+
+<main>
+  <div class="section-title" style="margin-top:0">Master Data</div>
+  <div class="grid">
+    <a class="app-card" style="--card-color:var(--srk)" href="MasterHub_Subject.html">
+      <div class="app-head">
+        <div class="app-name">Subject</div>
+        <div class="app-status">v7</div>
+      </div>
+      <div class="app-desc">28 subjects · Name, department, level, category</div>
+    </a>
+
+    <a class="app-card" style="--card-color:var(--gak)" href="MasterHub_Room.html">
+      <div class="app-head">
+        <div class="app-name">Room</div>
+        <div class="app-status">v11</div>
+      </div>
+      <div class="app-desc">32 rooms · Floor plan, facility markers, capacity</div>
+    </a>
+
+    <a class="app-card" style="--card-color:var(--atc)" href="MasterHub_Class.html">
+      <div class="app-head">
+        <div class="app-name">Class</div>
+        <div class="app-status">v6</div>
+      </div>
+      <div class="app-desc">55 classes · SRK / GAK / ATC / SRT</div>
+    </a>
+
+    <a class="app-card" style="--card-color:var(--srt)" href="MasterHub_Teacher.html">
+      <div class="app-head">
+        <div class="app-name">Teacher</div>
+        <div class="app-status">v8</div>
+      </div>
+      <div class="app-desc">27 teachers · Schedule, role, employment</div>
+    </a>
+
+    <a class="app-card" style="--card-color:var(--warn)" href="MasterHub_Calendar.html">
+      <div class="app-head">
+        <div class="app-name">Calendar</div>
+        <div class="app-status">v7</div>
+      </div>
+      <div class="app-desc">2026 · Holidays, festivals, extra classes</div>
+    </a>
+
+    <a class="app-card" style="--card-color:var(--hr)" href="MasterHub_Student.html">
+      <div class="app-head">
+        <div class="app-name">Student</div>
+        <div class="app-status">v16</div>
+      </div>
+      <div class="app-desc">363 students · Profiles, memberships, cross-dept</div>
+    </a>
+  </div>
+</main>
+
+<footer>
+  <div>Academee Education Centre · Muar, Johor</div>
+  <div>Master Data Hub Architecture · <a href="https://github.com/" target="_blank">GitHub</a></div>
+</footer>
+</div><!-- /app-wrap -->
+
+<script>
+const SUPABASE_URL = 'https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function doLogin(){
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-pass').value;
+  document.getElementById('auth-err').textContent = '';
+  if(!email||!pass){ document.getElementById('auth-err').textContent='Enter email and password'; return; }
+  const{error}=await _sb.auth.signInWithPassword({email,password:pass});
+  if(error){ document.getElementById('auth-err').textContent=error.message; return; }
+  showApp();
+}
+async function doMagicLink(){
+  const email = document.getElementById('auth-email').value.trim();
+  document.getElementById('auth-err').textContent = '';
+  if(!email){ document.getElementById('auth-err').textContent='Enter email'; return; }
+  const{error}=await _sb.auth.signInWithOtp({email});
+  if(error){ document.getElementById('auth-err').textContent=error.message; return; }
+  document.getElementById('auth-err').style.color='#0F6E56';
+  document.getElementById('auth-err').textContent='✓ Check your email for the login link';
+}
+function showApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-wrap').style.display='flex';
+  updateClock();
+}
+
+// Clock
+function updateClock(){
+  var d = new Date();
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var h = d.getHours(), m = d.getMinutes();
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  var h12 = h % 12 || 12;
+  var mm = (m < 10 ? '0' : '') + m;
+  document.getElementById('header-meta').textContent =
+    days[d.getDay()] + ' · ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() + ' · ' + h12 + ':' + mm + ' ' + ampm;
+}
+setInterval(updateClock, 30000);
+
+// Auth check
+(async()=>{
+  const{data:{session}}=await _sb.auth.getSession();
+  if(session){ showApp(); }
+})();
+</script>
+
+</body>
+</html>
