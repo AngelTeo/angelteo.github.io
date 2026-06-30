@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MasterHub — Class v5</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --layer:#5C1010;
+  --d-srk:#C45C5C;--d-gak:#E8A04E;--d-atc:#7AB05A;--d-srt:#8B6CAE;
+  --sur:#ffffff;--sur2:#f7f6f2;--bdr:#e0ddd6;
+  --txt:#1a1a1a;--mut:#888888;--hint:#bbbbbb;
+  --ok:#0F6E56;--warn:#854F0B;--danger:#A32D2D;--info:#236FAD;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:var(--sur2);color:var(--txt);font-size:13px;line-height:1.4}
+button,input,select,textarea{font-family:inherit;font-size:13px}
+
+/* ══ NAV ══ */
+.nav{background:var(--layer);border-bottom:.5px solid rgba(0,0,0,.2);
+  display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:50;overflow-x:auto;gap:0}
+.nav-home{background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;padding:11px 10px 11px 0;flex-shrink:0}
+.nav-home:hover{color:#fff}
+.nav-logo{font-size:13px;font-weight:600;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.2);margin-right:4px;white-space:nowrap;flex-shrink:0;color:#fff}
+.ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
+.ntab{padding:11px 14px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:transparent;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.ntab:hover{color:#fff}.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.nav-r{margin-left:auto;display:flex;gap:5px;align-items:center;padding-left:10px;flex-shrink:0}
+.saved{font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap}
+.btn-nav{padding:5px 12px;border-radius:6px;border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-nav:hover{opacity:.85}
+
+/* ══ PAGES ══ */
+.page{display:none;padding:16px;max-width:1000px;margin:0 auto}.page.on{display:block}
+
+/* ══ BUTTONS ══ */
+.btn{padding:5px 12px;border-radius:6px;border:.5px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--sur2)}
+.btn-pri{background:var(--layer);color:#fff;border-color:var(--layer);font-weight:600}.btn-pri:hover{opacity:.85}
+.btn-dng{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn-sm{padding:3px 8px;font-size:10px}
+
+/* ══ CARDS ══ */
+.card{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;padding:16px;margin-bottom:12px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:11px;font-weight:500;color:var(--mut);letter-spacing:.05em;text-transform:uppercase}
+
+/* ══ STAT ══ */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.stat-card{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;padding:14px 16px}
+.stat-n{font-size:26px;font-weight:700}
+.stat-l{font-size:10px;color:var(--mut);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+
+/* ══ TABLE ══ */
+table.data{width:100%;border-collapse:collapse;font-size:12px}
+table.data thead th{background:#2d2d2d;color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;position:sticky;top:0}
+table.data thead th.sortable{cursor:pointer;user-select:none}
+table.data thead th.sortable:hover{background:#444}
+table.data thead th .sort-arrow{font-size:8px;margin-left:3px;opacity:.4}
+table.data thead th.sorted .sort-arrow{opacity:1}
+table.data tbody td{padding:8px 12px;border-bottom:.5px solid var(--bdr);vertical-align:middle}
+table.data tbody tr:nth-child(even){background:var(--sur2)}
+table.data tbody tr:hover{background:#FFF9E6;cursor:pointer}
+
+/* ══ INPUTS ══ */
+input[type=text],input[type=number],select,textarea{
+  border:.5px solid var(--bdr);border-radius:6px;padding:6px 10px;
+  font-size:12px;font-family:inherit;background:var(--sur);color:var(--txt);box-sizing:border-box}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
+
+/* ══ DEPT BADGES ══ */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-srk{background:rgba(196,92,92,.12);color:var(--d-srk)}
+.b-gak{background:rgba(232,160,78,.12);color:var(--d-gak)}
+.b-atc{background:rgba(122,176,90,.12);color:var(--d-atc)}
+.b-srt{background:rgba(139,108,174,.12);color:var(--d-srt)}
+
+/* ══ STATUS TAGS ══ */
+.b-active{background:#E1F5EE;color:var(--ok)}
+.b-archived{background:var(--sur2);color:var(--mut)}
+
+/* ══ TOOLBAR ══ */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.toolbar input[type=text]{flex:1;min-width:180px}
+.dept-row{display:flex;gap:4px;flex-wrap:wrap}
+.dept-tag{padding:4px 12px;border-radius:14px;border:.5px solid var(--bdr);cursor:pointer;font-size:10px;background:var(--sur);color:var(--mut);font-family:inherit}
+.dept-tag:hover{border-color:var(--layer);color:var(--layer)}
+.dept-tag.on{background:var(--layer);border-color:var(--layer);color:#fff}
+
+/* ══ MODAL ══ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--sur);border-radius:10px;width:560px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.modal-hdr{padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;position:sticky;top:0;background:var(--sur);border-radius:10px 10px 0 0;z-index:2}
+.modal-title{font-size:14px;font-weight:600;flex:1}
+.modal-body{padding:16px 20px}
+.modal-foot{padding:12px 20px;border-top:.5px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--sur);border-radius:0 0 10px 10px}
+.x-btn{background:none;border:none;font-size:18px;color:var(--mut);cursor:pointer}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px}
+.form-row input,.form-row select,.form-row textarea{width:100%}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ══ TOAST ══ */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--txt);color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1;pointer-events:auto}
+
+/* ══ EMPTY ══ */
+.empty{text-align:center;padding:40px 20px;color:var(--hint);font-size:12px}
+
+/* ══ PRINT ══ */
+.print-hdr,.print-ftr{display:none}
+@media print{
+  @page{margin:8mm 10mm;size:A4 portrait}
+  .nav,.toolbar,.btn,.toast,.no-print,.modal-bg{display:none!important}
+  body{font-size:11pt;background:#fff}
+  .card,table{page-break-inside:avoid}
+  table.data thead th{background:#333!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  table.data th,table.data td{border:1px solid #999}
+  .print-hdr{display:block!important;font-size:14pt;font-weight:700;text-align:center;margin-bottom:4mm}
+  .print-ftr{display:block!important;font-size:8pt;color:#888;text-align:center;margin-top:4mm}
+}
+
+@media(max-width:600px){.stat-grid{grid-template-columns:repeat(2,1fr)}.form-grid-2{grid-template-columns:1fr}}
+@media(max-width:480px){.stat-grid{grid-template-columns:1fr}.ntab{padding:10px 10px;font-size:10px}}
+
+/* ══════ AUTH SCREEN ══════ */
+.auth-screen{position:fixed;inset:0;background:var(--sur2);z-index:9000;
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{background:var(--sur);border:.5px solid var(--bdr);border-radius:12px;
+  padding:32px 28px;width:340px;max-width:100%;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.auth-title{font-size:16px;font-weight:700;text-align:center;margin-bottom:4px;color:var(--layer)}
+.auth-sub{font-size:11px;color:var(--mut);text-align:center;margin-bottom:20px}
+.auth-row{margin-bottom:14px}
+.auth-row label{font-size:11px;color:var(--mut);display:block;margin-bottom:4px}
+.auth-row input{width:100%;padding:8px 10px;border:.5px solid var(--bdr);border-radius:6px;
+  font-size:13px;font-family:inherit;background:var(--sur);color:var(--txt)}
+.auth-row input:focus{outline:none;border-color:var(--layer)}
+.auth-btn{width:100%;padding:10px;border-radius:6px;border:none;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:opacity .15s}
+.auth-btn-pri{background:var(--layer);color:#fff}
+.auth-btn-sec{background:transparent;color:var(--layer);border:.5px solid var(--layer);margin-top:8px}
+.auth-btn:hover{opacity:.85}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{font-size:11px;color:var(--danger);text-align:center;margin-top:10px;min-height:16px}
+.auth-or{text-align:center;font-size:10px;color:var(--hint);margin:12px 0}
+</style>
+</head>
+<body>
+
+<!-- ══════ AUTH SCREEN ══════ -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-title">MasterHub</div>
+    <div class="auth-sub">Class Management · Academee</div>
+    <div class="auth-row"><label>Email</label><input type="email" id="auth-email" placeholder="your@email.com" autocomplete="email"></div>
+    <div class="auth-row"><label>Password</label><input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="auth-btn auth-btn-pri" id="auth-login-btn" onclick="doLogin()">Login</button>
+    <div class="auth-or">— or —</div>
+    <button class="auth-btn auth-btn-sec" id="auth-magic-btn" onclick="doMagicLink()">Send Magic Link</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+<div id="loading-screen" style="display:none;position:fixed;inset:0;background:var(--sur2);z-index:8000;align-items:center;justify-content:center">
+  <div style="font-size:13px;color:var(--mut)">Loading...</div>
+</div>
+
+<!-- ══ NAV ══ -->
+<div class="nav">
+  <button class="nav-home" onclick="location.href='academee_navigation_preview.html'" title="Home">←</button>
+  <div class="nav-logo">MasterHub — Class <span class="ver">v5</span></div>
+  <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
+  <button class="ntab" onclick="goPage('list')">All Classes</button>
+  <button class="ntab" onclick="goPage('manage')">Manage</button>
+  <div class="nav-r">
+    <span class="saved" id="last-saved"></span>
+    <button class="btn-nav" onclick="doPrint()">🖨 Print</button>
+    <button class="btn-nav" onclick="exportData()">↓ Export</button>
+    <label class="btn-nav" style="cursor:pointer">↑ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"/></label>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="page on" id="page-dashboard">
+  <div id="dashboard-content"></div>
+</div>
+
+<!-- ══ ALL CLASSES ══ -->
+<div class="page" id="page-list">
+  <div class="print-hdr">MasterHub — Class</div>
+  <div class="toolbar">
+    <div style="position:relative;flex:1;min-width:180px">
+      <input type="text" id="search-inp" placeholder="Search classes..." oninput="doFilter()" style="width:100%;padding-right:28px">
+      <button id="search-x" onclick="clearSearch()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:14px;color:var(--mut);cursor:pointer;display:none;padding:2px">✕</button>
+    </div>
+    <div class="dept-row">
+      <span class="dept-tag on" onclick="setDept('ALL',this)">All</span>
+      <span class="dept-tag" onclick="setDept('SRK',this)">SRK</span>
+      <span class="dept-tag" onclick="setDept('GAK',this)">GAK</span>
+      <span class="dept-tag" onclick="setDept('ATC',this)">ATC</span>
+      <span class="dept-tag" onclick="setDept('SRT',this)">SRT</span>
+    </div>
+    <label style="font-size:10px;color:var(--mut);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px">
+      <input type="checkbox" id="show-archived" onchange="UI.showArchived=this.checked;renderList()"> Show archived
+    </label>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span id="list-count" style="font-size:12px;font-weight:600"></span>
+    <button class="btn btn-pri btn-sm" onclick="openClassForm(null)">+ Add Class</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="data">
+        <thead><tr>
+          <th class="sortable" onclick="sortBy('code')">Code <span class="sort-arrow" id="sa-code">▲</span></th>
+          <th>Name</th>
+          <th class="sortable" onclick="sortBy('dept')">Dept <span class="sort-arrow" id="sa-dept">▲</span></th>
+          <th>Teacher</th>
+          <th class="sortable" onclick="sortBy('capacity')">Cap <span class="sort-arrow" id="sa-capacity">▲</span></th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="print-ftr">MasterHub — Class · <span class="print-date"></span></div>
+</div>
+
+<!-- ══ MANAGE ══ -->
+<div class="page" id="page-manage">
+  <div class="card">
+    <div class="card-hdr"><span class="card-title">System Information</span></div>
+    <div style="font-size:12px;line-height:2.2">
+      <div>System: <b>MasterHub — Class</b></div>
+      <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:11px">masterhub_class_v3</code></div>
+      <div>Records: <b><span id="manage-total">0</span> total (<span id="manage-active">0</span> active, <span id="manage-archived">0</span> archived)</b></div>
+      <div>Version: <span class="ver">v5</span></div>
+    </div>
+  </div>
+  <div style="margin-top:40px;text-align:center">
+    <button style="font-size:10px;color:var(--danger);background:none;border:none;cursor:pointer" onclick="resetToSeed()">⚠ Reset to factory data</button>
+  </div>
+</div>
+
+<!-- ══ MODAL SLOT ══ -->
+<div id="modal-slot"></div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<script>
+const APP_VERSION = 5;
+const STORAGE_KEY = 'masterhub_class_v5';
+
+// ═══ SUPABASE (auth only — Store migration pending) ═══
+const SUPABASE_URL = 'https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SEED_CLASSES = [{"id":"SRK_SR_1","code":"SR 1","dept":"SRK","label":"SR 1","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_SR_2","code":"SR 2","dept":"SRK","label":"SR 2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_IN_1","code":"IN 1","dept":"SRK","label":"IN 1","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_IN_2","code":"IN 2","dept":"SRK","label":"IN 2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_JR_1","code":"JR 1","dept":"SRK","label":"JR 1","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_JR_2","code":"JR 2","dept":"SRK","label":"JR 2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_BB_1","code":"BB 1","dept":"SRK","label":"BB 1","capacity":null,"classTeacher":"","status":"active"},{"id":"SRK_SR_3","code":"SR 3","dept":"SRK","label":"SR 3","capacity":null,"classTeacher":"","status":"active"},{"id":"GAK_SR_1","code":"SR 1","dept":"GAK","label":"SR 1","capacity":null,"classTeacher":"","status":"active"},{"id":"GAK_SR_2","code":"SR 2","dept":"GAK","label":"SR 2","capacity":null,"classTeacher":"","status":"active"},{"id":"GAK_IN_1","code":"IN 1","dept":"GAK","label":"IN 1","capacity":null,"classTeacher":"","status":"active"},{"id":"GAK_JR_1","code":"JR 1","dept":"GAK","label":"JR 1","capacity":null,"classTeacher":"","status":"active"},{"id":"GAK_BB_1","code":"BB 1","dept":"GAK","label":"BB 1","capacity":null,"classTeacher":"","status":"active"},{"id":"ATC_A2","code":"A2","dept":"ATC","label":"A2","capacity":null,"classTeacher":"","status":"active"},{"id":"ATC_A3","code":"A3","dept":"ATC","label":"A3","capacity":null,"classTeacher":"","status":"active"},{"id":"ATC_A4","code":"A4","dept":"ATC","label":"A4","capacity":null,"classTeacher":"","status":"active"},{"id":"ATC_A5","code":"A5","dept":"ATC","label":"A5","capacity":null,"classTeacher":"","status":"active"},{"id":"ATC_A6","code":"A6","dept":"ATC","label":"A6","capacity":null,"classTeacher":"","status":"active"},{"id":"ATC_A1","code":"A1","dept":"ATC","label":"A1","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV2_FRI_PM","code":"LV2.FRI.PM","dept":"SRT","label":"LV2.FRI.PM","slot":"FRI.PM","level":"LV2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV3_FRI_PM","code":"LV3.FRI.PM","dept":"SRT","label":"LV3.FRI.PM","slot":"FRI.PM","level":"LV3","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV4_FRI_PM","code":"LV4.FRI.PM","dept":"SRT","label":"LV4.FRI.PM","slot":"FRI.PM","level":"LV4","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV5_FRI_PM","code":"LV5.FRI.PM","dept":"SRT","label":"LV5.FRI.PM","slot":"FRI.PM","level":"LV5","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV6_FRI_PM","code":"LV6.FRI.PM","dept":"SRT","label":"LV6.FRI.PM","slot":"FRI.PM","level":"LV6","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV7_FRI_PM","code":"LV7.FRI.PM","dept":"SRT","label":"LV7.FRI.PM","slot":"FRI.PM","level":"LV7","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV8_FRI_PM","code":"LV8.FRI.PM","dept":"SRT","label":"LV8.FRI.PM","slot":"FRI.PM","level":"LV8","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV9_FRI_PM","code":"LV9.FRI.PM","dept":"SRT","label":"LV9.FRI.PM","slot":"FRI.PM","level":"LV9","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV10_FRI_PM","code":"LV10.FRI.PM","dept":"SRT","label":"LV10.FRI.PM","slot":"FRI.PM","level":"LV10","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV2_SAT_AM","code":"LV2.SAT.AM","dept":"SRT","label":"LV2.SAT.AM","slot":"SAT.AM","level":"LV2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV3_SAT_AM","code":"LV3.SAT.AM","dept":"SRT","label":"LV3.SAT.AM","slot":"SAT.AM","level":"LV3","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV4_SAT_AM","code":"LV4.SAT.AM","dept":"SRT","label":"LV4.SAT.AM","slot":"SAT.AM","level":"LV4","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV5_SAT_AM","code":"LV5.SAT.AM","dept":"SRT","label":"LV5.SAT.AM","slot":"SAT.AM","level":"LV5","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV6_SAT_AM","code":"LV6.SAT.AM","dept":"SRT","label":"LV6.SAT.AM","slot":"SAT.AM","level":"LV6","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV7_SAT_AM","code":"LV7.SAT.AM","dept":"SRT","label":"LV7.SAT.AM","slot":"SAT.AM","level":"LV7","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV8_SAT_AM","code":"LV8.SAT.AM","dept":"SRT","label":"LV8.SAT.AM","slot":"SAT.AM","level":"LV8","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV9_SAT_AM","code":"LV9.SAT.AM","dept":"SRT","label":"LV9.SAT.AM","slot":"SAT.AM","level":"LV9","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV10_SAT_AM","code":"LV10.SAT.AM","dept":"SRT","label":"LV10.SAT.AM","slot":"SAT.AM","level":"LV10","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV2_SAT_NN","code":"LV2.SAT.NN","dept":"SRT","label":"LV2.SAT.NN","slot":"SAT.NN","level":"LV2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV3_SAT_NN","code":"LV3.SAT.NN","dept":"SRT","label":"LV3.SAT.NN","slot":"SAT.NN","level":"LV3","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV4_SAT_NN","code":"LV4.SAT.NN","dept":"SRT","label":"LV4.SAT.NN","slot":"SAT.NN","level":"LV4","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV5_SAT_NN","code":"LV5.SAT.NN","dept":"SRT","label":"LV5.SAT.NN","slot":"SAT.NN","level":"LV5","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV6_SAT_NN","code":"LV6.SAT.NN","dept":"SRT","label":"LV6.SAT.NN","slot":"SAT.NN","level":"LV6","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV7_SAT_NN","code":"LV7.SAT.NN","dept":"SRT","label":"LV7.SAT.NN","slot":"SAT.NN","level":"LV7","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV8_SAT_NN","code":"LV8.SAT.NN","dept":"SRT","label":"LV8.SAT.NN","slot":"SAT.NN","level":"LV8","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV9_SAT_NN","code":"LV9.SAT.NN","dept":"SRT","label":"LV9.SAT.NN","slot":"SAT.NN","level":"LV9","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV10_SAT_NN","code":"LV10.SAT.NN","dept":"SRT","label":"LV10.SAT.NN","slot":"SAT.NN","level":"LV10","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV2_SAT_PM","code":"LV2.SAT.PM","dept":"SRT","label":"LV2.SAT.PM","slot":"SAT.PM","level":"LV2","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV3_SAT_PM","code":"LV3.SAT.PM","dept":"SRT","label":"LV3.SAT.PM","slot":"SAT.PM","level":"LV3","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV4_SAT_PM","code":"LV4.SAT.PM","dept":"SRT","label":"LV4.SAT.PM","slot":"SAT.PM","level":"LV4","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV5_SAT_PM","code":"LV5.SAT.PM","dept":"SRT","label":"LV5.SAT.PM","slot":"SAT.PM","level":"LV5","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV6_SAT_PM","code":"LV6.SAT.PM","dept":"SRT","label":"LV6.SAT.PM","slot":"SAT.PM","level":"LV6","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV7_SAT_PM","code":"LV7.SAT.PM","dept":"SRT","label":"LV7.SAT.PM","slot":"SAT.PM","level":"LV7","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV8_SAT_PM","code":"LV8.SAT.PM","dept":"SRT","label":"LV8.SAT.PM","slot":"SAT.PM","level":"LV8","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV9_SAT_PM","code":"LV9.SAT.PM","dept":"SRT","label":"LV9.SAT.PM","slot":"SAT.PM","level":"LV9","capacity":null,"classTeacher":"","status":"active"},{"id":"SRT_LV10_SAT_PM","code":"LV10.SAT.PM","dept":"SRT","label":"LV10.SAT.PM","slot":"SAT.PM","level":"LV10","capacity":null,"classTeacher":"","status":"active"}];
+
+const DEPTS = ['SRK','GAK','ATC','SRT'];
+const DEPT_LABELS = {SRK:'Kindergarten AM',GAK:'Kindergarten PM',ATC:'After School Care',SRT:'English Course'};
+const S = {classes:[]};
+var srtViewMode = 'wizard';
+const SRT_ALL_LVS = ['LV1','LV2','LV3','LV4','LV5','LV6','LV7','LV8','LV9','LV10'];
+const SRT_SLOTS = ['FRI.PM','SAT.AM','SAT.NN','SAT.PM'];
+
+// ══ UI STATE ══
+const UI = { search:'', dept:'ALL', showArchived:false, sortCol:'', sortDir:0 };
+let editId = null;
+let modalDirty = false;
+
+// ══ CORE FUNCTIONS ══
+function loadData(){
+  var raw = Store.get();
+  if(!raw){var old=Store.getKey('masterhub_class_v3');if(old){raw=old;Store.set(old);Store.delKey('masterhub_class_v3');}}
+  if(raw){
+    try{
+      const p = JSON.parse(raw);
+      if(p.classes?.length){
+        // Migration: inactive → archived
+        p.classes.forEach(c => { if(c.status === 'inactive') c.status = 'archived'; });
+        // Migration: SRT old format (no slot field)
+        const srtOld = p.classes.filter(c => c.dept==='SRT' && !c.slot);
+        if(srtOld.length > 0){
+          const nonSrt = p.classes.filter(c => c.dept!=='SRT');
+          const seedSrt = SEED_CLASSES.filter(c => c.dept==='SRT');
+          S.classes = [...nonSrt,...seedSrt];
+        } else {
+          S.classes = p.classes;
+        }
+        saveData();
+        return;
+      }
+    }catch(e){}
+  }
+  // Also try migrating from old key
+  const oldRaw = Store.getKey('masterhub_class_v1');
+  if(oldRaw){
+    try{
+      const p = JSON.parse(oldRaw);
+      if(p.classes?.length){
+        p.classes.forEach(c => { if(c.status === 'inactive') c.status = 'archived'; });
+        const srtOld = p.classes.filter(c => c.dept==='SRT' && !c.slot);
+        if(srtOld.length > 0){
+          const nonSrt = p.classes.filter(c => c.dept!=='SRT');
+          const seedSrt = SEED_CLASSES.filter(c => c.dept==='SRT');
+          S.classes = [...nonSrt,...seedSrt];
+        } else {
+          S.classes = p.classes;
+        }
+        saveData();
+        return;
+      }
+    }catch(e){}
+  }
+  S.classes = JSON.parse(JSON.stringify(SEED_CLASSES));
+  saveData();
+}
+
+function saveData(){
+  Store.set( JSON.stringify(S));
+  const el = document.getElementById('last-saved');
+  if(el){ el.textContent = 'Saved ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); el.style.display = ''; }
+  updateManageCounts();
+}
+
+function genId(){ return 'cls_' + Date.now().toString(36); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function updateManageCounts(){
+  const t = document.getElementById('manage-total');
+  const a = document.getElementById('manage-active');
+  const r = document.getElementById('manage-archived');
+  if(t) t.textContent = S.classes.length;
+  if(a) a.textContent = S.classes.filter(c=>c.status==='active').length;
+  if(r) r.textContent = S.classes.filter(c=>c.status==='archived').length;
+}
+
+// ══ NAVIGATION ══
+function goPage(p){
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(el => el.classList.remove('on'));
+  document.getElementById('page-' + p).classList.add('on');
+  const map = { dashboard:0, list:1, manage:2 };
+  if(map[p] !== undefined) document.querySelectorAll('.ntab')[map[p]].classList.add('on');
+  if(p === 'dashboard') renderDashboard();
+  if(p === 'list') renderList();
+  if(p === 'manage') updateManageCounts();
+}
+
+// ══ TOAST ══
+let toastTimer;
+function toast(msg, ms){
+  const t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2000);
+}
+
+// ══ HELPERS ══
+function deptBadge(d){
+  const cls = {SRK:'b-srk',GAK:'b-gak',ATC:'b-atc',SRT:'b-srt'};
+  return `<span class="badge ${cls[d]||''}">${d}</span>`;
+}
+function statusBadge(s){
+  const cls = {active:'b-active',archived:'b-archived'};
+  return `<span class="badge ${cls[s]||'b-archived'}">${s}</span>`;
+}
+
+// ══ SEARCH & FILTER ══
+function doFilter(){
+  UI.search = document.getElementById('search-inp').value;
+  document.getElementById('search-x').style.display = UI.search ? '' : 'none';
+  renderList();
+}
+function clearSearch(){
+  document.getElementById('search-inp').value = '';
+  UI.search = '';
+  document.getElementById('search-x').style.display = 'none';
+  renderList();
+}
+function setDept(d, el){
+  UI.dept = d;
+  document.querySelectorAll('.dept-tag').forEach(e => e.classList.remove('on'));
+  el.classList.add('on');
+  renderList();
+}
+
+// ══ SORT (3-cycle) ══
+function sortBy(col){
+  if(UI.sortCol === col){
+    UI.sortDir = UI.sortDir === 1 ? -1 : UI.sortDir === -1 ? 0 : 1;
+  } else {
+    UI.sortCol = col; UI.sortDir = 1;
+  }
+  // Reset all arrows
+  document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('sorted'));
+  document.querySelectorAll('.sort-arrow').forEach(a => { a.textContent = '▲'; a.style.opacity = '.4'; });
+  if(UI.sortDir !== 0){
+    const th = document.querySelector(`#sa-${col}`)?.closest('th');
+    if(th) th.classList.add('sorted');
+    const arrow = document.getElementById('sa-' + col);
+    if(arrow){ arrow.textContent = UI.sortDir === 1 ? '▲' : '▼'; arrow.style.opacity = '1'; }
+  }
+  renderList();
+}
+
+// ══ RENDER LIST (All Classes) ══
+function renderList(){
+  let list = [...S.classes];
+  // Filter archived
+  if(!UI.showArchived) list = list.filter(c => c.status !== 'archived');
+  // Filter dept
+  if(UI.dept !== 'ALL') list = list.filter(c => c.dept === UI.dept);
+  // Search
+  if(UI.search){
+    const q = UI.search.toLowerCase();
+    list = list.filter(c =>
+      (c.label||c.code||'').toLowerCase().includes(q) ||
+      (c.classTeacher||'').toLowerCase().includes(q) ||
+      (c.code||'').toLowerCase().includes(q)
+    );
+  }
+  // Default sort: dept order (SRK→GAK→ATC→SRT), then code within dept
+  const DEPT_ORDER = {SRK:0,GAK:1,ATC:2,SRT:3};
+  list.sort((a,b) => {
+    const da = DEPT_ORDER[a.dept] ?? 9, db = DEPT_ORDER[b.dept] ?? 9;
+    if(da !== db) return da - db;
+    return String(a.code||'').localeCompare(String(b.code||''), undefined, {numeric:true});
+  });
+  // User sort overrides
+  if(UI.sortCol && UI.sortDir !== 0){
+    list.sort((a,b) => {
+      let va = a[UI.sortCol] || '', vb = b[UI.sortCol] || '';
+      if(typeof va === 'number') return (va - vb) * UI.sortDir;
+      return String(va).localeCompare(String(vb), undefined, {numeric:true}) * UI.sortDir;
+    });
+  }
+  // Count
+  document.getElementById('list-count').textContent = list.length + ' classes';
+  // Highlight helper
+  function hl(text){
+    if(!UI.search || !text) return text || '';
+    const re = new RegExp('(' + UI.search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')','gi');
+    return String(text).replace(re, '<mark>$1</mark>');
+  }
+  // Render
+  const tbody = document.getElementById('table-body');
+  if(!list.length){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No classes found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => `<tr onclick="openClassForm('${esc(c.id)}')" style="${c.status==='archived'?'opacity:.5':''}">
+    <td style="font-weight:600;font-family:monospace;font-size:11px">${hl(c.code)}</td>
+    <td>${hl(c.label||c.code)}</td>
+    <td>${deptBadge(c.dept)}</td>
+    <td style="font-size:11px">${hl(c.classTeacher) || '<span style="color:var(--hint)">—</span>'}</td>
+    <td style="font-size:11px">${c.capacity || '—'}</td>
+    <td>${statusBadge(c.status||'active')}</td>
+  </tr>`).join('');
+  // Print date
+  document.querySelectorAll('.print-date').forEach(el => el.textContent = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}));
+}
+
+// ══ MODAL: CLASS FORM ══
+function openClassForm(id){
+  const c = id ? S.classes.find(x => x.id === id) : null;
+  editId = id;
+  modalDirty = false;
+  const isEdit = !!c;
+  const title = isEdit ? 'Edit Class' : 'Add Class';
+  const isSRT = c ? c.dept === 'SRT' : false;
+
+  let body = `
+    <div class="form-row"><label>Code <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="f-code" value="${isEdit ? esc(c.code) : ''}" oninput="markDirty()" placeholder="e.g. SR 1"></div>
+    <div class="form-grid-2">
+      <div class="form-row"><label>Department <span style="color:var(--danger)">*</span></label>
+        <select id="f-dept" onchange="markDirty();toggleSRTFields()">
+          ${DEPTS.map(d => `<option value="${d}" ${isEdit && c.dept===d ? 'selected':''}>${d}</option>`).join('')}
+        </select></div>
+      <div class="form-row"><label>Status</label>
+        <select id="f-status" onchange="markDirty()">
+          <option value="active" ${!isEdit || c.status==='active' ? 'selected':''}>active</option>
+          <option value="archived" ${isEdit && c.status==='archived' ? 'selected':''}>archived</option>
+        </select></div>
+    </div>
+    <div class="form-row"><label>Label</label>
+      <input type="text" id="f-label" value="${isEdit ? esc(c.label||'') : ''}" oninput="markDirty()" placeholder="Display name (optional)"></div>
+    <div class="form-row"><label>Class Teacher</label>
+      <input type="text" id="f-teacher" value="${isEdit ? esc(c.classTeacher||'') : ''}" oninput="markDirty()"></div>
+    <div class="form-grid-2">
+      <div class="form-row"><label>Capacity</label>
+        <input type="number" id="f-cap" value="${isEdit && c.capacity ? c.capacity : ''}" oninput="markDirty()" min="1"></div>
+      <div class="form-row" id="srt-level-row" style="display:${isSRT?'block':'none'}"><label>Level (SRT)</label>
+        <select id="f-level" onchange="markDirty()">
+          <option value="">—</option>
+          ${SRT_ALL_LVS.map(lv => `<option value="${lv}" ${isEdit && c.level===lv ? 'selected':''}>${lv}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="form-row" id="srt-slot-row" style="display:${isSRT?'block':'none'}"><label>Slot (SRT)</label>
+      <select id="f-slot" onchange="markDirty()">
+        <option value="">—</option>
+        ${SRT_SLOTS.map(s => `<option value="${s}" ${isEdit && c.slot===s ? 'selected':''}>${s}</option>`).join('')}
+      </select></div>
+  `;
+
+  // Delete button (only for edit, left side)
+  const deleteBtn = isEdit
+    ? `<button class="btn btn-dng btn-sm" onclick="deleteClass('${esc(c.id)}')" style="margin-right:auto">Delete</button>`
+    : '';
+
+  document.getElementById('modal-slot').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this)tryCloseModal()">
+      <div class="modal">
+        <div class="modal-hdr">
+          <span class="modal-title">${title}</span>
+          <button class="x-btn" onclick="tryCloseModal()">×</button>
+        </div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-foot">
+          ${deleteBtn}
+          <button class="btn" onclick="tryCloseModal()">Cancel</button>
+          <button class="btn btn-pri" onclick="saveClass()">Save</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleSRTFields(){
+  const isSRT = document.getElementById('f-dept').value === 'SRT';
+  document.getElementById('srt-level-row').style.display = isSRT ? 'block' : 'none';
+  document.getElementById('srt-slot-row').style.display = isSRT ? 'block' : 'none';
+}
+
+function markDirty(){ modalDirty = true; }
+
+function tryCloseModal(){
+  if(modalDirty && !confirm('Unsaved changes. Discard?')) return;
+  closeModal();
+}
+function closeModal(){
+  document.getElementById('modal-slot').innerHTML = '';
+  editId = null; modalDirty = false;
+}
+
+function saveClass(){
+  const code = document.getElementById('f-code').value.trim();
+  if(!code){ toast('✕ Code is required'); return; }
+  const dept = document.getElementById('f-dept').value;
+  const status = document.getElementById('f-status').value;
+  const label = document.getElementById('f-label').value.trim() || code;
+  const teacher = document.getElementById('f-teacher').value.trim();
+  const cap = parseInt(document.getElementById('f-cap').value) || null;
+  const level = document.getElementById('f-level')?.value || '';
+  const slot = document.getElementById('f-slot')?.value || '';
+
+  if(editId){
+    const c = S.classes.find(x => x.id === editId);
+    if(c){
+      c.code = code; c.dept = dept; c.status = status; c.label = label;
+      c.classTeacher = teacher; c.capacity = cap;
+      if(dept === 'SRT'){ c.level = level; c.slot = slot; }
+      else { delete c.level; delete c.slot; }
+    }
+  } else {
+    const obj = { id:genId(), code, dept, label, capacity:cap, classTeacher:teacher, status };
+    if(dept === 'SRT'){ obj.level = level; obj.slot = slot; }
+    S.classes.push(obj);
+  }
+  saveData(); modalDirty = false; closeModal();
+  renderList(); toast('✓ Saved');
+}
+
+// ══ DELETE (双确认 — 主数据源) ══
+function deleteClass(id){
+  if(!confirm('Delete this class?')) return;
+  if(prompt('Type DELETE to confirm:') !== 'DELETE'){ toast('Delete cancelled'); return; }
+  const idx = S.classes.findIndex(x => x.id === id);
+  if(idx === -1) return;
+  const removed = S.classes.splice(idx, 1)[0];
+  saveData(); closeModal();
+  // Undo toast
+  toast('✓ Deleted <button onclick="undoDelete()" style="background:none;border:none;color:#F9CB42;cursor:pointer;font-weight:700;text-decoration:underline;font-family:inherit;font-size:12px;margin-left:6px">Undo</button>', 30000);
+  window._undoClass = { item:removed, idx };
+  clearTimeout(window._undoTimer);
+  window._undoTimer = setTimeout(() => { window._undoClass = null; }, 30000);
+  renderList(); renderDashboard();
+}
+function undoDelete(){
+  if(!window._undoClass) return;
+  S.classes.splice(window._undoClass.idx, 0, window._undoClass.item);
+  window._undoClass = null;
+  saveData(); renderList(); renderDashboard();
+  toast('✓ Restored');
+}
+
+// ══ KEYBOARD ══
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.querySelector('.modal-bg')){ tryCloseModal(); }
+  if((e.ctrlKey || e.metaKey) && e.key === 's'){ e.preventDefault(); saveData(); toast('✓ Saved'); }
+});
+
+// ══ PRINT ══
+function doPrint(){
+  const page = document.querySelector('.page.on');
+  if(page && page.id === 'page-list') window.print();
+  else { goPage('list'); setTimeout(() => window.print(), 200); }
+}
+
+// ══ EXPORT ══
+// ═══ STORE (Phase 1: localStorage → Phase 2: Supabase) ═══
+const Store = {
+  get(){ return localStorage.getItem(STORAGE_KEY); },
+  set(v){ localStorage.setItem(STORAGE_KEY, v); },
+  del(){ localStorage.removeItem(STORAGE_KEY); },
+  getKey(k){ return localStorage.getItem(k); },
+  delKey(k){ localStorage.removeItem(k); }
+};
+function _dateStamp(){var d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"_"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0");}
+function exportData(){
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MasterHub_Class_' + _dateStamp() + '.json';
+  a.click(); URL.revokeObjectURL(a.href); toast('✓ Exported');
+}
+
+// ══ IMPORT (Merge-with-preview) ══
+function importData(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const p = JSON.parse(r.result);
+      if(!p.classes){ toast('✕ Invalid format'); return; }
+      // Auto-backup before import
+      exportData();
+      // Merge: new items added, existing updated by id
+      const existingIds = new Set(S.classes.map(c => c.id));
+      let added = 0, updated = 0;
+      p.classes.forEach(nc => {
+        nc.status = nc.status === 'inactive' ? 'archived' : (nc.status || 'active');
+        const existing = S.classes.find(c => c.id === nc.id);
+        if(existing){ Object.assign(existing, nc); updated++; }
+        else { S.classes.push(nc); added++; }
+      });
+      saveData(); renderList(); renderDashboard();
+      toast(`✓ Import: ${added} new, ${updated} updated`);
+    }catch(err){ toast('✕ Parse error'); }
+  };
+  r.readAsText(f); e.target.value = '';
+}
+
+// ══ RESET ══
+function resetToSeed(){
+  if(!confirm('Reset ALL data to factory? Cannot undo.')) return;
+  if(prompt('Type RESET to confirm:') !== 'RESET') return;
+  exportData(); // auto-backup
+  S.classes = JSON.parse(JSON.stringify(SEED_CLASSES));
+  saveData(); goPage('dashboard'); toast('✓ Reset complete');
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD (preserved from v2 original)
+// ══════════════════════════════════════════
+
+function classBadge(c, isDup){
+  const bg  = isDup ? '#FCEBEB' : 'var(--sur2)';
+  const bdr = isDup ? '1.5px solid #F09595' : '.5px solid var(--bdr)';
+  const col = isDup ? '#A32D2D' : 'var(--txt)';
+  return `<div onclick="openRenameDialog('${c.id}')"
+    style="background:${bg};border:${bdr};border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;display:inline-block;position:relative"
+    title="${isDup ? '⚠ Duplicate — click to rename' : 'Click to rename'}">
+    ${isDup ? '<span style="position:absolute;top:-5px;right:-5px;background:#A32D2D;color:#fff;border-radius:50%;font-size:8px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-weight:700;pointer-events:none">!</span>' : ''}
+    <div style="font-weight:600;color:${col}">${c.label||c.code}</div>
+    ${c.classTeacher ? `<div style="font-size:10px;color:var(--mut)">${c.classTeacher}</div>` : ''}
+  </div>`;
+}
+
+function openRenameDialog(id){
+  const c = S.classes.find(x => x.id === id);
+  if(!c) return;
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.addEventListener('click', e => { if(e.target === ov) ov.remove(); });
+  ov.innerHTML = `<div style="background:var(--sur);border-radius:12px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center">
+      <span style="font-size:13px;font-weight:600;flex:1">✏️ Rename Class</span>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--mut)">×</button>
+    </div>
+    <div style="padding:16px 20px">
+      <p style="font-size:11px;color:var(--mut);margin-bottom:8px">Class Name</p>
+      <input id="rename-inp" value="${c.label||c.code}"
+        style="width:100%;padding:8px 12px;border-radius:7px;border:.5px solid var(--bdr);font-size:14px;font-weight:600;font-family:inherit;outline:none"
+        onkeydown="if(event.key==='Enter')doRename('${id}')">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button onclick="this.closest('[style*=fixed]').remove()" class="btn">Cancel</button>
+        <button onclick="doRename('${id}')" class="btn btn-pri">Confirm</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  setTimeout(() => { const i = document.getElementById('rename-inp'); if(i){ i.focus(); i.select(); } }, 50);
+  window._renameOv = ov;
+}
+function doRename(id){
+  const c = S.classes.find(x => x.id === id);
+  const inp = document.getElementById('rename-inp');
+  if(!c || !inp) return;
+  const val = inp.value.trim();
+  if(!val){ inp.style.border = '1.5px solid #F09595'; return; }
+  c.code = val; c.label = val;
+  saveData();
+  if(window._renameOv) window._renameOv.remove();
+  renderDashboard();
+}
+
+// Counter pill
+function classRow(label, classes, dept, prefix, labelColor){
+  const lc = labelColor || 'var(--mut)';
+  const ep = encodeURIComponent(prefix);
+  const cnt = {};
+  classes.forEach(c => { const k = c.label || c.code; cnt[k] = (cnt[k]||0) + 1; });
+
+  const miniCtrl = `<div style="display:inline-flex;align-items:center;gap:2px;background:var(--sur2);border:.5px solid var(--bdr);border-radius:12px;padding:2px 6px;flex-shrink:0">
+    <span style="font-size:9px;font-weight:700;color:${lc};letter-spacing:.03em;min-width:18px">${label}</span>
+    <span style="width:.5px;height:10px;background:var(--bdr);margin:0 2px"></span>
+    <button onclick="adjustGroup('${dept}','${ep}',-1)" style="border:none;background:none;color:var(--layer);cursor:pointer;font-size:11px;font-weight:700;padding:0;line-height:1;width:14px;text-align:center" title="Remove">−</button>
+    <span style="font-size:9px;font-weight:600;min-width:12px;text-align:center;color:var(--txt)">${classes.length}</span>
+    <button onclick="adjustGroup('${dept}','${ep}',1)" style="border:none;background:none;color:var(--layer);cursor:pointer;font-size:11px;font-weight:700;padding:0;line-height:1;width:14px;text-align:center" title="Add">+</button>
+    <span style="width:.5px;height:10px;background:var(--bdr);margin:0 2px"></span>
+    <button onclick="clearGroup('${dept}','${ep}')" style="border:none;background:none;color:var(--hint);cursor:pointer;font-size:10px;padding:0;line-height:1;width:12px;text-align:center" title="Clear to 0" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--hint)'">×</button>
+  </div>`;
+
+  return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    ${miniCtrl}
+    <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1">
+      ${classes.map(c => classBadge(c, cnt[c.label||c.code] > 1)).join('')}
+    </div>
+  </div>`;
+}
+
+// +/- group adjustment (preserved)
+function adjustGroup(dept, encPrefix, delta){
+  const prefix = decodeURIComponent(encPrefix);
+  if(dept === 'SRT'){ openSRTDialog(prefix, delta); return; }
+  if(dept === 'ATC'){ openATCDialog(delta); return; }
+  // SRK/GAK
+  const grpCls = S.classes.filter(c => c.dept===dept && c.code.startsWith(prefix+' '))
+    .sort((a,b) => parseInt(a.code.split(' ')[1]) - parseInt(b.code.split(' ')[1]));
+  if(delta > 0){
+    const nums = grpCls.map(c => parseInt(c.code.split(' ')[1])).filter(n => !isNaN(n));
+    const next = nums.length ? Math.max(...nums)+1 : 1;
+    const code = `${prefix} ${next}`;
+    S.classes.push({id:genId(),code,dept,label:code,capacity:null,classTeacher:'',status:'active'});
+  } else {
+    if(!grpCls.length) return;
+    S.classes = S.classes.filter(c => c.id !== grpCls[grpCls.length-1].id);
+  }
+  saveData(); renderDashboard();
+}
+
+function clearGroup(dept, encPrefix){
+  const prefix = decodeURIComponent(encPrefix);
+  if(dept === 'SRT') S.classes = S.classes.filter(c => !(c.dept==='SRT' && c.slot===prefix));
+  else if(dept === 'ATC') S.classes = S.classes.filter(c => c.dept !== 'ATC');
+  else S.classes = S.classes.filter(c => !(c.dept===dept && c.code.startsWith(prefix+' ')));
+  saveData(); renderDashboard();
+}
+
+// SRT Grid toggle
+function toggleSRTCell(lv, slot){
+  const matches = S.classes.filter(c => c.dept==='SRT' && c.slot===slot && c.level===lv);
+  if(matches.length === 0){
+    S.classes.push({id:genId(),code:`${lv}.${slot}`,dept:'SRT',label:`${lv}.${slot}`,slot,level:lv,capacity:null,classTeacher:'',status:'active'});
+    saveData(); renderDashboard();
+  } else if(matches.length === 1){
+    S.classes = S.classes.filter(c => c.id !== matches[0].id);
+    saveData(); renderDashboard();
+  } else {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.addEventListener('click', e => { if(e.target === ov) ov.remove(); });
+    ov.innerHTML = `<div style="background:var(--sur);border-radius:12px;width:380px;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+      <div style="padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center">
+        <span style="font-size:13px;font-weight:600;flex:1">➖ Remove — ${lv}.${slot}</span>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--mut)">×</button>
+      </div>
+      <div style="padding:16px 20px">
+        <p style="font-size:11px;color:var(--mut);margin-bottom:12px">Select which class to remove:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${matches.map(c => `<button onclick="doRemoveSRTClass('${c.id}')" style="padding:8px 18px;border-radius:8px;border:.5px solid var(--danger);background:#FCEBEB;cursor:pointer;font-size:13px;font-weight:600;color:var(--danger)">${c.label}</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(ov); window._srtOv = ov;
+  }
+}
+
+// ATC Dialog (preserved)
+const ATC_ALL = ['A1','A2','A3','A4','A5','A6'];
+function openATCDialog(delta){
+  const existing = S.classes.filter(c => c.dept==='ATC').sort((a,b) => parseInt(a.code.slice(1)) - parseInt(b.code.slice(1)));
+  const existingCodes = existing.map(c => c.code);
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.addEventListener('click', e => { if(e.target === ov) ov.remove(); });
+  const isAdd = delta > 0;
+  const title = isAdd ? '➕ Add Class — ATC' : '➖ Remove Class — ATC';
+  const hint = isAdd ? 'Select class to add:' : 'Select class to remove:';
+  let buttons = '';
+  if(isAdd){
+    buttons = ATC_ALL.map(code => {
+      const has = existingCodes.includes(code);
+      const bdr = has ? '1.5px solid #F9CB42' : '.5px solid var(--bdr)';
+      const bg = has ? '#FFF8E1' : 'var(--sur2)';
+      const tag = has ? '<span style="font-size:9px;color:#854F0B;display:block">exists</span>' : '';
+      return `<button onclick="doAddATCClass('${code}')" style="padding:8px 18px;border-radius:8px;border:${bdr};background:${bg};cursor:pointer;font-size:14px;font-weight:700;text-align:center">${code}${tag}</button>`;
+    }).join('');
+  } else {
+    buttons = existing.length
+      ? existing.map(c => `<button onclick="doRemoveATCClass('${c.id}')" style="padding:8px 18px;border-radius:8px;border:.5px solid var(--danger);background:#FCEBEB;cursor:pointer;font-size:14px;font-weight:700;color:var(--danger)">${c.code}</button>`).join('')
+      : '<p style="color:var(--hint);font-size:12px">No classes to remove</p>';
+  }
+  ov.innerHTML = `<div style="background:var(--sur);border-radius:12px;width:380px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center">
+      <span style="font-size:13px;font-weight:600;flex:1">${title}</span>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--mut)">×</button>
+    </div>
+    <div style="padding:16px 20px">
+      <p style="font-size:11px;color:var(--mut);margin-bottom:12px">${hint}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${buttons}</div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov); window._atcOv = ov;
+}
+function doAddATCClass(code){
+  S.classes.push({id:genId(),code,dept:'ATC',label:code,capacity:null,classTeacher:'',status:'active'});
+  saveData(); if(window._atcOv) window._atcOv.remove(); renderDashboard();
+}
+function doRemoveATCClass(id){
+  S.classes = S.classes.filter(c => c.id !== id);
+  saveData(); if(window._atcOv) window._atcOv.remove(); renderDashboard();
+}
+
+// SRT Wizard Dialog (preserved)
+function openSRTDialog(slot, delta){
+  const active = S.classes.filter(c => c.status === 'active');
+  const existing = active.filter(c => c.dept==='SRT' && c.slot===slot)
+    .sort((a,b) => SRT_ALL_LVS.indexOf(a.level) - SRT_ALL_LVS.indexOf(b.level));
+  const existingLvs = existing.map(c => c.level);
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.addEventListener('click', e => { if(e.target === ov) ov.remove(); });
+  const isAdd = delta > 0;
+  const title = isAdd ? `➕ Add Class — ${slot}` : `➖ Remove Class — ${slot}`;
+  const hint = isAdd ? 'Select class to add:' : 'Select class to remove:';
+  let buttons = '';
+  if(isAdd){
+    buttons = SRT_ALL_LVS.map(lv => {
+      const has = existingLvs.includes(lv);
+      const bdr = has ? '1.5px solid #F9CB42' : '.5px solid var(--bdr)';
+      const bg = has ? '#FFF8E1' : 'var(--sur2)';
+      const tag = has ? '<span style="font-size:9px;color:#854F0B;display:block">exists</span>' : '';
+      return `<button onclick="doAddSRTClass('${lv}','${slot}')" style="padding:8px 18px;border-radius:8px;border:${bdr};background:${bg};cursor:pointer;font-size:13px;font-weight:600;text-align:center">${lv}.${slot}${tag}</button>`;
+    }).join('');
+  } else {
+    buttons = existing.length
+      ? existing.map(c => `<button onclick="doRemoveSRTClass('${c.id}')" style="padding:8px 18px;border-radius:8px;border:.5px solid var(--danger);background:#FCEBEB;cursor:pointer;font-size:13px;font-weight:600;color:var(--danger)">${c.label}</button>`).join('')
+      : '<p style="color:var(--hint);font-size:12px">No classes to remove</p>';
+  }
+  ov.innerHTML = `<div style="background:var(--sur);border-radius:12px;width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center">
+      <span style="font-size:13px;font-weight:600;flex:1">${title}</span>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--mut)">×</button>
+    </div>
+    <div style="padding:16px 20px">
+      <p style="font-size:11px;color:var(--mut);margin-bottom:12px">${hint}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${buttons}</div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov); window._srtOv = ov;
+}
+function doAddSRTClass(lv, slot){
+  S.classes.push({id:genId(),code:`${lv}.${slot}`,dept:'SRT',label:`${lv}.${slot}`,slot,level:lv,capacity:null,classTeacher:'',status:'active'});
+  saveData(); if(window._srtOv) window._srtOv.remove(); renderDashboard();
+}
+function doRemoveSRTClass(id){
+  S.classes = S.classes.filter(c => c.id !== id);
+  saveData(); if(window._srtOv) window._srtOv.remove(); renderDashboard();
+}
+
+// ══ RENDER DASHBOARD (preserved logic, updated dept colors) ══
+function renderDashboard(){
+  const active = S.classes.filter(c => c.status === 'active');
+
+  function card(dept, label, body){
+    const n = active.filter(c => c.dept === dept).length;
+    const deptColors = {SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
+    return `<div class="card"><div class="card-hdr"><span class="card-title">${deptBadge(dept)} ${label}</span><span style="font-size:11px;color:var(--mut)">${n} classes</span></div>${body}</div>`;
+  }
+
+  // SRK
+  const srkHTML = card('SRK','Kindergarten AM',
+    classRow('SR',active.filter(c=>c.dept==='SRK'&&c.code.startsWith('SR ')),'SRK','SR','var(--d-srk)')+
+    classRow('IN',active.filter(c=>c.dept==='SRK'&&c.code.startsWith('IN ')),'SRK','IN','var(--d-srk)')+
+    classRow('JR',active.filter(c=>c.dept==='SRK'&&c.code.startsWith('JR ')),'SRK','JR','var(--d-srk)')+
+    classRow('BB',active.filter(c=>c.dept==='SRK'&&c.code.startsWith('BB ')),'SRK','BB','var(--d-srk)')
+  );
+
+  // GAK
+  const gakHTML = card('GAK','Kindergarten PM',
+    classRow('SR',active.filter(c=>c.dept==='GAK'&&c.code.startsWith('SR ')),'GAK','SR','var(--d-gak)')+
+    classRow('IN',active.filter(c=>c.dept==='GAK'&&c.code.startsWith('IN ')),'GAK','IN','var(--d-gak)')+
+    classRow('JR',active.filter(c=>c.dept==='GAK'&&c.code.startsWith('JR ')),'GAK','JR','var(--d-gak)')+
+    classRow('BB',active.filter(c=>c.dept==='GAK'&&c.code.startsWith('BB ')),'GAK','BB','var(--d-gak)')
+  );
+
+  // ATC
+  const atcCls = active.filter(c=>c.dept==='ATC').sort((a,b)=>(a.code||'').localeCompare(b.code||'',undefined,{numeric:true}));
+  const atcHTML = card('ATC','After School Care',
+    classRow('A',atcCls,'ATC','A','var(--d-atc)')
+  );
+
+  // SRT with wizard/grid toggle
+  const srtToggle = `<div style="display:flex;gap:6px;margin-bottom:14px" class="no-print">
+    <button onclick="srtViewMode='wizard';renderDashboard()"
+      style="display:inline-flex;align-items:center;gap:4px;padding:5px 16px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;border:.5px solid var(--bdr);background:${srtViewMode==='wizard'?'var(--sur2)':'var(--sur)'};color:var(--txt);font-family:inherit">
+      🧭 Wizard
+    </button>
+    <button onclick="srtViewMode='grid';renderDashboard()"
+      style="display:inline-flex;align-items:center;gap:4px;padding:5px 16px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;border:.5px solid ${srtViewMode==='grid'?'var(--d-srt)':'var(--bdr)'};background:${srtViewMode==='grid'?'var(--d-srt)':'var(--sur)'};color:${srtViewMode==='grid'?'#fff':'var(--txt)'};font-family:inherit">
+      📊 Grid
+    </button>
+  </div>`;
+
+  let srtBody = '';
+  if(srtViewMode === 'grid'){
+    srtBody = `<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">
+      <thead><tr>
+        <th style="background:#1a1a1a;color:#fff;padding:7px 12px;border:.5px solid #333;text-align:left;min-width:52px"></th>
+        ${SRT_SLOTS.map(s=>`<th style="background:#1a1a1a;color:#fff;padding:7px 12px;border:.5px solid #333;text-align:center;font-weight:700;white-space:nowrap">${s}</th>`).join('')}
+      </tr></thead>
+      <tbody>${(()=>{
+        let rows = '';
+        SRT_ALL_LVS.forEach(lv => {
+          const bySlot = {};
+          SRT_SLOTS.forEach(slot => {
+            bySlot[slot] = active.filter(c=>c.dept==='SRT'&&c.slot===slot&&c.level===lv)
+              .sort((a,b)=>(a.id||'').localeCompare(b.id||''));
+          });
+          const maxRows = Math.max(...SRT_SLOTS.map(s=>bySlot[s].length), 1);
+          for(let ri=0; ri<maxRows; ri++){
+            const isFirst = ri === 0;
+            const labelCell = isFirst
+              ? `<td rowspan="${maxRows}" style="padding:7px 12px;border:.5px solid #ddd;font-weight:700;background:#fff;vertical-align:middle">${lv}</td>`
+              : '';
+            const slotCells = SRT_SLOTS.map(slot => {
+              const cls = bySlot[slot][ri];
+              if(cls){
+                const lbl = cls.label !== lv+'.'+slot ? `<span style="font-size:8px;color:#888;display:block;line-height:1.2">${cls.label}</span>` : '';
+                return `<td onclick="doRemoveSRTClass('${cls.id}')" style="text-align:center;border:.5px solid #ddd;cursor:pointer;background:#fff;font-size:14px;font-weight:700" title="Remove ${cls.label}">✓${lbl}</td>`;
+              } else if(bySlot[slot].length === 0){
+                return isFirst
+                  ? `<td onclick="toggleSRTCell('${lv}','${slot}')" style="text-align:center;border:.5px solid #1a1a1a;cursor:pointer;background:#1a1a1a" title="Add"></td>`
+                  : `<td style="background:#f7f7f7;border:.5px solid #eee"></td>`;
+              } else {
+                return `<td style="background:#f7f7f7;border:.5px solid #eee"></td>`;
+              }
+            }).join('');
+            rows += `<tr>${labelCell}${slotCells}</tr>`;
+          }
+        });
+        return rows;
+      })()}</tbody>
+    </table></div>`;
+  } else {
+    srtBody = SRT_SLOTS.map(slot => {
+      const cls = active.filter(c=>c.dept==='SRT'&&c.slot===slot)
+        .sort((a,b)=>SRT_ALL_LVS.indexOf(a.level)-SRT_ALL_LVS.indexOf(b.level));
+      return classRow(slot, cls, 'SRT', slot, 'var(--d-srt)');
+    }).join('');
+  }
+  const srtHTML = card('SRT','English Course', srtToggle + srtBody);
+
+  // Stats
+  const statsHTML = `<div class="stat-grid">
+    <div class="stat-card"><div class="stat-n">${active.length}</div><div class="stat-l">Active Classes</div></div>
+    <div class="stat-card"><div class="stat-n" style="color:var(--d-srk)">${active.filter(c=>c.dept==='SRK').length}</div><div class="stat-l">SRK</div></div>
+    <div class="stat-card"><div class="stat-n" style="color:var(--d-gak)">${active.filter(c=>c.dept==='GAK').length}</div><div class="stat-l">GAK</div></div>
+    <div class="stat-card"><div class="stat-n" style="color:var(--d-atc)">${active.filter(c=>c.dept==='ATC').length}</div><div class="stat-l">ATC</div></div>
+    <div class="stat-card"><div class="stat-n" style="color:var(--d-srt)">${active.filter(c=>c.dept==='SRT').length}</div><div class="stat-l">SRT</div></div>
+  </div>`;
+
+  document.getElementById('dashboard-content').innerHTML = statsHTML + srkHTML + gakHTML + atcHTML + srtHTML;
+}
+
+// ══ AUTH ══
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-pass').value;
+  const errEl=document.getElementById('auth-err');
+  errEl.textContent='';
+  if(!email){errEl.textContent='Please enter email';return;}
+  if(!pass){errEl.textContent='Please enter password';return;}
+  const btn=document.getElementById('auth-login-btn');
+  btn.disabled=true;btn.textContent='Logging in...';
+  try{
+    const{error}=await _sb.auth.signInWithPassword({email,password:pass});
+    if(error)throw error;
+    await initApp();
+  }catch(e){errEl.textContent=e.message||'Login failed';btn.disabled=false;btn.textContent='Login';}
+}
+async function doMagicLink(){
+  const email=document.getElementById('auth-email').value.trim();
+  const errEl=document.getElementById('auth-err');
+  errEl.textContent='';
+  if(!email){errEl.textContent='Please enter email';return;}
+  const btn=document.getElementById('auth-magic-btn');
+  btn.disabled=true;btn.textContent='Sending...';
+  try{
+    const{error}=await _sb.auth.signInWithOtp({email});
+    if(error)throw error;
+    errEl.style.color='var(--ok)';errEl.textContent='✓ Check your email for the login link';
+  }catch(e){errEl.textContent=e.message||'Failed to send';}
+  btn.disabled=false;btn.textContent='Send Magic Link';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  ['auth-email','auth-pass'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  });
+});
+async function initApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  loadData();
+  document.getElementById('loading-screen').style.display='none';
+  renderDashboard();
+}
+
+// ══ INIT ══
+(async()=>{
+  const{data:{session}}=await _sb.auth.getSession();
+  if(session){await initApp();}
+})();
+
+// beforeunload
+window.addEventListener('beforeunload',()=>{try{saveData();}catch(e){}});
+</script>
+</body>
+</html>
