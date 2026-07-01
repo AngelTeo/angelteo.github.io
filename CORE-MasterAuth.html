@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta property="og:title" content="CORE-MasterAuth">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>CORE-MasterAuth v1</title>
+<title>CORE-MasterAuth v2</title>
 <style>
 :root{
   --layer:#5C1010;
@@ -123,7 +123,7 @@ tr:last-child td{border-bottom:none}
 <!-- APP -->
 <div id="app" style="display:none">
 <div class="nav">
-  <div class="nav-logo">CORE-MasterAuth <span class="ver">v1</span></div>
+  <div class="nav-logo">CORE-MasterAuth <span class="ver">v2</span></div>
   <button class="ntab on" onclick="goPage('roster')">Roster</button>
   <button class="ntab" onclick="goPage('manage')">Manage</button>
   <div class="nav-r">
@@ -188,6 +188,7 @@ tr:last-child td{border-bottom:none}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const DB=_sb.schema('internal');
 
 const ROLES=['OWNER','ADMIN','TOP_MGMT','MGMT','MARKETING','TEACHER'];
 const DEPTS=['SRK','GAK','ATC','SRT'];
@@ -211,8 +212,8 @@ function goPage(p){
 // ══ DATA ══
 async function loadData(){
   const [um,pi]=await Promise.all([
-    _sb.from('users_meta').select('user_id,role,department,dept_group,is_active,display_name,email,lifecycle_status'),
-    _sb.from('pending_invites').select('email,role,department,display_name,invited_at')
+    DB.from('users_meta').select('user_id,role,department,dept_group,is_active,display_name,email,lifecycle_status'),
+    DB.from('pending_invites').select('email,role,department,display_name,invited_at')
   ]);
   const rows=[];
   (um.data||[]).forEach(u=>rows.push({
@@ -297,7 +298,7 @@ async function submitInvite(){
   const dept=[...invDept];
   const btn=document.getElementById('inv-send'); btn.disabled=true; btn.textContent='Sending…';
   try{
-    const {error:e1}=await _sb.from('pending_invites').upsert({
+    const {error:e1}=await DB.from('pending_invites').upsert({
       email, role, department:dept, dept_group:dept, display_name:name||null
     },{onConflict:'email'});
     if(e1) throw e1;
@@ -315,7 +316,7 @@ async function resendInvite(email){
 }
 async function cancelInvite(email){
   if(!confirm('Cancel invite for '+email+'?'))return;
-  const {error}=await _sb.from('pending_invites').delete().eq('email',email);
+  const {error}=await DB.from('pending_invites').delete().eq('email',email);
   if(error){toast('✕ '+error.message);return;}
   toast('Invite cancelled'); await refresh();
 }
@@ -335,7 +336,7 @@ async function submitEdit(){
   const dept=[...edDept];
   const btn=document.getElementById('ed-save'); btn.disabled=true; btn.textContent='Saving…';
   try{
-    const {error}=await _sb.from('users_meta').update({
+    const {error}=await DB.from('users_meta').update({
       display_name:name||null, role, department:dept, dept_group:dept
     }).eq('user_id',edTarget);
     if(error) throw error;
@@ -348,7 +349,7 @@ async function submitEdit(){
 async function terminate(uid){
   const r=ROSTER.find(x=>x.id===uid); if(!r)return;
   if(!confirm('Terminate '+r.name+'?\nThey will be filtered out of every system immediately.'))return;
-  const {error}=await _sb.from('users_meta').update({
+  const {error}=await DB.from('users_meta').update({
     is_active:false, lifecycle_status:'TERMINATED', lifecycle_reason:'Terminated via MasterAuth'
   }).eq('user_id',uid);
   if(error){toast('✕ '+error.message);return;}
@@ -356,7 +357,7 @@ async function terminate(uid){
 }
 async function reactivate(uid){
   const r=ROSTER.find(x=>x.id===uid); if(!r)return;
-  const {error}=await _sb.from('users_meta').update({
+  const {error}=await DB.from('users_meta').update({
     is_active:true, lifecycle_status:'ACTIVE', lifecycle_reason:'Reactivated via MasterAuth'
   }).eq('user_id',uid);
   if(error){toast('✕ '+error.message);return;}
@@ -374,7 +375,7 @@ function renderManage(){
   <div class="card">
     <div class="mg-title">System Info</div>
     <div class="mg-row"><span class="k">System</span><span class="v">CORE-MasterAuth</span></div>
-    <div class="mg-row"><span class="k">Version</span><span class="v">v1</span></div>
+    <div class="mg-row"><span class="k">Version</span><span class="v">v2</span></div>
     <div class="mg-row"><span class="k">Layer</span><span class="v">CORE</span></div>
     <div class="mg-row"><span class="k">Data source</span><span class="v"><span class="mg-code">internal.users_meta</span></span></div>
     <div class="mg-row"><span class="k">Invites</span><span class="v"><span class="mg-code">internal.pending_invites</span></span></div>
