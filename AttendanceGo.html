@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v3</title>
+<title>OPR-AttendanceGo v4</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -149,7 +149,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v3</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v4</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -171,7 +171,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=3;
+const APP_VERSION=4;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','mc'];
@@ -218,7 +218,7 @@ async function initApp(){
   try{
     const[stuRes, memRes]=await Promise.all([
       _sb.from('hub_students').select('id,name,name_cn,status'),
-      _sb.from('hub_student_memberships').select('student_id,dept,class_code,num')
+      _sb.from('hub_student_memberships').select('student_id,dept,class_code,num,start_date,end_date')
     ]);
     allStudents=(stuRes.data||[]).filter(s=>(s.status||'').toLowerCase()==='active');
     allMemberships=memRes.data||[];
@@ -239,7 +239,7 @@ async function loadAttendance(date){
 
 // ── Get students for a dept+class_code ──
 function getClassStudents(dept,classCode){
-  const mems=allMemberships.filter(m=>m.dept===dept&&m.class_code===classCode);
+  const mems=allMemberships.filter(m=>m.dept===dept&&m.class_code===classCode&&m.end_date==null);
   return mems.map(m=>{
     const stu=allStudents.find(s=>s.id===m.student_id);
     if(!stu) return null;
@@ -255,8 +255,8 @@ function getStatus(studentId,dept){
 
 // ── SRT: check if class has session today ──
 function isSRTToday(classCode){
-  // class_code like SRT-LV10.SAT.AM → extract day part
-  const parts=classCode.replace(/^SRT-/,'').split('.');
+  // class_code like SRT_LV10_SAT_AM (D40 new format) or legacy SRT-LV10.SAT.AM
+  const parts=classCode.replace(/^SRT[-_]/,'').split(/[._]/);
   // Day is the part matching MON/TUE/WED/THU/FRI/SAT/SUN
   const DAYS=['MON','TUE','WED','THU','FRI','SAT','SUN'];
   const dayPart=parts.find(p=>DAYS.includes(p));
@@ -267,7 +267,7 @@ function isSRTToday(classCode){
 
 // ── Get unique classes for dept from memberships ──
 function getDeptClasses(dept,filterToday=true){
-  const codes=[...new Set(allMemberships.filter(m=>m.dept===dept).map(m=>m.class_code))];
+  const codes=[...new Set(allMemberships.filter(m=>m.dept===dept&&m.end_date==null).map(m=>m.class_code))];
   let sorted=codes.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   if(dept==='SRT'&&filterToday) sorted=sorted.filter(c=>isSRTToday(c));
   sorted=sorted.filter(c=>!c.includes('RSVP'));
