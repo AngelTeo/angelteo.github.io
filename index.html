@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<title>Academee — Management Platform</title>
+<style>
+  :root{
+    --bg:#FAF7F2;--sur:#FFFFFF;--bdr:rgba(0,0,0,.08);
+    --txt:#2A1F1A;--mut:#7A6A5E;--hint:#A89889;
+    --acc:#5C1010;--warn:#BA7517;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+    background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+
+  header{padding:24px 36px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.1)}
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .brand-name{font-size:22px;font-weight:600;letter-spacing:.5px}
+  .brand-tag{font-size:11px;font-weight:400;opacity:.7;text-transform:uppercase;letter-spacing:1.2px}
+  .header-meta{font-size:11px;opacity:.65;font-variant-numeric:tabular-nums}
+
+  main{flex:1;max-width:1200px;margin:0 auto;padding:28px 36px;width:100%}
+
+  .section{margin-bottom:24px}
+  .section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .section-dot{width:8px;height:8px;border-radius:50%}
+  .section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--mut)}
+  .section-count{font-size:10px;color:var(--hint)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .app-card{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:space-between;transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden;cursor:pointer}
+  .app-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.06);border-color:rgba(0,0,0,.14)}
+  .app-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--card-color,var(--acc))}
+  .app-name{font-size:15px;font-weight:600;letter-spacing:-.1px}
+  .app-ver{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(249,203,66,.15);color:var(--warn);white-space:nowrap}
+
+  footer{padding:18px 36px;border-top:1px solid var(--bdr);font-size:10px;color:var(--hint);display:flex;justify-content:space-between;align-items:center;background:var(--sur)}
+  footer a{color:var(--mut);text-decoration:none}
+  footer a:hover{color:var(--acc)}
+
+  .empty-msg{text-align:center;padding:40px;color:var(--hint);font-size:12px}
+
+  @media(max-width:600px){
+    header{padding:18px 20px}
+    main{padding:24px 20px}
+    .brand-name{font-size:18px}
+    .grid{grid-template-columns:1fr 1fr;gap:10px}
+  }
+
+  #auth-screen{display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg)}
+  #auth-box{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:32px 28px;width:340px;max-width:90vw;text-align:center}
+  #auth-box h2{font-size:18px;font-weight:600;margin-bottom:4px;color:var(--acc)}
+  #auth-box p{font-size:12px;color:var(--mut);margin-bottom:20px}
+  #auth-box input{width:100%;padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;margin-bottom:10px;font-family:inherit}
+  #auth-box button{width:100%;padding:10px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:6px}
+  .btn-login{background:var(--acc);color:#fff}
+  .btn-magic{background:var(--bg);color:var(--mut);border:1px solid var(--bdr)!important}
+  #auth-err{color:#A32D2D;font-size:11px;min-height:16px;margin-bottom:8px}
+  #app-wrap{display:none;flex-direction:column;min-height:100vh}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div id="auth-box">
+    <h2>Academee</h2>
+    <p>Management Platform · Login</p>
+    <div id="auth-err"></div>
+    <input type="email" id="auth-email" placeholder="Email">
+    <input type="password" id="auth-pass" placeholder="Password">
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div style="display:flex;align-items:center;gap:12px;margin:4px 0"><div style="flex:1;height:1px;background:var(--bdr)"></div><span style="font-size:12px;color:var(--mut)">or</span><div style="flex:1;height:1px;background:var(--bdr)"></div></div>
+    <button class="btn-magic" onclick="doMagicLink()">Send Magic Link</button>
+  </div>
+</div>
+
+<div id="app-wrap">
+<header>
+  <div class="brand">
+    <span class="brand-name">Academee</span>
+    <span class="brand-tag">Management Platform</span>
+  </div>
+  <div class="header-meta" id="header-meta"></div>
+</header>
+<main id="main-content"></main>
+<footer>
+  <div>Academee Education Centre · Muar, Johor</div>
+  <div>Platform Architecture · <a href="https://github.com/" target="_blank">GitHub</a></div>
+</footer>
+</div>
+
+<script>
+const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// ══ Live systems registry ══
+// Only systems with deployed HTML get a card. Others are in role_access but not shown here.
+const LIVE={
+  'CORE-MasterAuth':   {href:'CORE-MasterAuth.html',   name:'MasterAuth',   ver:'v10', group:'CORE — Permissions',      color:'#5C1010', order:0},
+  'CORE-Subject':      {href:'MasterHub_Subject.html',  name:'Subject',      ver:'v7',  group:'MasterHub — Master Data', color:'#C45C5C', order:1},
+  'CORE-Room':         {href:'MasterHub_Room.html',     name:'Room',         ver:'v11', group:'MasterHub — Master Data', color:'#E8A04E', order:2},
+  'CORE-Class':        {href:'MasterHub_Class.html',    name:'Class',        ver:'v6',  group:'MasterHub — Master Data', color:'#7AB05A', order:3},
+  'CORE-Teacher':      {href:'MasterHub_Teacher.html',  name:'Teacher',      ver:'v8',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
+  'CORE-Calendar':     {href:'MasterHub_Calendar.html', name:'Calendar',     ver:'v7',  group:'MasterHub — Master Data', color:'#BA7517', order:5},
+  'CORE-Student':      {href:'MasterHub_Student.html',  name:'Student',      ver:'v16', group:'MasterHub — Master Data', color:'#993556', order:6},
+  'OPR-AttendanceGo':  {href:'AttendanceGo.html',       name:'AttendanceGo', ver:'v5',  group:'OPR — Operations',        color:'#8B6C2A', order:7},
+  'EVT-SportsDay':     {href:'EventSystem-SportsDay.html',name:'SportsDay',  ver:'v13', group:'EVT — Events',            color:'#7870CC', order:8}
+};
+
+const LAYER_COLORS={
+  'CORE':'#5C1010','EDU':'#236FAD','BIZ':'#C04E28','EVT':'#7870CC',
+  'RPT':'#5A6470','SOP':'#2A7B6F','OPR':'#8B6C2A','HR':'#993556',
+  'ACC':'#2B4570','LIB':'#6B6B3A'
+};
+
+// Group order for sections
+const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','OPR — Operations','EVT — Events'];
+
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-pass').value;
+  document.getElementById('auth-err').textContent='';
+  if(!email||!pass){document.getElementById('auth-err').textContent='Enter email and password';return;}
+  const{error}=await _sb.auth.signInWithPassword({email,password:pass});
+  if(error){document.getElementById('auth-err').textContent=error.message;return;}
+  showApp();
+}
+async function doMagicLink(){
+  const email=document.getElementById('auth-email').value.trim();
+  document.getElementById('auth-err').textContent='';
+  if(!email){document.getElementById('auth-err').textContent='Enter email';return;}
+  const{error}=await _sb.auth.signInWithOtp({email});
+  if(error){document.getElementById('auth-err').textContent=error.message;return;}
+  document.getElementById('auth-err').style.color='#0F6E56';
+  document.getElementById('auth-err').textContent='✓ Check your email for the login link';
+}
+
+async function showApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-wrap').style.display='flex';
+  updateClock();
+
+  // Fetch user's visible systems via my_systems()
+  const{data:systems,error}=await _sb.rpc('my_systems');
+  if(error){console.error('my_systems error:',error);return;}
+
+  // Filter to only LIVE systems the user can see
+  const visible=(systems||[]).filter(s=>LIVE[s.code]);
+
+  // Group by section
+  const groups={};
+  visible.forEach(s=>{
+    const info=LIVE[s.code];
+    const g=info.group;
+    if(!groups[g]) groups[g]=[];
+    groups[g].push({...info,code:s.code,can_edit:s.can_edit});
+  });
+
+  // Render
+  const main=document.getElementById('main-content');
+  if(!visible.length){
+    main.innerHTML='<div class="empty-msg">No systems available for your role.</div>';
+    return;
+  }
+
+  let html='';
+  GROUP_ORDER.forEach(g=>{
+    const items=groups[g];
+    if(!items||!items.length) return;
+    items.sort((a,b)=>a.order-b.order);
+    const layerCode=g.split('—')[0].trim().split(' ')[0];
+    const dotColor=LAYER_COLORS[layerCode]||'#5C1010';
+    html+=`<div class="section">
+      <div class="section-hdr">
+        <div class="section-dot" style="background:${dotColor}"></div>
+        <span class="section-title">${g}</span>
+        <span class="section-count">${items.length} system${items.length>1?'s':''}</span>
+      </div>
+      <div class="grid">`;
+    items.forEach(s=>{
+      html+=`<a class="app-card" style="--card-color:${s.color}" href="${s.href}">
+        <span class="app-name">${s.name}</span><span class="app-ver">${s.ver}</span>
+      </a>`;
+    });
+    html+=`</div></div>`;
+  });
+  main.innerHTML=html;
+}
+
+function updateClock(){
+  const d=new Date();
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const h=d.getHours(),m=d.getMinutes();
+  const ampm=h>=12?'PM':'AM';
+  const h12=h%12||12;
+  const mm=(m<10?'0':'')+m;
+  document.getElementById('header-meta').textContent=
+    days[d.getDay()]+' · '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear()+' · '+h12+':'+mm+' '+ampm;
+}
+setInterval(updateClock,30000);
+(async()=>{
+  const{data:{session}}=await _sb.auth.getSession();
+  if(session) showApp();
+})();
+</script>
+</body>
+</html>
