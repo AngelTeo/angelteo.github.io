@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordGo (v9) — Academee</title>
+<style>
+:root{
+  /* ══ LAYER (LIB 层 · 改这一行换色) ══ */
+  --layer:#6B6B3A;
+  /* CORE=#5C1010 | EDU=#236FAD | BIZ=#C04E28 | EVT=#7870CC | RPT=#5A6470
+     SOP=#2A7B6F | OPR=#8B6C2A | HR=#993556 | ACC=#2B4570 | LIB=#6B6B3A */
+
+  --acc:var(--layer);
+
+  /* ══ 语义色 (Universal Standard §5) ══ */
+  --ok:#0F6E56; --warn:#854F0B; --danger:#A32D2D; --info:#236FAD;
+  --grn:var(--ok); --org:var(--warn); --red:var(--danger);
+
+  /* ══ 中性色 ══ */
+  --sur:#ffffff; --sur2:#f7f6f2; --bdr:#e0ddd6;
+  --txt:#1a1a1a; --mut:#888888; --hint:#bbbbbb;
+
+  /* ══ WordGo 专用(语流色) ══ */
+  --cp:var(--layer); --ej:#1B5E20; --tx:#8B0000;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:var(--sur2);color:var(--txt);font-size:13px;line-height:1.4}
+
+/* NAV */
+.nav{background:var(--layer);border-bottom:.5px solid #0f2540;
+  display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:50;
+  overflow-x:auto;gap:0}
+.nav-logo{font-size:15px;font-weight:700;padding:12px 14px 12px 0;
+  border-right:.5px solid rgba(255,255,255,.2);margin-right:4px;white-space:nowrap;
+  flex-shrink:0;color:#fff}
+.ntab{padding:11px 14px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;
+  border:none;background:transparent;border-bottom:2.5px solid transparent;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.ntab:hover{color:#fff}
+.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.nav-r{margin-left:auto;display:flex;gap:5px;align-items:center;padding-left:10px;flex-shrink:0}
+.saved{font-size:10px;color:#7dd3b0;margin-right:6px;display:none}
+
+/* BUTTONS */
+.btn{padding:5px 12px;border-radius:6px;border:.5px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.12);color:#fff;font-size:11px;cursor:pointer;
+  font-family:inherit;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-pri{background:#fff;color:var(--layer);border-color:#fff;font-weight:600}
+.btn-plain{background:var(--sur);border:.5px solid var(--bdr);color:var(--txt);font-size:11px;
+  padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit}
+.btn-plain:hover{background:var(--sur2)}
+.btn-grn{background:var(--grn);color:#fff;border:none;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit}
+.btn-red{background:var(--red);color:#fff;border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-family:inherit}
+.btn-sm{padding:3px 9px;font-size:10px}
+
+/* PAGES */
+.page{display:none;padding:16px;max-width:1300px;margin:0 auto}
+.page.on{display:block}
+
+/* SUB-NAV */
+.sub-nav{background:var(--sur);border-bottom:.5px solid var(--bdr);
+  padding:0 16px;display:flex;overflow-x:auto;align-items:center;min-height:38px;
+  position:sticky;top:44px;z-index:49;gap:2px}
+.sub-ntab{padding:9px 14px;font-size:11px;color:var(--mut);cursor:pointer;
+  border:none;background:transparent;border-bottom:2px solid transparent;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.sub-ntab:hover{color:var(--txt)}
+.sub-ntab.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+
+/* CARDS */
+.card{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;
+  padding:16px;margin-bottom:12px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:11px;font-weight:500;color:var(--mut);
+  letter-spacing:.05em;text-transform:uppercase}
+
+/* TABLES */
+table.data{width:100%;border-collapse:collapse;font-size:12px}
+table.data thead th{background:#2d2d2d;color:#fff;padding:9px 12px;text-align:left;
+  font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  white-space:nowrap}
+table.data tbody td{padding:8px 12px;border-bottom:.5px solid var(--bdr);vertical-align:middle}
+table.data tbody tr:nth-child(even){background:var(--sur2)}
+table.data tbody tr:hover{background:#FFF9E6}
+
+/* INPUTS */
+input[type=text],input[type=number],input[type=date],select,textarea{
+  border:.5px solid var(--bdr);border-radius:6px;padding:6px 10px;
+  font-size:12px;font-family:inherit;background:var(--sur);color:var(--txt);
+  box-sizing:border-box}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
+
+/* MISC */
+.tip{font-size:11px;color:var(--mut);margin:6px 0}
+.empty{text-align:center;padding:36px 20px;color:var(--hint);font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-cp{background:#EEEEDD;color:var(--cp)}
+.b-ej{background:#E8F4EA;color:var(--ej)}
+.b-tx{background:#FBF0F0;color:var(--tx)}
+.b-t1{background:#FFF8E1;color:#854F0B}
+.b-t2{background:#E8F4FA;color:#0e5c84}
+
+/* DAY CARDS (This Week) */
+.week-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.day-card{background:var(--sur);border:.5px solid var(--bdr);border-radius:8px;padding:12px}
+.day-card.today{border-color:var(--acc);background:#EEF4FB}
+.day-label{font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.day-date{font-size:14px;font-weight:700;margin-bottom:8px}
+.subj-block{border-radius:7px;padding:7px 10px;margin-bottom:5px}
+.subj-block.cp{background:#EEEEDD;border:.5px solid #c2c28e}
+.subj-block.ej{background:#E8F4EA;border:.5px solid #a8d4b0}
+.subj-block.tx{background:#FBF0F0;border:.5px solid #e8a8a8}
+.subj-label{font-size:9px;font-weight:700;letter-spacing:.04em;margin-bottom:3px}
+.subj-label.cp{color:var(--cp)}.subj-label.ej{color:var(--ej)}.subj-label.tx{color:var(--tx)}
+.word-pill{display:inline-block;background:rgba(255,255,255,.75);border:.5px solid rgba(0,0,0,.1);
+  border-radius:5px;padding:2px 7px;margin:1px;font-size:11px;font-weight:500}
+.tag-kind{display:inline-block;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;letter-spacing:.04em;vertical-align:middle;white-space:nowrap}
+.k-copy{background:#1a1a1a;color:#fff}
+.k-hw{background:#fff;color:#1a1a1a;border:1.5px solid #1a1a1a}
+/* group number — same word set carries the same #N on both dates */
+.grp{display:inline-block;background:var(--layer);color:#fff;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+.grp-on-dark{background:rgba(255,255,255,.28);color:#fff}
+.arrow{color:var(--hint);font-weight:700;margin:0 4px}
+/* action cards — solid black = COPY / outline = HOMEWORK (works in B&W print) */
+.act{border-radius:7px;padding:9px 11px;margin-bottom:6px}
+.act-copy{background:#1a1a1a;color:#fff}
+.act-hw{background:#fff;border:1.5px solid #1a1a1a;color:#1a1a1a}
+.act-hdr{font-size:11px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.act-sub{font-size:9px;opacity:.7;margin-bottom:5px}
+.act-copy .aw{background:rgba(255,255,255,.9);color:#1a1a1a;border:none}
+.act-hw .aw{background:var(--sur2);color:#1a1a1a;border:.5px solid var(--bdr)}
+.aw{display:inline-block;border-radius:4px;padding:2px 7px;margin:1px;font-size:11px;font-weight:600}
+/* 日期设反警告 */
+.err-bar{background:#FCEBEB;border:1px solid #F09595;color:#791F1F;border-radius:8px;padding:11px 13px;font-size:12px;margin-bottom:12px}
+/* Class 卡 (Settings) */
+.cls-card{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.cls-card.bad{border-color:#F09595;background:#FFFAFA}
+/* Schedule 可编辑日期表 */
+.sched-tbl input[type=date]{width:100%;font-size:12px;padding:4px 6px;text-align:center;font-weight:600}
+.sched-tbl .cell-copy input{background:#1a1a1a;color:#fff;border:1px solid #1a1a1a;border-radius:5px}
+.sched-tbl .cell-hw   input{background:#fff;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:5px}
+.sched-tbl .dow{font-size:9px;color:var(--mut);text-align:center;margin-top:2px;font-weight:600}
+.sched-tbl th.th-copy{background:#1a1a1a;color:#fff}
+.sched-tbl th.th-hw{background:#fff;color:#1a1a1a;border:2px solid #1a1a1a}
+.sched-tbl tr.row-bad{background:#FFF6F6}
+.sched-tbl tr.row-bad .cell-hw input{border-color:var(--red);color:var(--red)}
+/* Word List 行 */
+.wl-row{display:flex;gap:10px;padding:9px 14px;border-bottom:.5px solid var(--bdr);cursor:pointer}
+.wl-row:last-child{border-bottom:none}
+.wl-row:hover{background:var(--sur2)}
+.wl-row.editing{background:#FBFBF2;cursor:default}
+.wl-num{min-width:32px;font-size:11px;font-weight:700;color:var(--mut);align-self:center}
+.stream-name{font-size:11px;font-weight:600;min-width:104px}
+.tag-hol{display:inline-block;background:#fce8ff;color:#6a1e8a;border:.5px solid #d0a8e8;
+  border-radius:5px;padding:2px 8px;font-size:10px;margin-top:4px}
+
+@media(max-width:700px){.week-grid{grid-template-columns:1fr 1fr}}
+@media print{.nav,.sub-nav,.no-print{display:none!important}.page{display:block!important;padding:0}}
+.auth-screen{position:fixed;inset:0;background:var(--sur2);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{background:var(--sur);border:.5px solid var(--bdr);border-radius:12px;padding:32px 28px;width:340px;max-width:100%;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.auth-title{font-size:16px;font-weight:700;text-align:center;margin-bottom:4px;color:var(--acc)}
+.auth-sub{font-size:11px;color:var(--mut);text-align:center;margin-bottom:20px}
+.auth-row{margin-bottom:14px}
+.auth-row label{font-size:11px;color:var(--mut);display:block;margin-bottom:4px}
+.auth-row input{width:100%;padding:8px 10px;border:.5px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit}
+.auth-row input:focus{outline:none;border-color:var(--acc)}
+.auth-btn{width:100%;padding:10px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.auth-btn-pri{background:var(--acc);color:#fff}
+.auth-btn-sec{background:transparent;color:var(--acc);border:.5px solid var(--acc);margin-top:8px}
+.auth-btn:hover{opacity:.85}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-or{text-align:center;font-size:10px;color:var(--hint);margin:12px 0}
+.auth-err{font-size:11px;color:var(--red);text-align:center;margin-top:10px;min-height:16px}
+#loading-screen{display:none;position:fixed;inset:0;background:var(--sur2);z-index:8000;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--mut);font-size:12px}
+.spin{width:26px;height:26px;border:2px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<!-- AUTH (v3 Supabase) -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-title">✏️ WordGo</div>
+    <div class="auth-sub">Academee · Login required</div>
+    <div class="auth-row"><label>Email</label><input type="email" id="auth-email" placeholder="your@email.com" autocomplete="email"></div>
+    <div class="auth-row"><label>Password</label><input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="auth-btn auth-btn-pri" id="auth-login-btn" onclick="doLogin()">Login</button>
+    <div class="auth-or">— or —</div>
+    <button class="auth-btn auth-btn-sec" id="auth-magic-btn" onclick="doMagicLink()">Send Magic Link</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+<div id="loading-screen"><div class="spin"></div><div>Loading…</div></div>
+
+<div class="nav">
+  <a href="/" style="text-decoration:none;color:rgba(255,255,255,.6);font-size:18px;padding:8px 6px 8px 2px;display:flex;align-items:center">←</a><div class="nav-logo">WordGo <span id="build-badge" style="background:#F9CB42;color:var(--layer);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;vertical-align:middle">v9</span></div>
+  <button class="ntab on"  onclick="goPage('week')">📅 This Week</button>
+  <button class="ntab"     onclick="goPage('wordlist')">📝 Word List</button>
+  <button class="ntab"     onclick="goPage('schedule')">📋 Schedule</button>
+  <button class="ntab"     onclick="goPage('holiday')">🗓 Holiday</button>
+  <button class="ntab"     onclick="goPage('book')">📖 Book Notice</button>
+  <button class="ntab"     onclick="goPage('settings')">⚙️ Settings</button>
+  <button class="ntab"     onclick="goPage('manage')">🔧 Manage</button>
+  <div class="nav-r">
+    <span class="saved" id="saved">✓ Saved</span>
+    <button class="btn" onclick="exportAll()">⬇ Export</button>
+    <label class="btn" style="cursor:pointer">⬆ Import<input type="file" accept=".json" onchange="importAll(event)" style="display:none"/></label>
+    <button class="btn btn-pri" onclick="saveAll();flashSaved()">Save</button>
+    <span id="who" style="color:rgba(255,255,255,.6);font-size:10px;margin-left:6px"></span>
+    <button class="btn" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<div class="page on" id="page-week"><div id="week-content"></div></div>
+<div class="page"    id="page-wordlist"><div id="wordlist-content"></div></div>
+<div class="page"    id="page-schedule"><div id="schedule-content"></div></div>
+<div class="page"    id="page-holiday"><div id="holiday-content"></div></div>
+<div class="page"    id="page-book"><div id="book-content"></div></div>
+<div class="page"    id="page-settings"><div id="settings-content"></div></div>
+<div class="page"    id="page-manage"><div id="manage-content"></div></div>
+
+<script>
+// ═══ Supabase client (v3 migration) ═══
+const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const DB=_sb;
+let MY_UID=null, MY_EMAIL=null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'academee_wordgo_v3';  // v3 = manual-date model, not compatible with v1/v2
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEFAULT WORD DATA  (预载自 Single_Words_2026_38_weeks.xls)
+// levelWords[level] = { cp:[], ej:[], tx:[] }
+// cp = Copy (English) · ej = Salin (BM) · tx = Copy (Chinese)
+// 一组 = 一次 COPY + 一次 H/W。SR/IN 每组 8 字，JR 每组 2 字。
+// IN and JR have no Chinese stream (tx empty) — no such sheet in the Excel.
+// ═══════════════════════════════════════════════════════════════════════════
+const DEFAULT_WORDS = {
+  SR: {
+    cp: [
+      ["all","about","myself","years","old","hobby","activity","that"],
+      ["like","during","our","free","time","some","children","cycle"],
+      ["park","others","draw","paint","there","who","read","storybook"],
+      ["play","family","people","father","mother","brother","sister","your"],
+      ["nice","meet","neighbours","lives","together","with","dolls","both"],
+      ["Smart","Reader","Kids","robots","crocodile","animals","afraid","because"],
+      ["sharp","teeth","mouth","want","lonely","plover","little","every"],
+      ["open","inside","does","stuck","between","happy","full","tummy"],
+      ["clean","greetings","morning","afternoon","evening","night","goodbye","polite"],
+      ["borrow","pencil","please","course","thank","welcome","quiet","sorry"],
+      ["feelings","drawing","ever","tells","find","search","room","near"],
+      ["broom","glad","angry","strict","maid","Sunday","visits","grandparents"],
+      ["Monday","badminton","Tuesday","swims","pool","Wednesday","bake","cake"],
+      ["Thursday","cycle","Friday","Saturday","jogging","favourite","January","February"],
+      ["March","April","May","June","July","August","September","October"],
+      ["November","December","twelve","first","last","thirty","special","usually"],
+      ["leap","comes","birthday","celebration","celebrate","firework","Malaysia","Day"],
+      ["remember","formed","Malaysian","flags","everywhere","parades","events","when"],
+      ["why","called","stripes","glory","crescent","moon","star","canton"],
+      ["beautiful","around","right","down","straight","first","after","that"],
+      ["next","continue","finally","until","reach","bakery","directions","visit"],
+      ["grandson","forgot","supermarket","T-shirt","blouse","skirt","shoes","dress"],
+      ["trousers","wearing","birthday","party","looks","brown","whose","notebook"],
+      ["eraser","shopping","mall","people","helps","choose","lunch","restaurant"],
+      ["chicken","bread","horse","goat","sheep","duck","goose","foal"],
+      ["calf","gosling","duckling","lamb","chick","together","suddenly","heard"],
+      ["crying","behind","shook","happily","raft","balloon","bicycle","ferry"],
+      ["helicopter","trishaw","train","aeroplane","boat","always","heavy","football"],
+      ["learn","things","borrow","places","school","beach","doctor","bottle"],
+      ["farm","beautiful","little","skirt","zebra","brush","coach","waltz"],
+      ["woman","fireman","policeman","goose","louse","engineer","married","iguana"],
+      ["lizard","aquarium","monkey","coffee","rabbit","sand","skyscrapers","scarecrow"],
+      ["hospital","messy","happy","heavy","scared","quick","close","shut"],
+      ["angry","dirty","afraid","huge","fast","clean","neat","glad"],
+      ["difficult","easy","hard","tiny","thin","slim","laugh","giggle"],
+      ["cold","freezing","sing","teach","count","sleep","carry","read"],
+      ["yesterday","visited","friend","played","watched","washed","dinner","dishes"],
+      ["bought","took","caught","tought","puppy","sitting","hiding","hanging"],
+      ["shelves","perching","sleeping","behind","above","where","towel","slippers"],
+    ],
+    ej: [
+      ["lelaki","arnab","seorang","budak","berumur","bermain","sekolah","seekor"],
+      ["bernama","saudara","sepupu","kembangan","belajar","patung","mereka","bersama"],
+      ["dengan","melukis","berehat","pandai","waktu","lapang","pantai","permainan"],
+      ["banyak","membaca","haiwan","kesayangan","sayang","memberi","kerana","berwarna"],
+      ["jenis","rumah","kampung","banglo","teres","tingkat","pangsa","pangsapuri"],
+      ["tinggal","tempat","bandar","studio","stadium","kedai","bengkel","kebun"],
+      ["ladang","ternakan","nelayan","apabila","menjual","berlatih","Ahad","isnin"],
+      ["Selasa","Rabu","Khamis","Jumaat","Sabtu","aktiviti","hujung","minggu"],
+      ["sekolah","hingga","masjid","setelah","Kuala","Lumpur","membeli","belah"],
+      ["kemudian","ingin","membuat","sambutan","lahir","haribulan","menjemput","semua"],
+      ["hadiah","kepada","menghidangkan","pelbagai","minuman","berasa","kelendar","tarikh"],
+      ["ditandakan","negara","mempunyai","musim","iaitu","bunga","panas","luruh"],
+      ["sejuk","salji","turun","seronok","berkembang","indah","seluruh","gemar"],
+      ["aiskrim","duduk","bangku","panjang","menyuruh","menyapu","berguguran","dilitupi"],
+      ["Januari","Februari","Mac","April","Mei","Jun","Julai","Ogos"],
+      ["September","Oktober","November","Disember","berjalan","cerita","bertajuk","mendengar"],
+      ["khas","cuaca","cerah","istana","pasir","mendung","membantu","mangambil"],
+      ["ampaian","menyidai","semula","beranda","payung","ketika","pulang","keadaan"],
+      ["luar","berangin","semalam","mengankat","esok","sekelas","tekun","ujian"],
+      ["penilaian","Bahasa","Malaysia","sungguh","durian","rambutan","manggis","langsat"],
+      ["mangga","azam","memohon","keberkatan","kesejahteraan","masyarakat","sahabat","handai"],
+      ["selesai","berpuasa","solat","sunat","bersalaman","bermaaf","disusuli","ibadah"],
+      ["korban","fakir","miskin","agama","Buddha","pelita","dinyalakan","dihiasi"],
+      ["perarakan","ceramah","berzanji","qasidah","Kristian","penuh","bercahaya","pribumi"],
+      ["menuai","keamatan","kesyukuran","tuaian","sejahtera","kiriman","izinkan","kecuali"],
+      ["menaiki","tentang","memperkenalkan","kembali","membalas","perempuan","moden","berhampiran"],
+      ["menghantar","buruh","malawat","datang","kelapangan","jemputlah","membersihkan","tugasan"],
+      ["lukisan","melancong","anggerik","gunung","bawah","berdiri","komputer","tersangkut"],
+      ["bumbung","bertaburan","kotak","pramugari","mawar","karpet","menunggu","sejuk"],
+      ["basah","cantik","wangi","kacak","keras","sunyi","kemas","kotor"],
+      ["ditetapkan","berlepas","perpustakaan","memandu","membawa","lewat","buruk","kaunter"],
+      ["tiket","keselesaan","pekerja","kawasan","stesen","berbeza","dinding","berpusu"],
+      ["destinasi","elektronik","ruang","cawan","potong","coklat","tolong","telefon"],
+      ["sebentar","menantikan","panggilan","lambat","Menara","Berkembar","Petronas","Tugu"],
+      ["Wilayah","Persekutuan","Dataran","Merdeka","bolehkah","bilakah","apakah","siapakah"],
+      ["berapakah","buah","helai","kuntum","batang","menerima","memotong","peserta"],
+      ["gergaji","anak","bongsu","comot","sulung","lazat","sempit","pandang"],
+      ["harum","busuk","pahit","sedap","bijak","tajam","siang","rendah"],
+    ],
+    tx: [
+      ["学校","学生","去","回家","在","说话","朋友","也是"],
+      ["读书","写字","游戏","东西","敬礼","握手","你"],
+      ["是","人物","场所","医院","很多","住","有","照顾"],
+      ["这里","捉","不准","贼","坏事","来","没法","逃"],
+      ["邮政","叔叔","送信","救火","公园","吃饭"],
+      ["玩具","鞋子","小熊","菊花","虎","林中","鹿"],
+      ["一起","数","兔子","还有","老鼠","那是","男孩"],
+      ["配词","喜欢","玫瑰","真","美丽","刺","太阳"],
+      ["电灯","电话","闪电","亮","响","雨伞","乌云"],
+      ["穿","出门","母鸡","会","切","用","割","纸张","抹"],
+      ["手帕","手表","戴","拍","爬","楼梯","处","衣服"],
+      ["走路","猜","气球","爬墙","幼苗","壁虎","图画"],
+      ["双峰塔","山坡","疑问","草场","对面","厨房"],
+      ["睡前","刷牙","洗脸","蛀牙","怎样","最","故事"],
+      ["寄信","聪明","打扫","星","旧","葡萄","藤","架"],
+      ["吹","又","都是","躺着","让","当","闻到","对话"],
+      ["因为","看","带","班级","货车","骨头","养","院子"],
+      ["照片","轮胎","榴莲","音乐","唱歌","玩球"],
+      ["袜子","治病","信箱","收到","苦瓜","糖果"],
+      ["药丸","蛋糕","帮忙","打鼓","玩耍","礼物"],
+      ["跌到","功课","家庭","快乐","生活","香味"],
+      ["汉子","爱惜","再来","辛苦","工作","眯","萝卜"],
+      ["花蜜","笑","好像","冲凉","更","汗","汁","热闹","枝"],
+    ],
+  },
+  IN: {
+    cp: [
+      ["Aa","Bb","Cc","Dd"],
+      ["Ee","Ff","Gg","Hh"],
+      ["Ii","Jj","Kk","Ll"],
+      ["Mm","Nn","Oo","Pp"],
+      ["Qq","Rr","Ss","Tt","Uu","Vv","Ww","Xx"],
+      ["Yy","Zz","this","is","apple","red","the","ant"],
+      ["baby","cute","riding","bicycle","like","cake","delicious","dad"],
+      ["new","car","my","tall"],
+      ["finger","have","ten","flag"],
+      ["here","for","you","gate","closed","hand","we","must"],
+      ["keep","our","clean","horn","unicorn","has","red","blue"],
+      ["brown","yellow","igloo","insect","there","floor","jacket","mine"],
+      ["jeep","toy","king","wears"],
+      ["leaf","your","letter","map"],
+      ["nose","use","smell","organ","play","oven","mother","bakes"],
+      ["panda","animal","pillow","cat","sleeps","quill","write","queue"],
+      ["children","wait","ring","rabbit","pet","school","go","by"],
+      ["bus","star","many","table"],
+      ["every","day","umbrella","take"],
+      ["vet","window","open","well","fell","into","Xmas","tree"],
+      ["very","beautiful","yawn","gave","yolk","egg","zero","number"],
+      ["zoo","blot","the","dress","has","of","ink","blow"],
+      ["wind","strongly","bray","donkey"],
+      ["their","hands","welcome","clip"],
+      ["chin","there","juice","on","his","drip","water","from"],
+      ["tap","drum","free","bird","frog","prince","turns","into"],
+      ["glad","see","glum","looks","very","play","they","every"],
+      ["plus","pray","muslims","mosque"],
+      ["turtle","walker","snip","paper"],
+      ["Sunday","stop","light","shoe","pair","shop","open","tree"],
+      ["tall","trip","out","twig","touch","worm","twin","what"],
+      ["when","going","home","ear","nose","chin","eye","cheek"],
+      ["mouth","dance","sing","drink"],
+      ["singing","round","clothes","coat"],
+      ["blouse","shorts","drinks","taste","benefits","favourite","milk","grow"],
+      ["juice","keeps","healthy","chocolate","soy","food","great","noodles"],
+      ["rice","fish","meat","vegetables","fruits","vehicles","aeroplane","taxi"],
+      ["train","motorycle","ship","occupation"],
+      ["singer","postman","place","went"],
+    ],
+    ej: [
+      ["ba","be","bi","bo","bu","ca","ce","ci","co","cu"],
+      ["da","de","di","do","du","fa","fe","fi","fo","fu"],
+      ["ga","ge","gi","go","gu","ha","he","hi","ho","hu"],
+      ["ja","je","ji","jo","ju","ka","ke","ki","ko","ku"],
+      ["la","le","li","lo","lu","ma","me","mi","mo","mu"],
+      ["na","ne","ni","no","nu","pa","pe","pi","po","pu"],
+      ["ra","re","ri","ro","ru","sa","se","si","so","su"],
+      ["ta","te","ti","to","tu","va","ve","vi","vo","vu"],
+      ["wa","we","wi","wo","wu","ya","ye","yi","yo","yu"],
+      ["za","ze","zi","zo","zu","dahi","kepala","jari","betis"],
+      ["rambut","leher","tangan","kaki","mata","mulut","dagu","telinga"],
+      ["hidung","lidah","gigi","kuku","pipi","untuk","lihat","dengar"],
+      ["rasa","sentuh","hidu","bunga","kek","televisyen","loceng","nama"],
+      ["saya","ayah","ibu","takut","sedih","sangat","gembira","marah"],
+      ["berada","ruang","tamu","dapur","bilik","tidur","mandi","periuk"],
+      ["kuali","cerek","sudu","gas","peti","sejuk","pisau","mangkuk"],
+      ["gelas","pasu","lori","susu","rakit","kapal","terbang","motosikal"],
+      ["belon","udara","panas","sampan","bas","kapal","helikopter","kenderaan"],
+      ["darat","basikal","baharu","biru","hoki","gasing","guli","bola"],
+      ["sepak","badminton","congkak","beli","suka","baca","keluarga","umur"],
+      ["lima","tahun","juga","seorang","tinggal","kampung","sayang","abang"],
+      ["adik","kakak","datuk","nenek","sekolah","belajar","bersih","cantik"],
+      ["ramai","almari","kerusi","pembaris","pensel","meja","senang","didapati"],
+      ["pasar","banyak","jenis","hijau","putih","merah","ungu","berdaun"],
+      ["tubuh","badan","bendi","terung","timun","kubis","petola","cili"],
+      ["tomato","peria","sawi","tembikai","durian","nanas","epal","betik"],
+      ["oren","manggis","bersila","semua","makan","enak","manis","buah"],
+      ["doktor","ahli","bomba","hakim","guru","tukang","masak","askar"],
+      ["nelayan","posmen","polis","perayaan","masyarakat","pelbagai","kaum","agama"],
+      ["mempunyai","umat","Islam","menyambut","penganut","Puasa","Hari","Krismas"],
+      ["Tahun","Baru","Cina","Hari","Deepavali","petola","minum","makan"],
+      ["nasi","ayam","gosok","baharu","melukis","Jalur","Gemilang","bendera"],
+      ["Malaysia","dikenali","sebagai","mempunyai","empat","jenis","merah","putih"],
+      ["kuning","biru","lambang","bulan","latar","bintang","bucu","Negaraku"],
+      ["bunga","raya","Kebangsaan","kelopak","mewakili","prinsip","Rukun","kemudahan"],
+      ["awam","jalan","raya","jejantas","tong","sampah","tandas","awam"],
+      ["taman","permainan","hospital","perhentian","bas","balai","polis","kecil"],
+      ["pulang","kota","marilah","jumpa","alat","muzik","tradisional","tiup"],
+      ["bertali","perkusi","gambus","rebana","tabla","sompoton","kompang","sape"],
+      ["serunai","berbentuk","kayu","kulit","kambing","dikeringkan","menghasilkan","apabila"],
+    ],
+    tx: [],
+  },
+  JR: {
+    cp: [
+      ["ape","bag"],
+      ["cat","day"],
+      ["ear","fan"],
+      ["gum","hen"],
+      ["ice","jug"],
+      ["kid","log"],
+      ["map","nap"],
+      ["owl","pie"],
+      ["quiz","rat"],
+      ["six","tub"],
+      ["urn","van"],
+      ["wet","Xmas"],
+      ["yam","zip"],
+    ],
+    ej: [
+      ["abu","baju"],
+      ["cili","duri"],
+      ["epal","foto"],
+      ["guru","hari"],
+      ["ibu","jam"],
+      ["kek","labu"],
+      ["madu","nasi"],
+      ["oren","pasu"],
+      ["qari","raja"],
+      ["susu","teko"],
+      ["unta","vila"],
+      ["wap","x-ray"],
+      ["yoyo","zoo"],
+    ],
+    tx: [],
+  },
+};
+
+const DEFAULT_CLASSES = [
+  { id:'SR1', level:'SR', num:'1' },
+  { id:'SR3', level:'SR', num:'3' },
+  { id:'IN1', level:'IN', num:'1' },
+  { id:'JR',  level:'JR', num:''  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEFAULT DATES  [D-WG1 v2 — 手动输入，不推算]
+// 日期挂在 Level + Stream + Group  (SR1 / SR3 共用同一套 — Teo 拍板 A)
+// 预载自 Single_Words_2026_38_weeks.xls (182/205 组有日期，其余留空待填)
+//   c = COPY date     (written in class, any day that week)
+//   h = HOMEWORK date (date it must be handed in)
+// ═══════════════════════════════════════════════════════════════════════════
+const DEFAULT_DATES = {
+  SR: {
+    cp: [
+      {c:"2026-02-03",h:"2026-03-09"},
+      {c:"2026-02-03",h:"2026-03-16"},
+      {c:"2026-02-09",h:"2026-03-24"},
+      {c:"2026-02-09",h:"2026-03-30"},
+      {c:"2026-02-23",h:"2026-04-06"},
+      {c:"2026-02-23",h:"2026-04-13"},
+      {c:"2026-03-02",h:"2026-04-20"},
+      {c:"2026-03-02",h:"2026-04-27"},
+      {c:"2026-03-09",h:"2026-05-04"},
+      {c:"2026-03-09",h:"2026-05-11"},
+      {c:"2026-03-16",h:"2026-05-18"},
+      {c:"2026-03-16",h:"2026-06-08"},
+      {c:"2026-03-24",h:"2026-06-15"},
+      {c:"2026-03-24",h:"2026-06-22"},
+      {c:"2026-03-30",h:"2026-06-29"},
+      {c:"2026-03-30",h:"2026-07-06"},
+      {c:"2026-04-06",h:"2026-07-13"},
+      {c:"2026-04-06",h:"2026-07-20"},
+      {c:"2026-04-13",h:"2026-07-27"},
+      {c:"2026-04-13",h:"2026-08-03"},
+      {c:"2026-04-20",h:"2026-08-10"},
+      {c:"2026-04-20",h:"2026-08-17"},
+      {c:"2026-04-27",h:"2026-08-24"},
+      {c:"2026-04-27",h:"2026-09-07"},
+      {c:"2026-05-04",h:"2026-09-14"},
+      {c:"2026-05-04",h:"2026-09-21"},
+      {c:"2026-05-11",h:"2026-09-28"},
+      {c:"2026-05-11",h:"2026-10-05"},
+      {c:"2026-05-18",h:"2026-10-12"},
+      {c:"2026-05-18",h:"2026-10-19"},
+      {c:"2026-06-08",h:"2026-10-26"},
+      {c:"2026-06-08",h:"2026-11-02"},
+      {c:"2026-06-15",h:"2026-11-11"},
+      {c:"2026-06-15",h:"2026-11-16"},
+      {c:"2026-06-22",h:"2026-11-23"},
+      {c:"2026-06-22",h:"2026-11-30"},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+    ],
+    ej: [
+      {c:"2026-02-03",h:"2026-03-09"},
+      {c:"2026-02-03",h:"2026-03-16"},
+      {c:"2026-02-09",h:"2026-03-24"},
+      {c:"2026-02-09",h:"2026-03-30"},
+      {c:"2026-02-23",h:"2026-04-06"},
+      {c:"2026-02-23",h:"2026-04-13"},
+      {c:"2026-03-02",h:"2026-04-20"},
+      {c:"2026-03-02",h:"2026-04-27"},
+      {c:"2026-03-09",h:"2026-05-04"},
+      {c:"2026-03-09",h:"2026-05-11"},
+      {c:"2026-03-16",h:"2026-05-18"},
+      {c:"2026-03-16",h:"2026-06-08"},
+      {c:"2026-03-24",h:"2026-06-15"},
+      {c:"2026-03-24",h:"2026-06-22"},
+      {c:"2026-03-30",h:"2026-06-29"},
+      {c:"2026-03-30",h:"2026-07-06"},
+      {c:"2026-04-06",h:"2026-07-13"},
+      {c:"2026-04-06",h:"2026-07-20"},
+      {c:"2026-04-13",h:"2026-07-27"},
+      {c:"2026-04-13",h:"2026-08-03"},
+      {c:"2026-04-20",h:"2026-08-10"},
+      {c:"2026-04-20",h:"2026-08-17"},
+      {c:"2026-04-27",h:"2026-08-24"},
+      {c:"2026-04-27",h:"2026-09-07"},
+      {c:"2026-05-04",h:"2026-09-14"},
+      {c:"2026-05-04",h:"2026-09-21"},
+      {c:"2026-05-11",h:"2026-09-28"},
+      {c:"2026-05-11",h:"2026-10-05"},
+      {c:"2026-05-18",h:"2026-10-12"},
+      {c:"2026-05-18",h:"2026-10-19"},
+      {c:"2026-06-08",h:"2026-10-26"},
+      {c:"2026-06-08",h:"2026-11-02"},
+      {c:"2026-06-15",h:"2026-11-11"},
+      {c:"2026-06-15",h:"2026-11-16"},
+      {c:"2026-06-22",h:"2026-11-23"},
+      {c:"2026-06-22",h:"2026-11-30"},
+      {c:null,h:null},
+      {c:null,h:null},
+    ],
+    tx: [
+      {c:"2026-02-03",h:"2026-03-09"},
+      {c:"2026-02-03",h:"2026-03-16"},
+      {c:"2026-02-09",h:"2026-03-24"},
+      {c:"2026-02-09",h:"2026-03-30"},
+      {c:"2026-02-23",h:"2026-04-06"},
+      {c:"2026-02-23",h:"2026-04-13"},
+      {c:"2026-03-02",h:"2026-04-20"},
+      {c:"2026-03-02",h:"2026-04-27"},
+      {c:"2026-03-09",h:"2026-05-04"},
+      {c:"2026-03-09",h:"2026-05-11"},
+      {c:"2026-03-16",h:"2026-05-18"},
+      {c:"2026-03-16",h:"2026-06-08"},
+      {c:"2026-03-24",h:"2026-06-15"},
+      {c:"2026-03-24",h:"2026-06-22"},
+      {c:"2026-03-30",h:"2026-06-29"},
+      {c:"2026-03-30",h:"2026-07-06"},
+      {c:"2026-04-06",h:"2026-07-13"},
+      {c:"2026-04-06",h:"2026-07-20"},
+      {c:"2026-04-13",h:"2026-07-27"},
+      {c:"2026-04-13",h:"2026-08-03"},
+      {c:"2026-04-20",h:"2026-08-10"},
+      {c:"2026-04-20",h:"2026-08-17"},
+      {c:"2026-04-27",h:"2026-08-24"},
+    ],
+  },
+  IN: {
+    cp: [
+      {c:null,h:"2026-03-09"},
+      {c:null,h:"2026-03-16"},
+      {c:null,h:"2026-03-24"},
+      {c:null,h:"2026-03-30"},
+      {c:null,h:"2026-04-06"},
+      {c:null,h:"2026-04-20"},
+      {c:null,h:"2026-05-04"},
+      {c:"2026-05-04",h:"2026-05-18"},
+      {c:"2026-05-11",h:"2026-06-08"},
+      {c:"2026-05-18",h:"2026-06-15"},
+      {c:"2026-06-08",h:"2026-06-22"},
+      {c:"2026-06-15",h:"2026-06-29"},
+      {c:"2026-06-15",h:"2026-07-06"},
+      {c:"2026-06-22",h:"2026-07-13"},
+      {c:"2026-06-22",h:"2026-07-20"},
+      {c:"2026-06-29",h:"2026-07-27"},
+      {c:"2026-06-29",h:"2026-08-03"},
+      {c:"2026-07-06",h:"2026-08-10"},
+      {c:"2026-07-06",h:"2026-08-17"},
+      {c:"2026-07-13",h:"2026-08-24"},
+      {c:"2026-07-13",h:"2026-09-07"},
+      {c:"2026-07-20",h:"2026-09-14"},
+      {c:"2026-07-20",h:"2026-09-21"},
+      {c:"2026-07-27",h:"2026-09-28"},
+      {c:"2026-07-27",h:"2026-10-05"},
+      {c:"2026-08-03",h:"2026-10-12"},
+      {c:"2026-08-03",h:"2026-10-19"},
+      {c:"2026-08-10",h:"2026-10-26"},
+      {c:"2026-08-10",h:"2026-11-02"},
+      {c:"2026-08-17",h:"2026-11-11"},
+      {c:"2026-08-17",h:"2026-11-16"},
+      {c:"2026-08-24",h:"2026-11-23"},
+      {c:"2026-08-24",h:"2026-11-30"},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+    ],
+    ej: [
+      {c:null,h:"2026-03-09"},
+      {c:null,h:"2026-03-16"},
+      {c:null,h:"2026-03-24"},
+      {c:null,h:"2026-03-30"},
+      {c:null,h:"2026-04-06"},
+      {c:null,h:"2026-04-13"},
+      {c:null,h:"2026-04-20"},
+      {c:null,h:"2026-04-27"},
+      {c:null,h:"2026-05-04"},
+      {c:null,h:"2026-05-11"},
+      {c:"2026-05-04",h:"2026-05-18"},
+      {c:"2026-05-11",h:"2026-06-08"},
+      {c:"2026-05-18",h:"2026-06-15"},
+      {c:"2026-06-08",h:"2026-06-22"},
+      {c:"2026-06-15",h:"2026-06-29"},
+      {c:"2026-06-15",h:"2026-07-06"},
+      {c:"2026-06-22",h:"2026-07-13"},
+      {c:"2026-06-22",h:"2026-07-20"},
+      {c:"2026-06-29",h:"2026-07-27"},
+      {c:"2026-06-29",h:"2026-08-03"},
+      {c:"2026-07-06",h:"2026-08-10"},
+      {c:"2026-07-06",h:"2026-08-17"},
+      {c:"2026-07-13",h:"2026-08-24"},
+      {c:"2026-07-13",h:"2026-09-07"},
+      {c:"2026-07-20",h:"2026-09-14"},
+      {c:"2026-07-20",h:"2026-09-21"},
+      {c:"2026-07-27",h:"2026-09-28"},
+      {c:"2026-07-27",h:"2026-10-05"},
+      {c:"2026-08-03",h:"2026-10-12"},
+      {c:"2026-08-03",h:"2026-10-19"},
+      {c:"2026-08-10",h:"2026-10-26"},
+      {c:"2026-08-10",h:"2026-11-02"},
+      {c:"2026-08-17",h:"2026-11-11"},
+      {c:"2026-08-17",h:"2026-11-16"},
+      {c:"2026-08-24",h:"2026-11-23"},
+      {c:"2026-08-24",h:"2026-11-30"},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+    ],
+    tx: [],
+  },
+  JR: {
+    cp: [
+      {c:null,h:"2026-09-29"},
+      {c:null,h:"2026-10-06"},
+      {c:"2026-09-22",h:"2026-10-13"},
+      {c:"2026-09-29",h:"2026-10-22"},
+      {c:"2026-10-06",h:"2026-10-27"},
+      {c:"2026-10-13",h:"2026-11-03"},
+      {c:"2026-10-29",h:"2026-11-10"},
+      {c:"2026-11-03",h:"2026-11-17"},
+      {c:"2026-11-10",h:"2026-11-24"},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+    ],
+    ej: [
+      {c:null,h:"2026-09-29"},
+      {c:null,h:"2026-10-06"},
+      {c:"2026-09-22",h:"2026-10-13"},
+      {c:"2026-09-29",h:"2026-10-22"},
+      {c:"2026-10-06",h:"2026-10-27"},
+      {c:"2026-10-13",h:"2026-11-03"},
+      {c:"2026-10-29",h:"2026-11-10"},
+      {c:"2026-11-03",h:"2026-11-17"},
+      {c:"2026-11-10",h:"2026-11-24"},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+      {c:null,h:null},
+    ],
+    tx: [],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEFAULT SCHEDULE CONFIG  [D-WG3 v5 — 排程引擎设定]
+// 粒度 = 每 Level 一套 (Teo 拍板 2B)。同 Level 下 cp/ej/tx 共用节奏，各自独立生成。
+// ═══════════════════════════════════════════════════════════════════════════
+// [v8] copyStartGroup — 抄写从第几组开始。之前的组是「老师准备好的字, 学生不抄」,
+//      抄写栏永远留空, 引擎不准碰。功课栏照常从第 1 组开始。
+const DEFAULT_SCHED = {
+  SR: { copyStartWeek:'', copyStartGroup:1,  copyWarmupWeeks:0, copyPerWeek:2, hwStartDate:'', hwPerWeek:1, hwDay:1, lastGen:null },
+  IN: { copyStartWeek:'', copyStartGroup:11, copyWarmupWeeks:4, copyPerWeek:2, hwStartDate:'', hwPerWeek:1, hwDay:1, lastGen:null },
+  JR: { copyStartWeek:'', copyStartGroup:3,  copyWarmupWeeks:0, copyPerWeek:1, hwStartDate:'', hwPerWeek:1, hwDay:2, lastGen:null },
+};
+
+const STREAMS = ['cp','ej','tx'];
+const LEVEL_STREAMS = { SR:['cp','ej','tx'], IN:['cp','ej'], JR:['cp','ej'] };
+function streamsOf(level){ return LEVEL_STREAMS[level] || STREAMS; }
+function hasStream(level, subj){ return streamsOf(level).includes(subj); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const S = {
+  classes:    [],     // [{ id, level, num }]
+  levelWords: {},     // { SR:{cp:[[w,w],...],ej:[],tx:[]}, IN:{...}, JR:{...} }
+  levelDates: {},     // { SR:{cp:[{c,h},...],ej:[],tx:[]}, ... }  ← 手动输入，index 对齐 levelWords
+  holidays:   [],     // ['YYYY-MM-DD', ...]
+  sched:      {},     // [v5] { SR:{copyStartWeek,copyPerWeek,hwStartDate,hwPerWeek,lastGen}, IN:{...}, JR:{...} }
+  meta: { version:'wordgo_v3', lastUpdated:null },   // ← storage schema tag, NOT display version. 不动。
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 0 = localStorage SSOT. Supabase 只用于 Auth + Calendar 假期读取。
+async function saveAll(){
+  S.meta.lastUpdated = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+}
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  // Always start from defaults for structural data
+  S.classes    = JSON.parse(JSON.stringify(DEFAULT_CLASSES));
+  S.levelWords = JSON.parse(JSON.stringify(DEFAULT_WORDS));
+  S.levelDates = JSON.parse(JSON.stringify(DEFAULT_DATES));   // BUG-D fix: Excel dates must seed
+  S.sched      = JSON.parse(JSON.stringify(DEFAULT_SCHED));   // [v5] 排程设定 seed
+
+  if(!raw){ _syncWords(); _padAllDates(); return; }   // first boot: defaults only
+  try{
+    const p = JSON.parse(raw);
+    if(p.classes  && p.classes.length) S.classes = p.classes;
+    if(p.holidays && Array.isArray(p.holidays)) S.holidays = p.holidays;
+    if(p.sched){                                              // [v5] 排程设定 merge
+      for(const lv of ['SR','IN','JR']){
+        if(p.sched[lv]) S.sched[lv] = Object.assign({}, S.sched[lv], p.sched[lv]);
+      }
+    }
+    if(p.meta) S.meta = Object.assign({}, S.meta, p.meta);
+    if(p.levelWords){
+      for(const lv of Object.keys(p.levelWords)){
+        if(!p.levelWords[lv]) continue;
+        if(!S.levelWords[lv]) S.levelWords[lv]={cp:[],ej:[],tx:[]};
+        for(const subj of STREAMS){
+          const saved = p.levelWords[lv][subj];
+          if(Array.isArray(saved)) S.levelWords[lv][subj] = saved;
+        }
+      }
+    }
+    if(p.levelDates){
+      for(const lv of Object.keys(p.levelDates)){
+        if(!p.levelDates[lv]) continue;
+        if(!S.levelDates[lv]) S.levelDates[lv]={cp:[],ej:[],tx:[]};
+        for(const subj of STREAMS){
+          const saved = p.levelDates[lv][subj];
+          if(Array.isArray(saved)) S.levelDates[lv][subj] = saved;
+        }
+      }
+    }
+  }catch(e){ console.error('loadData failed', e); }
+  _syncWords();
+  _padAllDates();   // WRITE-CLEAR 对称: dates 数组永远跟 words 等长
+}
+function _padAllDates(){
+  for(const lv of Object.keys(S.levelWords||{}))
+    for(const subj of STREAMS) _padDates(lv, subj);
+}
+function flashSaved(){
+  const el = document.getElementById('saved');
+  el.style.display = 'inline';
+  setTimeout(()=>el.style.display='none', 1500);
+}
+function exportAll(){
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `WordGo_${toISO(new Date())}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+function importAll(event){
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try{
+      const p = JSON.parse(e.target.result);
+      if(!confirm('This will OVERWRITE all current WordGo data. Continue?')) return;
+      if(p.classes)    S.classes    = p.classes;
+      if(p.levelWords) S.levelWords = p.levelWords;
+      if(p.levelDates) S.levelDates = p.levelDates;   // [v5] 🔴 修复: v4 丢失 levelDates → 备份导得出导不回
+      // [v6] 🔒 holidays 故意不从备份还原 — 备份里的是陈旧快照, 权威在 CORE-Calendar。
+      //      import 后由 syncCalendarHolidays() 重新拉取。
+      if(p.sched)      S.sched      = p.sched;        // [v5] 新增
+      if(p.meta) S.meta = Object.assign({},S.meta,p.meta);
+      _syncWords();
+      _padAllDates();                                 // [v5] dates 数组补齐到跟 words 等长
+      await loadCalendarHolidays();                   // [v6] 假期一律重新从 Master Calendar 拉
+      await saveAll();
+      alert('Import successful!'); location.reload();
+    }catch(err){ alert('Import failed: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+function genId(prefix){ return (prefix||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+const WORDGO_BUILD = 9;
+// [v7] 平台层色 — Master Redirect Card 的按钮用「目标层」的颜色, 不是本系统的层色。
+// WordGo 是 LIB (橄榄 #6B6B3A), 但跳去 CORE-Calendar 的按钮是 CORE 红。
+const CORE_COLOR = '#5C1010';
+function _ddmmS(ds){ return ds.slice(8)+'/'+ds.slice(5,7); }
+function _ddmm(ds){ return ds.slice(8)+'/'+ds.slice(5,7); }   // DD/MM
+function _ddmmL(ds){ return ds.slice(8)+'/'+ds.slice(5,7)+'/'+ds.slice(0,4); }
+function escapeHTML(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+// sentence vs word: period(./。) = sentence → plain text; else = pills
+function _renderWords(words, style){
+  const isSentence = words.some(w => w.includes('.') || w.includes('。'));
+  if(isSentence) return `<span style="${style};border:none;background:transparent">${escapeHTML(words.join(' '))}</span>`;
+  return words.map(w=>`<span style="${style}">${escapeHTML(w)}</span>`).join('');
+}
+function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fromISO(s){ return new Date(s+'T12:00:00'); }
+function todayISO(){ return toISO(new Date()); }
+function fmtShort(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+function fmtFull(d) { return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+function getMon(ds){ const d=fromISO(ds); const dow=d.getDay()||7; d.setDate(d.getDate()-(dow-1)); return d; }
+function isHoliday(ds){ return S.holidays.includes(ds); }
+function classById(id){ return S.classes.find(c=>c.id===id); }
+
+// Sync S.words from S.levelWords (classes share level word list by reference)
+function _syncWords(){
+  S.words = {};
+  for(const cls of S.classes){
+    S.words[cls.id] = S.levelWords[cls.level] || {cp:[],ej:[],tx:[]};
+  }
+}
+
+const SUBJ_META = {
+  cp:{ label:'✏️ Copy (E)',   cls:'cp', bg:'#EEEEDD', border:'#c2c28e', hdr:'#6B6B3A', name:'Copy (English)' },
+  ej:{ label:'🇲🇾 Salin (BM)', cls:'ej', bg:'#E8F4EA', border:'#a8d4b0', hdr:'#1B5E20', name:'Salin (BM)' },
+  tx:{ label:'📝 抄写(中文)',  cls:'tx', bg:'#FBF0F0', border:'#e8a8a8', hdr:'#8B0000', name:'抄写 (中文)' },
+};
+const LEVEL_COLORS = { SR:'#185FA5', IN:'#0F6E56', JR:'#854F0B' };
+const DAY_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEDULE ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// DATE LAYER  [D-WG1 v2] — Dates are entered MANUALLY. No engine, no推算.
+// Dates live on Level + Stream + Group index (SR1 & SR3 share one set).
+// ═══════════════════════════════════════════════════════════════════════════
+function _dates(level, subj){
+  if(!S.levelDates[level]) S.levelDates[level] = {cp:[],ej:[],tx:[]};
+  if(!S.levelDates[level][subj]) S.levelDates[level][subj] = [];
+  return S.levelDates[level][subj];
+}
+function _dateAt(level, subj, i){
+  const d = _dates(level, subj)[i];
+  return { c: d?.c || null, h: d?.h || null };
+}
+// index 对齐 levelWords — 词组多出来的自动补空
+function _padDates(level, subj){
+  const w = (S.levelWords[level]?.[subj]) || [];
+  const d = _dates(level, subj);
+  while(d.length < w.length) d.push({c:null,h:null});
+  d.length = w.length;
+  return d;
+}
+async function setDate(level, subj, i, field, val){
+  _padDates(level, subj);
+  _dates(level, subj)[i][field] = val || null;
+  await saveAll(); flashSaved();
+}
+
+// 一个 level+stream 的完整排程行 (words + dates + term)
+function _rowsFor(level, subj){
+  const w = (S.levelWords[level]?.[subj]) || [];
+  _padDates(level, subj);
+  const d = _dates(level, subj);
+  return w.map((words,i)=>({
+    grpIdx:i, words,
+    copyDate: d[i]?.c || null,
+    hwDate:   d[i]?.h || null
+  }));
+}
+function _rowsForClass(classId, subj){
+  const cls = classById(classId); if(!cls) return [];
+  return _rowsFor(cls.level, subj);
+}
+
+// 一个日期上发生什么 (COPY 和 HOMEWORK 各自成一条)
+// HOMEWORK 是确切某一天 → 挂在日卡
+function _forDate(dateISO, classId){
+  if(!dateISO) return [];
+  const cls = classById(classId); if(!cls) return [];
+  const out = [];
+  for(const subj of streamsOf(cls.level)){
+    for(const e of _rowsFor(cls.level, subj)){
+      if(e.hwDate && e.hwDate===dateISO) out.push({...e, subj, kind:'hw'});
+    }
+  }
+  return out;
+}
+// COPY 是「那一周任何一天」→ 周层级，不挂日卡
+function _copyInWeek(mondayISO, classId){
+  const cls = classById(classId); if(!cls) return [];
+  const mon = mondayISO;
+  const d = fromISO(mon); d.setDate(d.getDate()+6);
+  const sun = toISO(d);
+  const out = [];
+  for(const subj of streamsOf(cls.level)){
+    for(const e of _rowsFor(cls.level, subj)){
+      if(e.copyDate && e.copyDate>=mon && e.copyDate<=sun) out.push({...e, subj, kind:'copy'});
+    }
+  }
+  return out;
+}
+
+function _kindTag(kind){
+  const K = { copy:{t:'COPY', c:'k-copy'}, hw:{t:'HOMEWORK', c:'k-hw'} };
+  const k = K[kind]; if(!k) return '';
+  return `<span class="tag-kind ${k.c}">${k.t}</span>`;
+}
+const _dowS = ds => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][fromISO(ds).getDay()];
+// COPY = 那一周任何一天 → 显示整周范围，不显示星期几 (避免误导)
+function _weekRange(ds){
+  const mon = getMon(ds);
+  const fri = new Date(mon); fri.setDate(mon.getDate()+4);
+  return `week ${_ddmm(toISO(mon))}–${_ddmm(toISO(fri))}`;
+}
+
+// 只警告不阻挡 — 手动输入，Teo 最大
+function _isBadPair(e){ return !!(e.copyDate && e.hwDate && e.hwDate <= e.copyDate); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEDULE ENGINE  [D-WG3/4/5 v5]  — 自动推算，覆盖手动日期
+// 整周假期 (Mon–Fri 全放假) 自动跳过；呈交日落在该周第一个上课日。
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 该周 Mon–Fri 是否「整周假期」
+function _isDeadWeek(mondayISO){
+  const mon = fromISO(mondayISO);
+  for(let i=0;i<5;i++){
+    const d = new Date(mon); d.setDate(mon.getDate()+i);
+    if(!isHoliday(toISO(d))) return false;   // 有任一天上课 → 不是死周
+  }
+  return true;
+}
+
+// 该周的「指定星期几」上课日 (wantDay: 1=Mon .. 5=Fri, 预设 1)
+// 若该天是假期 → 往后顺延到该周下一个上课日; 若之后都是假期 → 往前找; 整周假期返回 null
+// [v8] 每个 Level 交功课的星期几不同 (SR=周一, JR=周二) — 从 Excel 反推确认
+function _firstSchoolDay(mondayISO, wantDay){
+  const mon  = fromISO(mondayISO);
+  const want = Math.min(5, Math.max(1, parseInt(wantDay)||1)) - 1;   // 0-based offset
+  const at = i => { const d = new Date(mon); d.setDate(mon.getDate()+i); return toISO(d); };
+  for(let i=want;  i<5; i++){ const s=at(i); if(!isHoliday(s)) return s; }   // 指定日起, 往后顺延
+  for(let i=want-1;i>=0;i--){ const s=at(i); if(!isHoliday(s)) return s; }   // 再不行, 往前找
+  return null;                                                              // 整周假期
+}
+
+// [v5] 把任意日期「安全化」: 若落在周末/假期上, 往后推到下一个上课日
+// 最多推 60 天; 推不到就返回 null
+function _safeSchoolDay(iso){
+  if(!iso) return null;
+  const d = fromISO(iso);
+  for(let g=0; g<60; g++){
+    const s   = toISO(d);
+    const dow = d.getDay();
+    if(dow!==0 && dow!==6 && !isHoliday(s)) return s;   // 非周末 + 非假期
+    d.setDate(d.getDate()+1);
+  }
+  return null;
+}
+
+// 从 startMondayISO 起, 产出 n 个「有效周」的周一 ISO (跳过死周)
+function _effectiveWeeks(startMondayISO, n){
+  const out = [];
+  const d = getMon(startMondayISO);
+  let guard = 0;
+  while(out.length < n && guard++ < 400){
+    const iso = toISO(d);
+    if(!_isDeadWeek(iso)) out.push(iso);
+    d.setDate(d.getDate()+7);
+  }
+  return out;
+}
+
+// 生成一个 Level 的全部 stream 日期
+// mode: 'overwrite' = 全部重排 | 'fill' = 只填空白 (已有 c/h 不动)
+function generateSchedule(level, mode){
+  const cfg = S.sched[level];
+  if(!cfg || !cfg.copyStartWeek || !cfg.hwStartDate){
+    alert('Please set Copy Start Week and Homework Start Date first.');
+    return false;
+  }
+  const cPer  = Math.max(1, parseInt(cfg.copyPerWeek)||1);
+  const hPer  = Math.max(1, parseInt(cfg.hwPerWeek)||1);
+  const cFrom = Math.max(1, parseInt(cfg.copyStartGroup)||1) - 1;   // [v8] 0-based: 抄写从第几组开始
+  const hDay  = Math.min(5, Math.max(1, parseInt(cfg.hwDay)||1));   // [v8] 交功课固定在星期几 (1=Mon..5=Fri)
+  const cWarm = Math.max(0, parseInt(cfg.copyWarmupWeeks)||0);      // [v9] 暖身期: 前 N 个抄写周, 每周只抄 1 组
+
+  // 起始作业日若落在假期/周末 → 推到下一个上课日
+  const hStart = _safeSchoolDay(cfg.hwStartDate);
+  if(!hStart){
+    alert('Homework Start Date falls in a long holiday. Please pick another date.');
+    return false;
+  }
+
+  for(const subj of streamsOf(level)){
+    _padDates(level, subj);
+    const d = _dates(level, subj);
+    const n = d.length;
+    if(!n) continue;   // IN/JR 的 tx 没词 → 跳过
+
+    // ── COPY: 从第 cFrom+1 组起。前 cWarm 个抄写周每周 1 组 (暖身), 之后每周 cPer 组。
+    //    copyDate = 该周周一 (COPY 语义 = 「那一周任何一天」)
+    //    [v8] cFrom 之前的组 = 老师准备的字, 学生不抄 → 抄写栏必须留空
+    //    [v9] cWarm = 暖身周数。0 = 无暖身 (全程 cPer/周)。
+    const nCopy  = Math.max(0, n - cFrom);                           // 要抄的组数
+    const nAfter = Math.max(0, nCopy - cWarm);                       // 暖身之后剩几组
+    const cWeeksNeeded = Math.min(cWarm, nCopy) + Math.ceil(nAfter / cPer);
+    const cWeeks = _effectiveWeeks(cfg.copyStartWeek, cWeeksNeeded);
+    for(let i=0;i<n;i++){
+      if(i < cFrom){                                  // [v8] 不抄写的组
+        if(mode==='overwrite') d[i].c = null;         // overwrite: 清掉旧值
+        continue;                                     // fill: 原样不动
+      }
+      const k  = i - cFrom;                           // 第几个「要抄的组」(0-based)
+      const wi = (k < cWarm)                          // [v9] 暖身期: 1 组 = 1 周
+        ? k
+        : cWarm + Math.floor((k - cWarm) / cPer);     //   之后: cPer 组 = 1 周
+      const wk = cWeeks[wi];
+      if(!wk) break;
+      if(mode==='fill' && d[i].c) continue;
+      d[i].c = wk;
+    }
+
+    // ── HOMEWORK: 第 1 批 = hStart (已安全化); 之后每个有效周塞 hPer 组
+    //    hwDate = 该周第一个上课日
+    const hWeeks = _effectiveWeeks(hStart, Math.ceil(n / hPer));
+    for(let i=0;i<n;i++){
+      const wk = hWeeks[Math.floor(i / hPer)];
+      if(!wk) break;
+      const day = (i < hPer) ? hStart : _firstSchoolDay(wk, hDay);
+      if(!day) continue;
+      if(mode==='fill' && d[i].h) continue;
+      d[i].h = day;
+    }
+  }
+  cfg.lastGen = new Date().toISOString();
+  return true;
+}
+
+// 该 Level 已有日期数 / 总组数
+function _schedStats(level){
+  let dated = 0, total = 0;
+  for(const subj of streamsOf(level)){
+    const d = _dates(level, subj);
+    total += d.length;
+    dated += d.filter(x=>x && (x.c || x.h)).length;
+  }
+  return { dated, total };
+}
+
+// 带备份 + 双确认的入口
+async function runGenerate(level, mode){
+  // [v6] 🔒 硬 SSOT: 生成前强制拉 Master Calendar。拿不到 → 宁可不排, 不排错。
+  const calOK = await loadCalendarHolidays();
+  if(!calOK){
+    alert('❌ Cannot reach CORE-Calendar.\n\nHolidays are the single source of truth for schedule generation.\nGeneration aborted — refusing to schedule on stale holiday data.\n\nCheck your connection and try again.');
+    return;
+  }
+  await saveAll();
+  const holN = S.holidays.length;
+  if(holN === 0 && !confirm('⚠ CORE-Calendar returned 0 holidays for SRK.\n\nNo weeks will be skipped. Is that really correct?\n\nContinue anyway?')) return;
+
+  const dated = _schedStats(level).dated;
+
+  if(mode==='overwrite' && dated>0){
+    if(!confirm(`⚠ This will OVERWRITE ${dated} existing dates for ${level}.\n\nA backup will be exported first.\n\nContinue?`)) return;
+    const typed = prompt(`Type GENERATE to confirm overwriting ${level}:`);
+    if(typed !== 'GENERATE') return alert('Cancelled.');
+    exportAll();   // 强制备份 — importAll 已修复, 确保能导回
+  }
+  if(!generateSchedule(level, mode)) return;
+  await saveAll(); flashSaved();
+  render_settings();
+
+  // 生成后自检: 汇报 badPair 数量 (不阻挡, 只提示)
+  const bad = streamsOf(level).reduce((s,subj)=>
+    s + _rowsFor(level,subj).filter(_isBadPair).length, 0);
+  alert(`✓ ${level} schedule generated (${mode==='fill'?'filled blanks only':'overwritten'}).\nHolidays used: ${holN} (fresh from CORE-Calendar).`
+      + (bad ? `\n\n⚠ ${bad} group(s) have homework date on/before copy date. Check Schedule page.` : ''));
+}
+
+// Settings 页写入排程设定
+async function updateSched(level, field, val){
+  if(!S.sched[level]) S.sched[level] = Object.assign({}, DEFAULT_SCHED[level]);
+  if(field === 'copyStartWeek' && val) val = toISO(getMon(val));   // 规范化到周一
+  if(field === 'copyPerWeek' || field === 'hwPerWeek' || field === 'copyStartGroup') val = Math.max(1, parseInt(val)||1);
+  if(field === 'hwDay') val = Math.min(5, Math.max(1, parseInt(val)||1));
+  if(field === 'copyWarmupWeeks') val = Math.max(0, parseInt(val)||0);   // [v9] 0 = 无暖身
+  S.sched[level][field] = val;
+  await saveAll(); flashSaved();
+  if(field === 'copyStartWeek') render_settings();   // 周一规范化后要回显
+}
+
+const PAGE_MAP = {week:0, wordlist:1, schedule:2, holiday:3, book:4, settings:5, manage:6};
+function goPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
+  const el = document.getElementById('page-'+p);
+  if(el) el.classList.add('on');
+  document.querySelectorAll('.ntab')[PAGE_MAP[p]]?.classList.add('on');
+  const fn = window['render_'+p];
+  if(typeof fn==='function') fn();
+}
+
+// ── Shared selectors ──────────────────────────────────────────────────────
+function _classChips(sel, fn){
+  return S.classes.map(c=>`<button class="btn-plain btn-sm ${sel===c.id?'active-chip':''}"
+    style="${sel===c.id?'background:var(--acc);color:#fff;border-color:var(--acc)':''}"
+    onclick="${fn}('${c.id}')">${c.id}</button>`).join('');
+}
+function _levelChips(sel, fn){
+  return ['SR','IN','JR'].map(lv=>`<button class="btn-plain btn-sm ${sel===lv?'active-chip':''}"
+    style="${sel===lv?'background:'+LEVEL_COLORS[lv]+';color:#fff;border-color:'+LEVEL_COLORS[lv]:''}"
+    onclick="${fn}('${lv}')">${lv}</button>`).join('');
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: THIS WEEK
+// ═══════════════════════════════════════════════════════════════════════════
+let _weekClass = '';
+
+function render_week(){
+  if(!_weekClass || !classById(_weekClass)) _weekClass = S.classes[0]?.id || '';
+  const today = todayISO();
+  const mon   = getMon(today);
+  const days  = [0,1,2,3,4].map(i=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return toISO(d); });
+  const wStr  = fmtShort(fromISO(days[0]))+' – '+fmtFull(fromISO(days[4]));
+  const cls0 = classById(_weekClass);
+
+  // ── COPY = week-level banner (any day this week) ──
+  const copies = cls0 ? _copyInWeek(days[0], _weekClass) : [];
+  const copyBanner = copies.length ? `
+    <div class="act act-copy" style="margin-bottom:12px">
+      <div class="act-hdr" style="font-size:12px">✍️ COPY THIS WEEK
+        <span style="opacity:.7;font-weight:500;font-size:10px">— any day in class</span></div>
+      ${copies.map(e=>{
+        const m = SUBJ_META[e.subj];
+        return `<div style="padding:7px 0;border-top:1px solid rgba(255,255,255,.18)">
+          <div style="font-size:10px;font-weight:600;opacity:.85;margin-bottom:4px">
+            ${m.name} <span class="grp grp-on-dark">#${e.grpIdx+1}</span>
+            ${e.hwDate?`<span style="opacity:.65;font-weight:400">· hand in ${_ddmmS(e.hwDate)} (${_dowS(e.hwDate)})</span>`:'<span style="opacity:.65;font-weight:400">· no homework date</span>'}
+          </div>
+          <div style="display:flex;flex-wrap:wrap">${_renderWords(e.words,'display:inline-block;background:rgba(255,255,255,.92);color:#1a1a1a;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;margin:1px')}</div>
+        </div>`;
+      }).join('')}
+    </div>` : `<div class="card" style="margin-bottom:12px;color:var(--hint);font-size:11px;text-align:center;padding:12px">No copying scheduled this week.</div>`;
+
+  // ── HOMEWORK = exact day → day cards ──
+  const dayCards = days.map((iso,i) => {
+    const isToday = iso===today;
+    const isHol   = isHoliday(iso);
+    const entries = cls0 ? _forDate(iso, _weekClass) : [];
+    let body = '';
+    if(isHol){
+      body = '<div class="tag-hol">Holiday</div>';
+    } else if(!entries.length){
+      body = '<div style="color:var(--hint);font-size:10px;margin-top:4px">Nothing to collect</div>';
+    } else {
+      body = entries.map(e=>{
+        const m = SUBJ_META[e.subj];
+        return `<div class="act act-hw">
+          <div class="act-hdr">
+            <span>📥 HOMEWORK DUE</span>
+            <span style="opacity:.75;font-weight:500">· ${m.name}</span>
+            <span class="grp">#${e.grpIdx+1}</span>
+          </div>
+          <div class="act-sub">${e.copyDate?`Copied week of ${_ddmmS(toISO(getMon(e.copyDate)))}`:'No copy week set'}</div>
+          <div style="display:flex;flex-wrap:wrap">${_renderWords(e.words, 'display:inline-block;background:var(--sur2);color:#1a1a1a;border:.5px solid var(--bdr);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;margin:1px')}</div>
+        </div>`;
+      }).join('');
+    }
+    return `<div class="day-card${isToday?' today':''}">
+      <div class="day-label">${DAY_FULL[i]}</div>
+      <div class="day-date" style="${isToday?'color:var(--acc)':''}">${fmtShort(fromISO(iso))}${isToday?' <span style="font-size:9px;background:var(--acc);color:#fff;border-radius:3px;padding:1px 5px">Today</span>':''}</div>
+      ${body}
+    </div>`;
+  }).join('');
+
+  document.getElementById('week-content').innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hdr">
+        <div>
+          <div style="font-size:16px;font-weight:600">📅 This Week · ${_weekClass}</div>
+          <div class="tip" style="margin:3px 0 0">${wStr}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn-plain btn-sm no-print" onclick="render_week()">↺</button>
+          <button class="btn-plain btn-sm no-print" onclick="_printWeek()">🖨 Print</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${_classChips(_weekClass,'_setWeekClass')}</div>
+      <div style="font-size:10px;color:var(--mut);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span><span class="tag-kind k-copy">COPY</span> any day this week (solid)</span>
+        <span><span class="tag-kind k-hw">HOMEWORK</span> exact day, hand in (outline)</span>
+        <span>#N = group number</span>
+      </div>
+    </div>
+    ${copyBanner}
+    <div class="week-grid">${dayCards}</div>`;
+}
+function _setWeekClass(c){ _weekClass=c; document.getElementById('build-badge').textContent = 'v' + WORDGO_BUILD;
+render_week(); }
+function _printWeek(){
+  const html = _buildPrintWeek(_weekClass);
+  _openPrint(html, `WordGo ${_weekClass} Week ${todayISO()}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: SCHEDULE  —  the home of all dates. Manually entered. [D-WG1 v2]
+// ═══════════════════════════════════════════════════════════════════════════
+let _sLevel = 'SR', _sSubj = 'cp', _sFilter = 'all';   // all | copy | hw
+
+function render_schedule(){
+  if(!hasStream(_sLevel, _sSubj)) _sSubj = streamsOf(_sLevel)[0];
+  const rows0 = _rowsFor(_sLevel, _sSubj);
+  const showC = _sFilter !== 'hw';
+  const showH = _sFilter !== 'copy';
+
+  // filter view: only rows that actually have the relevant date
+  let rows = rows0;
+  if(_sFilter==='copy') rows = rows0.filter(e=>e.copyDate);
+  if(_sFilter==='hw')   rows = rows0.filter(e=>e.hwDate);
+  if(_sFilter==='copy') rows = rows.slice().sort((a,b)=>a.copyDate.localeCompare(b.copyDate));
+  if(_sFilter==='hw')   rows = rows.slice().sort((a,b)=>a.hwDate.localeCompare(b.hwDate));
+
+  const m = SUBJ_META[_sSubj];
+  const filled = rows0.filter(e=>e.copyDate||e.hwDate).length;
+  const bad    = rows0.filter(_isBadPair).length;
+
+  const body = rows.length ? rows.map(e=>{
+    const i = e.grpIdx;
+    const warn = _isBadPair(e);
+    return `<tr class="${warn?'row-bad':''}">
+      <td style="text-align:center;color:var(--mut);font-size:11px;font-weight:600">#${i+1}</td>
+      ${showC?`<td class="cell-copy">
+        <input type="date" value="${e.copyDate||''}" class="d-copy"
+          onchange="setDate('${_sLevel}','${_sSubj}',${i},'c',this.value).then(render_schedule)">
+        <div class="dow">${e.copyDate?_weekRange(e.copyDate):'&nbsp;'}</div>
+      </td>`:''}
+      ${(showC&&showH)?'<td class="arrow" style="text-align:center">&#9654;</td>':''}
+      ${showH?`<td class="cell-hw">
+        <input type="date" value="${e.hwDate||''}" class="d-hw"
+          onchange="setDate('${_sLevel}','${_sSubj}',${i},'h',this.value).then(render_schedule)">
+        <div class="dow">${e.hwDate?_dowS(e.hwDate):'&nbsp;'}</div>
+      </td>`:''}
+      <td>${_renderWords(e.words, `display:inline-block;background:${m.bg};border:.5px solid ${m.border};border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;margin:1px`)}
+        ${warn?'<div style="color:var(--red);font-size:10px;font-weight:600;margin-top:3px">⚠️ Homework is before Copy</div>':''}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty">No groups match this filter.</td></tr>`;
+
+  const fBtn = (k,label)=>`<button class="btn-plain btn-sm" style="${_sFilter===k?'background:var(--acc);color:#fff;border-color:var(--acc)':''}" onclick="_setSFilter('${k}')">${label}</button>`;
+
+  document.getElementById('schedule-content').innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        ${_levelChips(_sLevel,'_setSLevel')}
+        <span style="color:var(--bdr)">|</span>
+        ${streamsOf(_sLevel).map(st=>`<button class="btn-plain btn-sm"
+          style="${_sSubj===st?'background:var(--acc);color:#fff;border-color:var(--acc)':''}"
+          onclick="_setSSubj('${st}')">${SUBJ_META[st].label}</button>`).join('')}
+        <button class="btn-plain btn-sm no-print" style="margin-left:auto" onclick="_printSched()">🖨 Print</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:10px;color:var(--mut);font-weight:600;letter-spacing:.05em">SHOW</span>
+        ${fBtn('all','All')} ${fBtn('copy','✍️ Copy only')} ${fBtn('hw','📥 Homework only')}
+        <span style="font-size:11px;color:var(--mut);margin-left:auto">
+          ${filled} / ${rows0.length} groups dated${bad?` · <span style="color:var(--red);font-weight:600">${bad} reversed</span>`:''}
+        </span>
+      </div>
+      <p class="tip" style="margin-top:8px">Dates are entered by hand — tap a field to change it, saves instantly.
+        <b>COPY WEEK</b> = the week it is copied in class (any day). <b>HOMEWORK</b> = the exact day it must be handed in.
+        SR1 &amp; SR3 share the same dates (per Level).</p>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+      <table class="data sched-tbl">
+        <thead><tr>
+          <th style="width:42px">#</th>
+          ${showC?'<th style="width:150px" class="th-copy">✍️ COPY WEEK</th>':''}
+          ${(showC&&showH)?'<th style="width:22px"></th>':''}
+          ${showH?'<th style="width:132px" class="th-hw">📥 HOMEWORK DATE</th>':''}
+          <th>Words</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>
+    </div>`;
+}
+function _setSLevel(lv){ _sLevel=lv; render_schedule(); }
+function _setSSubj(s) { _sSubj=s;   render_schedule(); }
+function _setSFilter(f){ _sFilter=f; render_schedule(); }
+
+function _printSched(){
+  const html = _buildPrintFull(_sLevel, _sSubj);
+  _openPrint(html, `WordGo ${_sLevel} ${SUBJ_META[_sSubj].name}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: WORD LIST  —  pure word bank. No dates here (dates live in Schedule).
+// ═══════════════════════════════════════════════════════════════════════════
+let _wLevel = 'SR', _wSubj = 'cp', _wEdit = null;
+
+function render_wordlist(){
+  if(!hasStream(_wLevel, _wSubj)) _wSubj = streamsOf(_wLevel)[0];
+  const words = (S.levelWords[_wLevel] && S.levelWords[_wLevel][_wSubj]) || [];
+  const m = SUBJ_META[_wSubj];
+  const usedBy = S.classes.filter(cl=>cl.level===_wLevel).map(cl=>cl.id).join(' · ') || '—';
+
+  const rows = words.map((w,i)=>{
+    if(_wEdit===i){
+      return `<div class="wl-row editing">
+        <div class="wl-num">#${i+1}</div>
+        <div style="flex:1">
+          <input type="text" id="wl-in-${i}" value="${escapeHTML(w.join(', '))}" style="width:100%"
+            onkeydown="if(event.key==='Enter')_wSave('${_wLevel}','${_wSubj}',${i},this.value)">
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn-grn btn-sm" onclick="_wSave('${_wLevel}','${_wSubj}',${i},document.getElementById('wl-in-${i}').value)">Save</button>
+            <button class="btn-plain btn-sm" onclick="_wEditToggle(${i})">Cancel</button>
+            <button class="btn-red btn-sm" style="margin-left:auto" onclick="_wDelete('${_wLevel}','${_wSubj}',${i})">Delete</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    return `<div class="wl-row" onclick="_wEditToggle(${i})">
+      <div class="wl-num">#${i+1}</div>
+      <div style="flex:1;display:flex;flex-wrap:wrap">${_renderWords(w, `display:inline-block;background:${m.bg};border:.5px solid ${m.border};border-radius:5px;padding:3px 9px;font-size:12px;font-weight:600;margin:2px`)}</div>
+      <div style="color:var(--hint);font-size:14px;align-self:center">›</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('wordlist-content').innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${_levelChips(_wLevel,'_setWLevel')}
+        <span style="color:var(--bdr)">|</span>
+        ${streamsOf(_wLevel).map(st=>`<button class="btn-plain btn-sm"
+          style="${_wSubj===st?'background:var(--acc);color:#fff;border-color:var(--acc)':''}"
+          onclick="_setWSubj('${st}')">${SUBJ_META[st].label}</button>`).join('')}
+        <button class="btn-plain btn-sm" style="margin-left:auto" onclick="_wAdd('${_wLevel}','${_wSubj}')">+ Add Group</button>
+      </div>
+      <p class="tip" style="margin-top:8px">
+        <b>${words.length}</b> groups · used by <b>${usedBy}</b> · tap a row to edit.
+        Dates are set in <b>Schedule</b>.
+      </p>
+    </div>
+    <div class="card" style="padding:4px 0">
+      ${rows || '<div class="empty">No groups yet. Tap + Add Group.</div>'}
+    </div>
+    <div style="text-align:right;margin-top:10px">
+      <button class="btn-plain btn-sm" onclick="_wReset()">↺ Reset ${_wLevel} / ${SUBJ_META[_wSubj].name} to default</button>
+    </div>`;
+}
+function _setWLevel(lv){ _wLevel=lv; _wEdit=null; render_wordlist(); }
+function _setWSubj(s)  { _wSubj=s;  _wEdit=null; render_wordlist(); }
+function _wEditToggle(i){ _wEdit=(_wEdit===i?null:i); render_wordlist(); }
+
+async function _wSave(lv, subj, idx, raw){
+  const parsed = raw.split(/[,，]+/).map(w=>w.trim()).filter(Boolean);
+  if(!parsed.length) return alert('Cannot be empty.');
+  S.levelWords[lv][subj][idx] = parsed;
+  _syncWords(); _padDates(lv, subj);
+  await saveAll(); flashSaved(); _wEdit=null; render_wordlist();
+}
+async function _wAdd(lv, subj){
+  const raw = prompt('Enter words (comma-separated):'); if(raw===null) return;
+  const parsed = raw.split(/[,，]+/).map(w=>w.trim()).filter(Boolean); if(!parsed.length) return;
+  if(!S.levelWords[lv]) S.levelWords[lv]={cp:[],ej:[],tx:[]};
+  if(!S.levelWords[lv][subj]) S.levelWords[lv][subj]=[];
+  S.levelWords[lv][subj].push(parsed);
+  _syncWords(); _padDates(lv, subj);
+  await saveAll(); flashSaved(); render_wordlist();
+}
+async function _wDelete(lv, subj, idx){
+  if(!confirm(`Delete group #${idx+1}? Its dates will be removed too.`)) return;
+  S.levelWords[lv][subj].splice(idx,1);
+  _dates(lv,subj).splice(idx,1);
+  _syncWords(); _padDates(lv, subj);
+  await saveAll(); flashSaved(); _wEdit=null; render_wordlist();
+}
+async function _wReset(){
+  if(!confirm(`Reset ${_wLevel} / ${SUBJ_META[_wSubj].name} words AND dates to the Excel defaults?`)) return;
+  S.levelWords[_wLevel][_wSubj] = JSON.parse(JSON.stringify(DEFAULT_WORDS[_wLevel][_wSubj]||[]));
+  S.levelDates[_wLevel][_wSubj] = JSON.parse(JSON.stringify(DEFAULT_DATES[_wLevel][_wSubj]||[]));
+  _syncWords(); _padDates(_wLevel,_wSubj);
+  await saveAll(); flashSaved(); _wEdit=null; render_wordlist();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: CLASSES
+// ═══════════════════════════════════════════════════════════════════════════
+function render_classes(){ render_settings(); }
+
+function updateClassField(i, field, val){
+  S.classes[i][field] = val;
+  if(field==='level'||field==='num') rebuildClassId(i);
+  else _syncWords();
+}
+function rebuildClassId(i){
+  const cls = S.classes[i];
+  const newId = cls.level + (cls.num||'');
+  if(newId!==cls.id){
+    cls.id = newId;
+  }
+  _syncWords(); render_settings();
+}
+function addClass(){
+  const lv  = prompt('Level (SR / IN / JR):', 'SR'); if(!lv) return;
+  const lvUp = lv.trim().toUpperCase();
+  if(!['SR','IN','JR'].includes(lvUp)) return alert('Level must be SR, IN or JR');
+  const num = prompt('Number (leave blank for single class like JR):', '');
+  const id  = lvUp + (num||'');
+  if(S.classes.find(c=>c.id===id)) return alert(`${id} already exists`);
+  S.classes.push({id, level:lvUp, num:num||''});   // [v5] 清死代码: 6 个 weekday 字段是 v2 遗留
+  _syncWords(); render_settings();
+}
+function deleteClass(i){
+  if(!confirm(`Remove class ${S.classes[i].id}? Schedule will also be deleted.`)) return;
+  const id=S.classes[i].id; S.classes.splice(i,1);
+  if(_weekClass===id) _weekClass='';
+  _syncWords(); render_settings();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function render_manage(){
+  const counts = {
+    classes: S.classes.length,
+    words: Object.values(S.levelWords||{}).reduce((sum,lv)=>sum+STREAMS.reduce((s2,st)=>s2+(lv[st]||[]).length,0),0),
+    dated: Object.values(S.levelDates||{}).reduce((sum,lv)=>sum+STREAMS.reduce((s2,st)=>s2+((lv[st]||[]).filter(x=>x&&(x.c||x.h)).length),0),0),
+    holidays: (S.holidays||[]).length
+  };
+  document.getElementById('manage-content').innerHTML = `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">SYSTEM INFORMATION</div>
+      <div style="font-size:13px;line-height:2.2">
+        <div>System: <strong>LIB — WordGo</strong> · Student word-copying system</div>
+        <div>Storage: <code>${STORAGE_KEY}</code> · <strong>localStorage</strong> (Phase 0)</div>
+        <div>Data: <strong>${counts.classes}</strong> classes · <strong>${counts.words}</strong> word groups · <strong>${counts.dated}</strong> dated · <strong>${counts.holidays}</strong> holidays</div>
+        <div>Cloud: <strong>Supabase Auth</strong> + Calendar holidays (CORE-Calendar, SRK only) — read-only</div>
+        <div>Streams: <code>cp</code> Copy (E) · <code>ej</code> Salin (BM) · <code>tx</code> 抄写 (中文, SR only)</div>
+        <div>Dates: <span class="tag-kind k-copy">COPY WEEK</span> any day that week <span class="arrow">▶</span> <span class="tag-kind k-hw">HOMEWORK</span> exact hand-in day · entered manually, shared per Level</div>
+        <div>No terms — one continuous list per Level / stream.</div>
+        <div>Version: <span style="background:#F9CB42;color:var(--layer);border-radius:4px;padding:2px 10px;font-size:12px;font-weight:700">v${WORDGO_BUILD}</span></div>
+      </div>
+    </div>
+`;
+}
+function render_settings(){
+
+
+
+  // Class 卡 — 只有身份, 没有日期 [D-WG1 v2: 日期在 Schedule 页手动填]
+  const classCardsHTML = S.classes.map((cls,i)=>`
+    <div class="cls-card">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-weight:700;font-size:16px;color:${LEVEL_COLORS[cls.level]||'var(--acc)'}">${cls.id}</span>
+        <select style="min-width:62px" onchange="updateClassField(${i},'level',this.value)">
+          ${['SR','IN','JR'].map(lv=>`<option value="${lv}" ${cls.level===lv?'selected':''}>${lv}</option>`).join('')}
+        </select>
+        <input type="text" value="${escapeHTML(cls.num)}" placeholder="No." style="width:56px"
+          onchange="updateClassField(${i},'num',this.value)" onblur="rebuildClassId(${i})">
+        <span style="font-size:11px;color:var(--mut)">uses <b>${cls.level}</b> word list &amp; dates</span>
+        <button class="btn-red" style="margin-left:auto" onclick="deleteClass(${i})">Remove</button>
+      </div>
+    </div>`).join('');
+
+  // [v5] 排程引擎卡 — 每 Level 一张 (粒度 = Level, 非 Level×Stream)
+  const schedCardsHTML = ['SR','IN','JR'].map(lv=>{
+    const c  = S.sched[lv] || DEFAULT_SCHED[lv];
+    const st = _schedStats(lv);
+    const lg = c.lastGen ? new Date(c.lastGen).toLocaleString() : '—';
+    return `
+    <div class="card" style="margin-bottom:14px;border-left:4px solid ${LEVEL_COLORS[lv]||'var(--acc)'}">
+      <div class="card-hdr">
+        <div class="card-title">⚙️ Schedule Engine — <span style="color:${LEVEL_COLORS[lv]||'var(--acc)'}">${lv}</span></div>
+      </div>
+      <p class="tip">One rhythm per Level. <b>${streamsOf(lv).join(' / ')}</b> share these settings but generate their own dates.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <label style="font-size:11px;color:var(--mut)">Copy Start Week
+          <input type="date" value="${c.copyStartWeek||''}" style="width:100%;margin-top:3px"
+            onchange="updateSched('${lv}','copyStartWeek',this.value)">
+        </label>
+        <label style="font-size:11px;color:var(--mut)">Copy / week
+          <input type="number" min="1" value="${c.copyPerWeek||1}" style="width:100%;margin-top:3px"
+            onchange="updateSched('${lv}','copyPerWeek',this.value)">
+        </label>
+        <label style="font-size:11px;color:var(--mut)">Homework Start Date
+          <input type="date" value="${c.hwStartDate||''}" style="width:100%;margin-top:3px"
+            onchange="updateSched('${lv}','hwStartDate',this.value)">
+        </label>
+        <label style="font-size:11px;color:var(--mut)">Homework / week
+          <input type="number" min="1" value="${c.hwPerWeek||1}" style="width:100%;margin-top:3px"
+            onchange="updateSched('${lv}','hwPerWeek',this.value)">
+        </label>
+        <label style="font-size:11px;color:var(--mut);grid-column:1/-1">Homework day (hand-in)
+          <select style="width:100%;margin-top:3px" onchange="updateSched('${lv}','hwDay',this.value)">
+            ${[[1,'Monday'],[2,'Tuesday'],[3,'Wednesday'],[4,'Thursday'],[5,'Friday']].map(([v,n])=>
+              `<option value="${v}"${(c.hwDay||1)==v?' selected':''}>${n}</option>`).join('')}
+          </select>
+          <span style="font-size:11px;color:var(--hint)">If that day is a holiday, it shifts to the next school day that week.</span>
+        </label>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:#FBF7E8;border:1px solid #EBDFAE;border-radius:7px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="font-size:11px;color:var(--mut)">✍️ Copy starts at group
+            <input type="number" min="1" value="${c.copyStartGroup||1}" style="width:100%;margin-top:3px"
+              onchange="updateSched('${lv}','copyStartGroup',this.value)">
+          </label>
+          <label style="font-size:11px;color:var(--mut)">🐢 Warm-up weeks
+            <input type="number" min="0" value="${c.copyWarmupWeeks||0}" style="width:100%;margin-top:3px"
+              onchange="updateSched('${lv}','copyWarmupWeeks',this.value)">
+          </label>
+        </div>
+        <p style="font-size:11px;color:var(--mut);margin:8px 0 0;line-height:1.6">
+          ${(c.copyStartGroup||1) > 1
+            ? `Groups <b>1–${(c.copyStartGroup||1)-1}</b> are <b>teacher-prepared</b> — students do not copy them. COPY stays <b>blank</b>. Homework still starts at group 1.<br>`
+            : `All groups are copied by students, starting from group 1.<br>`}
+          ${(c.copyWarmupWeeks||0) > 0
+            ? `First <b>${c.copyWarmupWeeks}</b> copy week(s): <b>1 group/week</b> (easing in), then <b>${c.copyPerWeek||1}/week</b>.`
+            : `No warm-up — <b>${c.copyPerWeek||1} group(s)/week</b> from the very first copy week.`}
+        </p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn-red" onclick="runGenerate('${lv}','overwrite')">▶ Generate (overwrite)</button>
+        <button class="btn-plain" onclick="runGenerate('${lv}','fill')">▶ Fill blanks only</button>
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-top:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <span>Last generated: <b>${lg}</b></span>
+        <span><b>${st.dated}</b> / ${st.total} dated</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('settings-content').innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hdr">
+        <div class="card-title">🏫 Classes</div>
+        <button class="btn-plain btn-sm" onclick="addClass()">+ Add Class</button>
+      </div>
+      <p class="tip">Classes only pick a <b>Level</b>. Words and dates belong to the Level —
+        SR1 and SR3 share one set. Set the dates in <b>Schedule</b>.  IN / JR have no Chinese stream.</p>
+      <div style="margin-top:10px">${classCardsHTML}</div>
+    </div>
+    ${schedCardsHTML}
+    <div class="card" style="background:#EEF4FB;border-color:#c0d4ea">
+      <div style="font-size:11px;color:var(--acc);font-weight:600;margin-bottom:6px">💡 Workflow</div>
+      <ol style="font-size:11px;color:var(--acc);padding-left:16px;line-height:1.9">
+        <li>Sync holidays from <strong>Holiday → Sync from Calendar</strong></li>
+        <li>Set Copy / Homework rhythm in <strong>Schedule Engine</strong> above</li>
+        <li>Click <strong>Generate</strong> — dates fill automatically</li>
+        <li>Fine-tune any single date in <strong>Schedule</strong></li>
+        <li>Print in <strong>Book Notice</strong></li>
+      </ol>
+    </div>
+`;
+}
+
+async function syncCalendarHolidays(){
+  const ok = await loadCalendarHolidays();
+  if(!ok){ alert('No calendar data found. Add holidays in CORE-Calendar first.'); return; }
+  await saveAll();
+  render_holiday();
+  alert('✓ Synced '+S.holidays.length+' holiday dates from CORE-Calendar.');
+}
+async function clearAll(){
+  if(!confirm('⚠️ Delete ALL WordGo data (local)? Resets to defaults. Cannot be undone.')) return;
+  if(!confirm('Really sure? Click OK to confirm.')) return;
+  localStorage.removeItem(STORAGE_KEY); location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRINT / EXPORT HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+const SIG_FOOTER = `<div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:10px;color:#555;border-top:1px solid #eee;padding-top:14px">
+  <div>Teacher / Guru / 老师<div style="border-bottom:1px solid #bbb;height:22px;margin-top:8px"></div></div>
+  <div>Parent / Ibu Bapa / 家长<div style="border-bottom:1px solid #bbb;height:22px;margin-top:8px"></div></div>
+  <div>Date / Tarikh / 日期<div style="border-bottom:1px solid #bbb;height:22px;margin-top:8px"></div></div>
+</div>`;
+
+function _buildPrintWeek(classId){
+  const today=todayISO(), mon=getMon(today);
+  const days=[0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return toISO(d);});
+  const monISO=days[0];
+  let out='';
+  const copies=_copyInWeek(monISO, classId);
+  if(copies.length){
+    out+=`<div style="border:2px solid #1a1a1a;background:#1a1a1a;color:#fff;border-radius:8px;padding:10px 13px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.05em;margin-bottom:6px">&#9998; COPY THIS WEEK &mdash; any day in class</div>`;
+    for(const e of copies){
+      const m=SUBJ_META[e.subj];
+      out+=`<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,.2)">
+        <div style="font-size:9px;font-weight:700;opacity:.85;margin-bottom:4px;text-transform:uppercase">${m.name} #${e.grpIdx+1}${e.hwDate?` &middot; hand in ${_ddmm(e.hwDate)} (${_dowS(e.hwDate)})`:''}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${_renderWords(e.words,'background:#fff;color:#1a1a1a;border-radius:5px;padding:3px 9px;font-size:13px;font-weight:600')}</div>
+      </div>`;
+    }
+    out+='</div>';
+  }
+  for(const iso of days){
+    const entries=_forDate(iso, classId);
+    if(!entries.length && !isHoliday(iso)) continue;
+    const d=fromISO(iso);
+    out+=`<div style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#333;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:6px">
+        ${fmtFull(d)}${isHoliday(iso)?' &middot; <span style="color:#999">Holiday</span>':''}
+      </div>`;
+    for(const e of entries){
+      const m=SUBJ_META[e.subj];
+      out+=`<div style="border:1.5px solid #1a1a1a;border-radius:8px;padding:9px 12px;margin-bottom:6px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.04em;margin-bottom:5px;text-transform:uppercase">&#128229; HOMEWORK DUE &middot; ${m.name} #${e.grpIdx+1}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${_renderWords(e.words,'background:#f4f4f0;border:.5px solid #ddd;border-radius:5px;padding:3px 9px;font-size:13px;font-weight:600')}</div>
+      </div>`;
+    }
+    out+='</div>';
+  }
+  return `<div style="max-width:760px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2.5px solid #6B6B3A">
+      <div style="font-size:18px;font-weight:800;color:#6B6B3A">&#9998; ${classId} &middot; WordGo</div>
+      <div style="font-size:12px;color:#666;margin-top:4px">Week of ${fmtShort(fromISO(days[0]))} &ndash; ${fmtFull(fromISO(days[4]))}</div>
+    </div>
+    ${out||'<p style="color:#ccc">Nothing this week.</p>'}
+    ${SIG_FOOTER}
+  </div>`;
+}
+
+function _buildPrintFull(level, subj){
+  const m=SUBJ_META[subj];
+  const rows=_rowsFor(level, subj).filter(e=>e.copyDate||e.hwDate);
+  if(!rows.length) return '<p>No dated groups.</p>';
+  let body='';
+  for(const e of rows){
+    body+=`<tr>
+      <td style="padding:5px 8px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:10px;color:#999">${e.grpIdx+1}</td>
+      <td style="padding:5px 8px;border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;text-align:center;font-weight:700;font-size:12px;white-space:nowrap;line-height:1.2">${e.copyDate?_ddmm(e.copyDate):'&mdash;'}<br><span style="font-size:8px;opacity:.75">${e.copyDate?'week of':''}</span></td>
+      <td style="text-align:center;color:#bbb;font-weight:700">&#9654;</td>
+      <td style="padding:5px 8px;border:2px solid #1a1a1a;text-align:center;font-weight:700;font-size:12px;white-space:nowrap;line-height:1.2">${e.hwDate?_ddmm(e.hwDate):'&mdash;'}<br><span style="font-size:8px;color:#888">${e.hwDate?_dowS(e.hwDate):''}</span></td>
+      <td style="padding:5px 8px;border-bottom:1px solid #f0f0f0">${_renderWords(e.words,'font-size:12px;font-weight:600')}</td>
+    </tr>`;
+  }
+  return `<div style="max-width:900px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2.5px solid #6B6B3A">
+      <div style="font-size:18px;font-weight:800;color:#6B6B3A">&#9998; ${level} &middot; ${m.name} &middot; Full Schedule</div>
+      <div style="font-size:11px;color:#666;margin-top:5px">
+        <span style="background:#1a1a1a;color:#fff;padding:1px 7px;border-radius:3px;font-weight:700">&#9998; COPY WEEK = any day that week</span>
+        <span style="color:#aaa;font-weight:700">&#9654;</span>
+        <span style="border:1.5px solid #1a1a1a;padding:1px 7px;border-radius:3px;font-weight:700">&#128229; HOMEWORK = hand in</span>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#2d2d2d">
+        <th style="padding:6px;color:#fff;font-size:9px">#</th>
+        <th style="padding:6px;color:#fff;font-size:9px;width:70px">COPY WEEK</th>
+        <th style="padding:6px;color:#fff;font-size:9px;width:16px"></th>
+        <th style="padding:6px;color:#fff;font-size:9px;width:64px">HOMEWORK</th>
+        <th style="padding:6px;color:#fff;font-size:9px;text-align:left">WORDS</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+    ${SIG_FOOTER}
+  </div>`;
+}
+
+function _openPrint(html, title){
+  const w=window.open('','_blank','width=780,height=1000');
+  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{margin:0;padding:0}@media print{@page{margin:10mm}}</style>
+  </head><body>${html}<script>window.print();window.onafterprint=()=>window.close();<\/script></body></html>`);
+  w.document.close();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: HOLIDAY
+// Read-only view of HolidayGo data + manual add. Used to drive schedule.
+// ═══════════════════════════════════════════════════════════════════════════
+function render_holiday(){
+  const holCount = S.holidays.length;
+  const holRows = S.holidays.slice().sort().map((h,i)=>{
+    const d = fromISO(h);
+    const dow = d.toLocaleDateString('en-GB',{weekday:'short'});
+    return `<tr>
+      <td style="font-weight:600">${_ddmmL(h)}</td>
+      <td style="color:var(--mut)">${dow}</td>
+      <td>${fmtFull(d)}</td>
+      <td style="text-align:right;color:var(--hint);font-size:13px" title="Read-only — managed in CORE-Calendar">🔒</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('holiday-content').innerHTML = `
+    <!-- ═══ MASTER REDIRECT CARD — 平台标准模式 (对齐 ClassGo → Teacher master) ═══
+         SSOT 铁律: 主数据只有一个地方能改。消费系统只读 + 一个跳去主数据源的按钮。
+         按钮颜色 = 目标层色 (CORE = #5C1010), 不是本系统层色。 -->
+    <div class="card" style="margin-bottom:14px;text-align:center;padding:30px 20px">
+      <div style="font-size:38px;line-height:1;margin-bottom:14px">🗓️</div>
+      <div style="font-size:19px;font-weight:700;margin-bottom:10px">Holidays are managed in <span style="color:${CORE_COLOR}">Calendar master</span></div>
+      <p style="font-size:13px;color:var(--mut);max-width:520px;margin:0 auto 20px;line-height:1.65">
+        WordGo <b>reads</b> holidays from the master and <b>never edits</b> them, so there is exactly one place
+        to view or change a holiday.
+      </p>
+      <a href="/CORE/Calendar.html"
+         style="display:inline-block;background:${CORE_COLOR};color:#fff;text-decoration:none;
+                font-weight:700;font-size:15px;padding:13px 26px;border-radius:8px">
+        Open Calendar master →
+      </a>
+      <div style="border-top:1px solid var(--bd,#e5e5e5);margin:22px auto 0;max-width:560px;padding-top:16px">
+        <p style="font-size:12px;color:var(--hint);margin:0;line-height:1.7">
+          Holiday info is still shown where it is used:
+          <b style="color:var(--mut)">Schedule Engine</b> and <b style="color:var(--mut)">This Week</b>.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hdr">
+        <div>
+          <div style="font-size:16px;font-weight:600">🗓 Mirror <span style="font-size:11px;font-weight:600;background:var(--hint);color:#fff;border-radius:4px;padding:2px 7px;margin-left:5px;vertical-align:middle">🔒 READ-ONLY</span></div>
+          <p class="tip" style="margin:3px 0 0"><b>${holCount}</b> dates · mirrored from <b>CORE-Calendar</b> (SRK only) · dead weeks are skipped when generating schedule</p>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-grn" onclick="syncCalendarHolidays()">📅 Sync now</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      ${holCount===0
+        ? `<div class="empty">No holidays mirrored yet.<br><br>
+            <button class="btn-grn" onclick="syncCalendarHolidays()">📅 Sync now</button>
+            <br><br><span style="font-size:11px;color:var(--hint)">Holidays can only be added in <b>CORE-Calendar</b>.</span>
+           </div>`
+        : `<div style="overflow-x:auto">
+            <table class="data">
+              <thead><tr>
+                <th style="width:110px">Date</th>
+                <th style="width:50px">Day</th>
+                <th>Full Date</th>
+                <th style="width:40px"></th>
+              </tr></thead>
+              <tbody>${holRows}</tbody>
+            </table>
+           </div>`}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE: BOOK NOTICE
+// Per class × per subject × per term — print-ready agenda format
+// ═══════════════════════════════════════════════════════════════════════════
+let _bookClass = '', _bookSubj = 'cp';
+
+function render_book(){
+  if(!_bookClass || !classById(_bookClass)) _bookClass = S.classes[0]?.id || '';
+  const bLevel = classById(_bookClass)?.level || 'SR';
+  if(!hasStream(bLevel, _bookSubj)) _bookSubj = streamsOf(bLevel)[0];   // D-WG2
+  const m = SUBJ_META[_bookSubj];
+  const entries = _rowsFor(bLevel, _bookSubj);
+
+  // Build preview table — 双日期列
+  const rows = entries.map(e=>{
+    if(!e.copyDate && !e.hwDate) return `<tr style="opacity:.45"><td>${e.grpIdx+1}</td><td style="color:var(--hint)">—</td><td></td><td style="color:var(--hint)">—</td><td>${_renderWords(e.words, 'font-style:italic;color:var(--hint)')}</td></tr>`;
+    return `<tr>
+      <td style="color:var(--mut);font-size:11px">#${e.grpIdx+1}</td>
+      <td style="white-space:nowrap"><span class="tag-kind k-copy">${e.copyDate?_ddmmS(e.copyDate):'—'}</span></td>
+      <td class="arrow" style="text-align:center">▶</td>
+      <td style="white-space:nowrap"><span class="tag-kind k-hw">${e.hwDate?_ddmmS(e.hwDate)+' '+_dowS(e.hwDate):'—'}</span></td>
+      <td>${_renderWords(e.words, `display:inline-block;background:${m.bg};border:.5px solid ${m.border};border-radius:4px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px`)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('book-content').innerHTML = `
+    <div class="sub-nav" style="margin:-16px -16px 14px;padding:0 16px">
+      <div style="display:flex;gap:6px;align-items:center;flex:1;flex-wrap:wrap;padding:4px 0">
+        ${_classChips(_bookClass,'_setBookClass')}
+        <span style="color:var(--bdr)">|</span>
+        ${streamsOf(bLevel).map(s=>`<button class="btn-plain btn-sm ${_bookSubj===s?'active-chip':''}"
+          style="${_bookSubj===s?'background:var(--acc);color:#fff;border-color:var(--acc)':''}"
+          onclick="_setBookSubj('${s}')">${SUBJ_META[s].label}</button>`).join('')}
+        <span style="color:var(--bdr)">|</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:auto">
+        <button class="btn-grn" onclick="_printBook()">🖨 Print</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:9px 16px;background:var(--sur2);border-bottom:.5px solid var(--bdr);
+          display:flex;align-items:center;justify-content:space-between">
+        <span class="card-title">${_bookClass} · ${m.name}</span>
+        <span style="font-size:11px;color:var(--mut)">${entries.filter(e=>e.copyDate||e.hwDate).length} / ${entries.length} scheduled</span>
+      </div>
+      ${entries.length===0
+        ? `<div class="empty">No schedule yet — go to Settings and Generate Schedule first.</div>`
+        : `<div style="overflow-x:auto">
+            <table class="data">
+              <thead><tr>
+                <th style="width:36px">#</th>
+                <th style="width:110px">✍️ COPY WEEK</th>
+                <th style="width:20px"></th>
+                <th style="width:110px">📥 HOMEWORK</th>
+                <th>Words / Sentences</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+           </div>`}
+    </div>`;
+}
+function _setBookClass(c){ _bookClass=c; render_book(); }
+function _setBookSubj(s) { _bookSubj=s;  render_book(); }
+
+function _printBook(){
+  const cls = classById(_bookClass);
+  if(!cls) return alert('Pick a class first.');
+  const entries = _rowsFor(cls.level, _bookSubj).filter(e=>e.copyDate||e.hwDate);
+  if(!entries.length) return alert('No dated groups for this selection. Set dates in Schedule.');
+  const m = SUBJ_META[_bookSubj];
+  const dayName = `${cls.id}`;
+  const maxW = Math.max(...entries.map(e=>e.words.length),1);
+  const year = (entries[0].copyDate || entries[0].hwDate).slice(0,4);
+
+  // dynamic sizing: fewer rows = bigger font + padding to fill page
+  const n = entries.length;
+  const wordPx = n<=15 ? 20 : n<=20 ? 17 : 14;
+  const cellPad = n<=15 ? '10px 12px' : n<=20 ? '8px 10px' : '5px 8px';
+
+  const rows = entries.map((e,i)=>{
+    const isSentenceRow = e.words.some(w => w.includes('.') || w.includes('。'));
+    let wc = '';
+    if(isSentenceRow){
+      // sentence mode: join all entries with space, colspan across all word columns
+      const txt = escapeHTML(e.words.join(' '));   // 句子模式：横跨所有字词列
+      wc = `<td colspan="${maxW}" style="border:1px solid #ccc;padding:${cellPad};font-size:${wordPx}px;font-weight:600;text-align:left">${txt}</td>`;
+    } else {
+      for(let wi=0;wi<maxW;wi++){
+        const w = e.words[wi];
+        wc += w
+          ? `<td style="border:1px solid #ccc;padding:${cellPad};font-size:${wordPx}px;font-weight:600;text-align:center">${escapeHTML(w)}</td>`
+          : `<td></td>`;
+      }
+    }
+    return `<tr style="${i%2===0?'':'background:#f7f7f7'}">
+      <td style="padding:${cellPad};border:1px solid #ccc;font-size:11px;color:#999;text-align:center">${e.grpIdx+1}</td>
+      <td style="padding:${cellPad};border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;white-space:nowrap;font-weight:700;font-size:13px;text-align:center;line-height:1.2">${e.copyDate?_ddmm(e.copyDate):'—'}<br><span style="font-size:9px;opacity:.75">${e.copyDate?'week of':''}</span></td>
+      <td style="padding:0;border:1px solid #ccc;text-align:center;color:#999;font-weight:700;font-size:12px">&#9654;</td>
+      <td style="padding:${cellPad};border:2px solid #1a1a1a;background:#fff;color:#1a1a1a;white-space:nowrap;font-weight:700;font-size:13px;text-align:center;line-height:1.2">${e.hwDate?_ddmm(e.hwDate):'—'}<br><span style="font-size:9px;color:#888">${e.hwDate?_dowS(e.hwDate):''}</span></td>
+      ${wc}
+    </tr>`;
+  }).join('');
+
+  const wordHdrs = Array.from({length:maxW},(_,i)=>`<th style="padding:6px;color:#fff;font-size:9px;text-align:center;letter-spacing:.05em">WORD ${i+1}</th>`).join('');
+  const cols = `<col style="width:26px"><col style="width:54px"><col style="width:16px"><col style="width:54px">${Array.from({length:maxW},()=>`<col>`).join('')}`;
+
+  const pw = window.open('','_blank','width=820,height=1000');
+  pw.document.write(`<!DOCTYPE html><html><head><title>BookNotice_${_bookClass}_${_bookSubj}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;margin:0;padding:0;font-family:'Andika',sans-serif;color:#222}
+    @media print{@page{margin:6mm}}
+  </style>
+  </head><body>
+    <div style="padding:6mm">
+      <div style="margin-bottom:10px;padding-bottom:8px;border-bottom:2.5px solid ${m.hdr}">
+        <div style="font-size:20px;font-weight:800;color:${m.hdr}">${m.name} &middot; ${year}</div>
+        <div style="font-size:11px;color:#555;margin-top:4px">${dayName}
+          &nbsp;&middot;&nbsp; <span style="background:#1a1a1a;color:#fff;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700">&#9998; COPY WEEK = any day that week</span>
+          <span style="color:#aaa;font-weight:700">&#9654;</span>
+          <span style="border:1.5px solid #1a1a1a;padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700">&#128229; HOMEWORK = hand in</span>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup>${cols}</colgroup>
+        <thead><tr style="background:#2d2d2d">
+          <th style="padding:5px;color:#fff;font-size:9px;text-align:center;letter-spacing:.05em">#</th>
+          <th style="padding:5px;background:#1a1a1a;color:#fff;font-size:10px;text-align:center;letter-spacing:.05em;border:1px solid #1a1a1a">&#9998; COPY WEEK<br><span style="font-size:8px;opacity:.75;font-weight:400">any day that week</span></th>
+          <th style="padding:5px;color:#fff;font-size:10px;text-align:center">&#9654;</th>
+          <th style="padding:5px;background:#fff;color:#1a1a1a;font-size:10px;text-align:center;letter-spacing:.05em;border:2px solid #1a1a1a">&#128229; HOMEWORK<br><span style="font-size:8px;color:#888;font-weight:400">hand in</span></th>
+          ${wordHdrs}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  <script>window.print();window.onafterprint=()=>window.close();<\/script>
+  </body></html>`);
+  pw.document.close();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// CALENDAR SSOT (只读) — Phase 0 不建 wordgo_* 表，本机 localStorage 为 SSOT
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadCalendarHolidays(){
+  try{
+    const {data:calRows,error}=await DB.from('calendar_events').select('type,start_date,end_date,details,depts');
+    if(error || !calRows || !calRows.length) return false;
+    const hols=new Set();
+    for(const r of calRows){
+      if(!r.start_date) continue;
+      // WordGo = SRK only → 跳过非 SRK 的部门专属假期
+      if(Array.isArray(r.depts) && r.depts.length>0 && !r.depts.includes('SRK')) continue;
+      if(['public_holiday','school_holiday','special_holiday'].includes(r.type)){
+        let cur=new Date(r.start_date+'T12:00:00');
+        const end=r.end_date?new Date(r.end_date+'T12:00:00'):new Date(r.start_date+'T12:00:00');
+        while(cur<=end){ if(cur.getDay()!==0) hols.add(toISO(cur)); cur.setDate(cur.getDate()+1); }
+      } else if(r.type==='festival' && r.details && r.details.days){
+        for(const ds in r.details.days){ if(['PH1','PH2'].includes(r.details.days[ds])) hols.add(ds); }
+      }
+      // extra_class = 补课日 → 不是假期，跳过
+    }
+    S.holidays=[...hols].sort();
+    return true;
+  }catch(e){ console.error('Calendar holiday load failed',e); return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH (v3 · mirror CORE-MasterAuth)
+// ═══════════════════════════════════════════════════════════════════════════
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-pass').value;
+  const err=document.getElementById('auth-err'); err.style.color='var(--red)'; err.textContent='';
+  if(!email){ err.textContent='Enter email'; return; }
+  if(!pass){ err.textContent='Enter password'; return; }
+  const btn=document.getElementById('auth-login-btn'); btn.disabled=true; btn.textContent='Logging in…';
+  try{ const {error}=await _sb.auth.signInWithPassword({email,password:pass}); if(error) throw error; await initApp(); }
+  catch(e){ err.textContent=e.message||'Login failed'; btn.disabled=false; btn.textContent='Login'; }
+}
+async function doMagicLink(){
+  const email=document.getElementById('auth-email').value.trim();
+  const err=document.getElementById('auth-err'); err.style.color='var(--red)'; err.textContent='';
+  if(!email){ err.textContent='Enter email'; return; }
+  const btn=document.getElementById('auth-magic-btn'); btn.disabled=true; btn.textContent='Sending…';
+  try{ const {error}=await _sb.auth.signInWithOtp({email}); if(error) throw error; err.style.color='var(--grn)'; err.textContent='✓ Check your email for the login link'; }
+  catch(e){ err.textContent=e.message||'Failed to send'; }
+  btn.disabled=false; btn.textContent='Send Magic Link';
+}
+async function doLogout(){ await _sb.auth.signOut(); location.reload(); }
+
+async function initApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  try{
+    const {data:{user}}=await _sb.auth.getUser();
+    MY_UID=user?.id||null; MY_EMAIL=user?.email||null;
+    const who=document.getElementById('who'); if(who) who.textContent=MY_EMAIL||'';
+    loadData();                    // Phase 0: localStorage SSOT (defaults if empty)
+    const calOK = await loadCalendarHolidays();  // [v6] 假期从 CORE-Calendar 只读拉取 (SRK) — 唯一权威
+    if(!calOK){                                  // [v6] 静默失败是危险的 — 引擎会用陈旧假期排错
+      console.warn('CORE-Calendar unreachable — holidays may be stale');
+      setTimeout(()=>alert('⚠ Could not reach CORE-Calendar.\n\nShowing cached holidays. Schedule generation is BLOCKED until Calendar is reachable.'), 400);
+    } else { await saveAll(); }
+      _weekClass  = S.classes[0]?.id || '';
+    document.getElementById('build-badge').textContent = 'v' + WORDGO_BUILD;
+    render_week();
+  }catch(e){
+    console.error('initApp failed', e);
+    alert('Load failed: '+(e.message||e)+'\nCheck connection / login and retry.');
+  }
+  document.getElementById('loading-screen').style.display='none';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  ['auth-email','auth-pass'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }); });
+});
+
+// session gate: logged-in → straight into app; else auth-screen stays visible
+(async()=>{ const {data:{session}}=await _sb.auth.getSession(); if(session) await initApp(); })();
+</script>
+</body>
+</html>
