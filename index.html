@@ -110,6 +110,7 @@ const LIVE={
   'OPR-AttendanceGo':  {href:'OPR/AttendanceGo.html',       name:'AttendanceGo', ver:'v8',  group:'OPR — Operations',        color:'#8B6C2A', order:7},
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
+  'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v448', group:'EDU — Education',         color:'#236FAD', order:7},
   'EVT-SportsDay':     {href:'EVT/SportsDay.html',name:'SportsDay',  ver:'v24', group:'EVT — Events',            color:'#7870CC', order:10},
   'EVT-FieldTrip':     {href:'EVT/FieldTrip.html',name:'FieldTrip',  ver:'v1',  group:'EVT — Events',            color:'#7870CC', order:11}
 };
@@ -121,7 +122,7 @@ const LAYER_COLORS={
 };
 
 // Group order for sections
-const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','OPR — Operations','LIB — Library','EVT — Events'];
+const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','EDU — Education','OPR — Operations','LIB — Library','EVT — Events'];
 
 async function doLogin(){
   const email=document.getElementById('auth-email').value.trim();
