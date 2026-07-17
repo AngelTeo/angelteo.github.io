@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Calendar v7</title>
+<title>MasterHub — Calendar v8</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -181,7 +181,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;padding:11px 10px 11px 0;flex-shrink:0">←</button>
-  <div class="nav-logo">MasterHub — Calendar <span class="ver">v7</span></div>
+  <div class="nav-logo">MasterHub — Calendar <span class="ver">v8</span></div>
   <button class="ntab on" onclick="goPage('holidays')">Holidays</button>
   <button class="ntab" onclick="goPage('manage')">Manage</button>
   <div class="nav-r">
@@ -201,7 +201,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
     <div style="font-size:12px;line-height:2.2">
       <div>System: <b>MasterHub — Calendar</b></div>
       <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:11px">masterhub_calendar_v6</code></div>
-      <div>Version: <span class="ver">v7</span></div>
+      <div>Version: <span class="ver">v8</span></div>
     </div>
   </div>
   <div class="card">
@@ -229,7 +229,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════
 const STORAGE_KEY = 'masterhub_calendar_v6';
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 
 // ═══ SUPABASE ═══
 const SUPABASE_URL = 'https://qnpvqsvvsgsantekgfbz.supabase.co';
@@ -1115,8 +1115,14 @@ function _renderHolMain(){
             style="width:150px;border:.5px solid var(--bdr);border-radius:5px;padding:4px 8px;font-size:11px;font-family:inherit"
             onchange="_ecUpdate(${yr},${i},'time',this.value)">
         </div>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <label style="font-size:10px;color:var(--mut)">MSG</label>
+          <input type="text" value="${escapeHTML(e.msg||'')}" placeholder="e.g. Bring textbook"
+            style="width:180px;border:.5px solid var(--bdr);border-radius:5px;padding:4px 8px;font-size:11px;font-family:inherit"
+            onchange="_ecUpdate(${yr},${i},'msg',this.value)">
+        </div>
         <button onclick="_ecDelete(${yr},${i})" title="Delete"
-          style="border:none;background:none;font-size:16px;cursor:pointer;color:var(--mut);padding:2px 4px;flex-shrink:0"
+          style="border:none;background:none;font-size:16px;cursor:pointer;color:var(--mut);padding:2px 4px;margin-left:auto;flex-shrink:0"
           onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--mut)'">🗑️</button>
       </div>`;
     });
@@ -1599,7 +1605,7 @@ function _renderHolCalendar(){
 
       const ecDay  = isExtraClass(ds, dept);
       const ecInfo = ecDay ? getECInfo(ds, dept) : null;
-      const ecTip  = ecInfo ? (ecInfo.name||'Extra Class')+(ecInfo.time?' · '+ecInfo.time:'') : '';
+      const ecTip  = ecInfo ? (ecInfo.name||'Extra Class')+(ecInfo.time?' · '+ecInfo.time:'')+(ecInfo.msg?' · '+ecInfo.msg:'') : '';
       html+=`<div title="${escapeHTML(ecTip||tipText)}" style="min-height:26px;padding:2px;background:${bg||'#fff'};border:${border};display:flex;flex-direction:column;align-items:center">
         <span style="${numStyle}">${day}</span>
         ${ecDay?`<span style="font-size:8px;line-height:1;color:${bg==='#000'?'#fff':'#000'};margin-top:1px">★</span>`:''}
@@ -1685,7 +1691,7 @@ function _renderHolCalendar(){
       ecInMonth.forEach(e=>{
         const k=`${e.start}|${e.end||e.start}`;
         if(!ecGrp[k]) ecGrp[k]={start:e.start,end:e.end||e.start,labels:[]};
-        const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||''].filter(Boolean).join(' ');
+        const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||'',e.msg||''].filter(Boolean).join(' ');
         if(lbl&&!ecGrp[k].labels.includes(lbl)) ecGrp[k].labels.push(lbl);
       });
       html+=`<div style="padding:4px 8px;border-top:${festInMonth.length?'1.5px dashed #aaa':'1px solid #000'};background:#fff">
@@ -2277,7 +2283,7 @@ function _buildNoticeMiniCal(yr, mo, allHol, noticeDept){
     ecInMonth.forEach(e=>{
       const key=`${e.start}|${e.end||e.start}`;
       if(!ecGroups[key]) ecGroups[key]={start:e.start,end:e.end||e.start,entries:[]};
-      const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||''].filter(Boolean).join(' ');
+      const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||'',e.msg||''].filter(Boolean).join(' ');
       if(lbl&&!ecGroups[key].entries.includes(lbl)) ecGroups[key].entries.push(lbl);
     });
     const ecRows=Object.values(ecGroups).map(g=>`<div style="font-size:9px;line-height:1.7"><b>${_ddmmS(g.start)}${g.end&&g.end!==g.start?' – '+_ddmmS(g.end):''}</b>${g.entries.length?' <span style="font-weight:400">'+escapeHTML(g.entries.join(' / '))+'</span>':''}</div>`);
@@ -2403,7 +2409,7 @@ function _buildBookMiniCal(yr, mo, allHol, noticeDept){
   if(festInMonth.length) secs+=`<div style="padding:6px 10px;${S_LINE};background:#eee;"><div style="font-size:8px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Our Festive Holidays</div>${festInMonth.map(f=>`<div style="font-size:9px;line-height:1.6">${f.start} – ${f.end} (${escapeHTML(f.name)})</div>`).join('')}</div>`;
   if(ecInMonth.length){
     const ecG={};
-    ecInMonth.forEach(e=>{const k=`${e.start}|${e.end||e.start}`;if(!ecG[k])ecG[k]={start:e.start,end:e.end||e.start,entries:[]};const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||''].filter(Boolean).join(' ');if(lbl&&!ecG[k].entries.includes(lbl))ecG[k].entries.push(lbl);});
+    ecInMonth.forEach(e=>{const k=`${e.start}|${e.end||e.start}`;if(!ecG[k])ecG[k]={start:e.start,end:e.end||e.start,entries:[]};const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||'',e.msg||''].filter(Boolean).join(' ');if(lbl&&!ecG[k].entries.includes(lbl))ecG[k].entries.push(lbl);});
     secs+=`<div style="padding:6px 10px;${festInMonth.length?D_LINE:S_LINE};background:#e8e8e8;"><div style="font-size:8px;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">★ Our Extra Learning Day</div>${Object.values(ecG).map(g=>`<div style="font-size:9px;line-height:1.7"><b>${_ddmmS(g.start)}${g.end&&g.end!==g.start?' – '+_ddmmS(g.end):''}</b>${g.entries.length?' <span style="font-weight:400">'+escapeHTML(g.entries.join(' / '))+'</span>':''}</div>`).join('')}</div>`;
   }
   if(!secs) secs=`<div style="${S_LINE};min-height:4px;"></div>`;
@@ -2799,7 +2805,7 @@ const Store = {
         } else if(r.type==='festival'){
           (S2.festivalDates[yr]=S2.festivalDates[yr]||{})[r.name]={ start:r.start_date, end:r.end_date, days:(det.days||{}) };
         } else if(r.type==='extra_class'){
-          (S2.extraClasses[yr]=S2.extraClasses[yr]||[]).push({ id:r.id, name:r.name, start:r.start_date, end:r.end_date, time:(det.time||''), depts:depts });
+          (S2.extraClasses[yr]=S2.extraClasses[yr]||[]).push({ id:r.id, name:r.name, start:r.start_date, end:r.end_date, time:(det.time||''), msg:(det.msg||''), depts:depts });
         } else if(r.type==='special_holiday'){
           (S2.specialHolidays[yr]=S2.specialHolidays[yr]||[]).push(Object.assign({ date:r.start_date, name:r.name }, det));
         }
@@ -2836,7 +2842,7 @@ const Store = {
     }
     for(const yr in (obj.extraClasses||{})){
       for(const e of (obj.extraClasses[yr]||[])){
-        rows.push({ id:(e.id||('ec_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5))), year:parseInt(yr), type:'extra_class', name:(e.name||'Extra Class'), start_date:e.start||null, end_date:e.end||null, depts:strip(e.depts), details:{ time:(e.time||'') } });
+        rows.push({ id:(e.id||('ec_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5))), year:parseInt(yr), type:'extra_class', name:(e.name||'Extra Class'), start_date:e.start||null, end_date:e.end||null, depts:strip(e.depts), details:{ time:(e.time||''), msg:(e.msg||'') } });
       }
     }
     for(const yr in (obj.specialHolidays||{})){
