@@ -113,7 +113,13 @@ const LIVE={
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
   'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v480', group:'EDU — Education',         color:'#236FAD', order:7},
   'EVT-SportsDay':     {href:'EVT/SportsDay.html',name:'SportsDay',  ver:'v24', group:'EVT — Events',            color:'#7870CC', order:10},
-  'EVT-FieldTrip':     {href:'EVT/FieldTrip.html',name:'FieldTrip',  ver:'v1',  group:'EVT — Events',            color:'#7870CC', order:11}
+  'EVT-FieldTrip':     {href:'EVT/FieldTrip.html',name:'FieldTrip',  ver:'v1',  group:'EVT — Events',            color:'#7870CC', order:11},
+  // ── academee-tools repo (同网域,不同 repo) ──
+  // MiscGo 有 3 个部门码,共用同一张卡片;下方 dedupe 只渲染一次。
+  'OPR-MiscGo-SRK-GAK':{href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'', group:'OPR — Operations', color:'#8B6C2A', order:9},
+  'OPR-MiscGo-ATC':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'', group:'OPR — Operations', color:'#8B6C2A', order:9},
+  'OPR-MiscGo-SRT':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'', group:'OPR — Operations', color:'#8B6C2A', order:9},
+  'OPR-ParentGo':      {href:'academee-tools/parent-go.html',name:'ParentGo', ver:'', group:'OPR — Operations', color:'#8B6C2A', order:10}
 };
 
 const LAYER_COLORS={
@@ -163,13 +169,20 @@ async function showApp(){
   const unknown = (systems||[]).filter(s=>!LIVE[s.code]).map(s=>s.code);
   const missing = Object.keys(LIVE).filter(c=>!granted.has(c));
   if(unknown.length) console.warn('[index] my_systems() 返回了 LIVE 里没有的 code (未建卡片):', unknown);
-  if(missing.length) console.warn('[index] LIVE 里有卡片但 my_systems() 没返回 (未注册 / 无权限, 卡片不会显示):', missing);
+  // 多部门系统(如 MiscGo 的 3 个部门码)本来就不会每个人都齐全,
+  // 只报「整个系统都拿不到」的,避免假警报。
+  const missingNames=[...new Set(missing.map(c=>LIVE[c].name))]
+    .filter(n=>!Object.keys(LIVE).some(c=>LIVE[c].name===n&&granted.has(c)));
+  if(missingNames.length) console.warn('[index] LIVE 里有卡片但你完全没有权限 (卡片不会显示):', missingNames);
   // ──────────────────────────────────────────────────────────────────
 
   // Group by section
   const groups={};
+  const seen=new Set();   // 同一个系统若有多个部门码,只渲染一张卡片
   visible.forEach(s=>{
     const info=LIVE[s.code];
+    if(seen.has(info.name)) return;
+    seen.add(info.name);
     const g=info.group;
     if(!groups[g]) groups[g]=[];
     groups[g].push({...info,code:s.code,can_edit:s.can_edit});
@@ -198,7 +211,7 @@ async function showApp(){
       <div class="grid">`;
     items.forEach(s=>{
       html+=`<a class="app-card" style="--card-color:${s.color}" href="${s.href}">
-        <span class="app-name">${s.name}</span><span class="app-ver">${s.ver}</span>
+        <span class="app-name">${s.name}</span>${s.ver?`<span class="app-ver">${s.ver}</span>`:''}
       </a>`;
     });
     html+=`</div></div>`;
