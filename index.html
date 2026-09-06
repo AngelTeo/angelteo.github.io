@@ -119,7 +119,11 @@ const LIVE={
   'OPR-MiscGo-SRK-GAK':{href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'', group:'OPR — Operations', color:'#8B6C2A', order:9},
   'OPR-MiscGo-ATC':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'', group:'OPR — Operations', color:'#8B6C2A', order:9},
   'OPR-MiscGo-SRT':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'', group:'OPR — Operations', color:'#8B6C2A', order:9},
-  'OPR-ParentGo':      {href:'academee-tools/parent-go.html',name:'ParentGo', ver:'', group:'OPR — Operations', color:'#8B6C2A', order:10}
+  'OPR-ParentGo':      {href:'academee-tools/parent-go.html',name:'ParentGo', ver:'', group:'OPR — Operations', color:'#8B6C2A', order:10},
+  // ── RPT 层 (2026-09-06 上线, ATC 9/7–9/12 考前输入期) ──
+  // registry: RPT-EvalGo-ATC · layer=RPT · TEACHER see=true edit=true (已实测)
+  // ⚠️ 新增 group 时必须同步加进 GROUP_ORDER,否则卡片静默不渲染。
+  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v19.4', group:'RPT — Reports', color:'#5A6470', order:0}
 };
 
 const LAYER_COLORS={
@@ -129,7 +133,8 @@ const LAYER_COLORS={
 };
 
 // Group order for sections
-const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','EDU — Education','OPR — Operations','LIB — Library','EVT — Events'];
+// ⚠️ 渲染只走 GROUP_ORDER。LIVE 里有卡片但 group 不在这个阵列 = 卡片永远不出现,而且零报错。
+const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','EDU — Education','RPT — Reports','OPR — Operations','LIB — Library','EVT — Events'];
 
 async function doLogin(){
   const email=document.getElementById('auth-email').value.trim();
@@ -174,6 +179,9 @@ async function showApp(){
   const missingNames=[...new Set(missing.map(c=>LIVE[c].name))]
     .filter(n=>!Object.keys(LIVE).some(c=>LIVE[c].name===n&&granted.has(c)));
   if(missingNames.length) console.warn('[index] LIVE 里有卡片但你完全没有权限 (卡片不会显示):', missingNames);
+  // LIVE 的 group 若不在 GROUP_ORDER 里,卡片会静默消失 —— 这是设定错误,不是权限问题。
+  const orphanGroups=[...new Set(Object.values(LIVE).map(x=>x.group))].filter(g=>GROUP_ORDER.indexOf(g)<0);
+  if(orphanGroups.length) console.error('[index] 这些 group 不在 GROUP_ORDER 里,卡片不会显示:', orphanGroups);
   // ──────────────────────────────────────────────────────────────────
 
   // Group by section
