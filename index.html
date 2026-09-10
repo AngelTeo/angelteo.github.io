@@ -125,7 +125,9 @@ const LIVE={
   // ⚠️ 新增 group 时必须同步加进 GROUP_ORDER,否则卡片静默不渲染。
   'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v25',   group:'RPT — Reports', color:'#5A6470', order:0},
   // ── OPR-ObsGo (2026-09-09 上线) · 巡班观察 · 设定页仅 OWNER/TOP_MGMT/ADMIN ──
-  'OPR-ObsGo':         {href:'academee-tools/ObsGo.html',    name:'ObsGo',    ver:'v7', group:'OPR — Operations', color:'#8B6C2A', order:11}
+  'OPR-ObsGo':         {href:'academee-tools/ObsGo.html',    name:'ObsGo',    ver:'v7', group:'OPR — Operations', color:'#8B6C2A', order:11},
+  // ── OPR-LoveGo (2026-09-11 production) · Teacher Student Review ──
+  'OPR-LoveGo':        {href:'OPR/LoveGo.html',              name:'LoveGo',   ver:'v39', group:'OPR — Operations', color:'#8B6C2A', order:12}
 };
 
 const LAYER_COLORS={
@@ -176,19 +178,14 @@ async function showApp(){
   const unknown = (systems||[]).filter(s=>!LIVE[s.code]).map(s=>s.code);
   const missing = Object.keys(LIVE).filter(c=>!granted.has(c));
   if(unknown.length) console.warn('[index] my_systems() 返回了 LIVE 里没有的 code (未建卡片):', unknown);
-  // 多部门系统(如 MiscGo 的 3 个部门码)本来就不会每个人都齐全,
-  // 只报「整个系统都拿不到」的,避免假警报。
   const missingNames=[...new Set(missing.map(c=>LIVE[c].name))]
     .filter(n=>!Object.keys(LIVE).some(c=>LIVE[c].name===n&&granted.has(c)));
   if(missingNames.length) console.warn('[index] LIVE 里有卡片但你完全没有权限 (卡片不会显示):', missingNames);
-  // LIVE 的 group 若不在 GROUP_ORDER 里,卡片会静默消失 —— 这是设定错误,不是权限问题。
   const orphanGroups=[...new Set(Object.values(LIVE).map(x=>x.group))].filter(g=>GROUP_ORDER.indexOf(g)<0);
   if(orphanGroups.length) console.error('[index] 这些 group 不在 GROUP_ORDER 里,卡片不会显示:', orphanGroups);
-  // ──────────────────────────────────────────────────────────────────
 
-  // Group by section
   const groups={};
-  const seen=new Set();   // 同一个系统若有多个部门码,只渲染一张卡片
+  const seen=new Set();
   visible.forEach(s=>{
     const info=LIVE[s.code];
     if(seen.has(info.name)) return;
@@ -198,7 +195,6 @@ async function showApp(){
     groups[g].push({...info,code:s.code,can_edit:s.can_edit});
   });
 
-  // Render
   const main=document.getElementById('main-content');
   if(!visible.length){
     main.innerHTML='<div class="empty-msg">No systems available for your role.</div>';
