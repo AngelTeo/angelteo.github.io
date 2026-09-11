@@ -44,7 +44,6 @@
   }
   if(!install()){let n=0;const t=setInterval(()=>{n++;if(install()||n>200)clearInterval(t)},25);}
 
-  // v53-v55 are additive adapters. The registry UI remains UAT-only behind ?srk_registry=1.
   function loadOnce(src,id){
     if(document.getElementById(id))return;
     const s=document.createElement('script');s.id=id;s.src=src;s.async=false;document.head.appendChild(s);
