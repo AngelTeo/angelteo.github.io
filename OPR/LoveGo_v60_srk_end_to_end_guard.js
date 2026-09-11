@@ -1,11 +1,11 @@
-/* LoveGo v60 · SRK end-to-end guard
+/* LoveGo v60.1 · SRK end-to-end guard
  * Final UAT fail-close layer for canonical registry mode.
  * If the dedicated v59 submit bridge is missing, registry submission is blocked
  * rather than falling back to legacy saveReview validation.
  */
 (()=>{
   'use strict';
-  const VERSION='LoveGo-SRK-E2E-Guard-v1';
+  const VERSION='LoveGo-SRK-E2E-Guard-v1.1';
   let installed=false;
   function registryMode(){return S?.ui?.dept==='SRK'&&new URLSearchParams(location.search).get('srk_registry')==='1';}
   function report(){
@@ -19,14 +19,17 @@
     if(typeof window.saveReview!=='function')return false;
     const base=window.saveReview;
     window.saveReview=function(submit){
-      if(registryMode()&&submit&& !report().ok){toast('SRK Registry 尚未通过完整 Runtime QC，已停止提交');return;}
+      if(registryMode()&&submit&&!report().ok){toast('SRK Registry 尚未通过完整 Runtime QC，已停止提交');return;}
       return base(submit);
     };
     window.LoveGoSRKE2EGuard=Object.freeze({version:VERSION,report,registryMode});
     window.__LOVEGO_V60_SRK_E2E__={installed:true,version:VERSION,last:report()};
     installed=true;
-    console.info('[LoveGo] v60 SRK end-to-end guard',report());
+    console.info('[LoveGo] v60.1 SRK end-to-end guard',report());
     return true;
   }
   if(!install()){let n=0,t=setInterval(()=>{n++;if(install()||n>320)clearInterval(t)},25);}
+  if(!document.getElementById('lovego-v61-srk-evidence-plug')){
+    const s=document.createElement('script');s.id='lovego-v61-srk-evidence-plug';s.src='LoveGo_v61_srk_evidence_plug_adapter.js';s.async=false;document.head.appendChild(s);
+  }
 })();
