@@ -54,4 +54,5 @@
   loadOnce('LoveGo_v57_srk_registry_semantic_guard.js','lovego-v57-srk-semantic');
   loadOnce('LoveGo_v58_srk_runtime_qc.js','lovego-v58-srk-runtime-qc');
   loadOnce('LoveGo_v59_srk_submit_bridge.js','lovego-v59-srk-submit-bridge');
+  loadOnce('LoveGo_v60_srk_end_to_end_guard.js','lovego-v60-srk-e2e');
 })();
