@@ -20,4 +20,4 @@ function lovegoSubmitGateV22(){return {ok:true,checks:{}};}
 async function saveReview(){throw new Error('LEGACY_SAVE_SHOULD_NOT_RUN_IN_REGISTRY_MODE');}
 function resetUAT(){S.reviews={};__cloudWrites=0;__lastPayload=null;__toasts=[];for(const id of ['dailyRoutine','dailySocial','dailyEmotion','dailyChange','summary']){const el=document.getElementById(id);if(el)el.value='';}}
 function uatCheck(name,ok,detail=''){return {name,ok:!!ok,detail};}
-function fillAllSections(){const A=window.LOVEGO_SRK_REGISTRY_ADAPTER;for(const sec of A.sections()){const row=sec.rows[0];window.toggleSRKRegistryEvidence(sec.code,row.behaviour_code);}}
+function fillAllSections(){const A=window.LOVEGO_SRK_REGISTRY_ADAPTER;for(const sec of A.sections()){const row=sec.rows.find(r=>r.support_response_capture!=='REQUIRED'&&!r.opportunity_guard&&!String(r.task_familiarity||'').startsWith('REQUIRED'))||sec.rows[0];window.toggleSRKRegistryEvidence(sec.code,row.behaviour_code);}}
