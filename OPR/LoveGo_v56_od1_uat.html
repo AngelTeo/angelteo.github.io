@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LoveGo v56 OD-1 UAT</title><style>body{font-family:system-ui;margin:24px;line-height:1.5}pre{background:#f5f5f5;padding:14px;border-radius:10px;white-space:pre-wrap}.pass{color:#0b6b43;font-weight:700}.fail{color:#a22;font-weight:700}</style></head><body><h1>LoveGo v56 · OD-1 UAT</h1><p>Pure client test. No Supabase, no Review, no Assignment.</p><button class="logout">登出（应被 v56 移除）</button><pre id="out">loading…</pre><script>
+let TEST={age:3,stage:'BB'};
+window.S={ui:{dept:'SRK'}};
+window.currentStudentObj=()=>({date_of_birth:'test'});
+window.ageFromStudent=()=>TEST.age;
+window.currentClassObj=()=>({class_name:'SRK_'+TEST.stage+'_1'});
+window.lovegoSubmitGateV22=()=>({ok:true,checks:{base:{ok:true}}});
+</script><script src="LoveGo_v53_srk_evidence_registry.js"></script><script src="LoveGo_v56_srk_od1_guard.js"></script><script>
+setTimeout(()=>{
+ const cases=[
+  ['BB',3,3,'CLASS_MATCH'],
+  ['JR',3,3,'AGE_UNDER_USE_AGE'],
+  ['IN',4,4,'AGE_UNDER_USE_AGE'],
+  ['IN',5,5,'CLASS_MATCH'],
+  ['IN',6,5,'CLASS_OVER_USE_CLASS'],
+  ['SR',7,6,'CLASS_OVER_USE_CLASS'],
+  ['BB',2,null,'PENDING_OD1A'],
+  [null,4,null,'PENDING_STAGE']
+ ];
+ const res=cases.map(([stage,age,want,status])=>{const r=LoveGoSRKOD1.resolve(stage,age);return {stage,age,resolved:r.resolved_age,status:r.status,pass:r.resolved_age===want&&r.status===status};});
+ const logoutGone=!document.querySelector('.logout');
+ const all=res.every(x=>x.pass)&&logoutGone;
+ document.getElementById('out').innerHTML=(all?'<span class="pass">PASS</span>':'<span class="fail">FAIL</span>')+'\n'+JSON.stringify({logout_removed:logoutGone,cases:res},null,2);
+},100);
+</script></body></html>
