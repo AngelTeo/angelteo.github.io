@@ -15,10 +15,8 @@
   const install=()=>{
     if(installed)return true;
     try{
-      if(typeof SRK_TAXONOMY==='undefined'||typeof domains!=='function'||typeof behaviourBank!=='function')return false;
+      if(typeof SRK_TAXONOMY==='undefined'||typeof domains!=='function'||typeof behaviourBank!=='function'||typeof ensure!=='function')return false;
 
-      /* Legacy gap: self-care was present in LOVE LOVE but absent from current SRK taxonomy.
-         Accessible IN form confirms this remains relevant beyond the youngest band, so both preschool bands get age-calibrated items. */
       if(!SRK_TAXONOMY.some(d=>d.code==='S11')){
         SRK_TAXONOMY.push({
           grp:'SELF CARE',code:'S11',name:'日常自理',en:'Self-Care & Personal Routines',
@@ -60,7 +58,6 @@
         ];
       }
 
-      /* Reconcile valuable legacy constructs into existing domains instead of adding duplicate teacher sections. */
       add('S3','3-4',[
         ['对新的材料或活动表现出好奇并愿意探索',2],
         ['需要较多外在鼓励才愿意进入学习活动',0]
@@ -69,7 +66,6 @@
         ['主动提问、探索或表达对新学习内容的兴趣',2],
         ['主要依赖奖励或成人不断推动才参与当前学习',0]
       ]);
-
       add('S4','3-4',[
         ['在提醒下照顾自己的书包、水瓶或个人用品',1],
         ['个人物品经常散放，需要成人逐项协助整理',0]
@@ -80,7 +76,6 @@
         ['个人物品经常遗失、遗漏或混乱，需要反复提醒',0],
         ['熟悉任务仍经常拖延到需要成人持续催促才完成',0]
       ]);
-
       add('S6','3-4',[
         ['看到同伴需要帮助时愿意给予简单帮助',2],
         ['在提醒下使用礼貌、尊重的方式与同伴互动',1],
@@ -95,9 +90,6 @@
         ['经常使用不礼貌或冒犯性的语言与人互动',0]
       ]);
 
-      /* Report-card legacy terms such as Helpful/Friendly/High Motivation/Time Management/Respectful/Organized are thus grounded in S3/S4/S6 evidence.
-         Subjective labels, student stereotypes, teacher-liking percentage and teacher diagnosis of learning disability are intentionally NOT reintroduced. */
-
       const baseDomains=domains;
       domains=function(){
         const list=baseDomains();
@@ -107,6 +99,15 @@
         const curriculum=(B&&B.fromClass&&typeof curriculumBandOf==='function')?curriculumBandOf(cls?.class_name||cls?.display_name):null;
         const band=actual||curriculum||null;
         return list.filter(d=>!Array.isArray(d.activeBands)||!band||d.activeBands.includes(band));
+      };
+
+      /* Review evidence must carry the active cycle taxonomy snapshot, not the old hard-coded version. */
+      const baseEnsure=ensure;
+      ensure=function(){
+        const r=baseEnsure();
+        const v=CLOUD?.cycleMap?.[S?.ui?.cycle]?.taxonomy_version;
+        if(v)r.taxonomy_version=v;
+        return r;
       };
 
       const patchShell=()=>{
@@ -120,7 +121,7 @@
       window.__LOVEGO_V46_SRK_RECONCILIATION__={
         installed:true,
         source:'Current SRK + LOVE LOVE legacy + PTM Card Comment legacy',
-        changes:['S11 Self-Care all preschool bands','legacy curiosity/motivation into S3','organization/time management into S4','helpful/respectful/social responsibility into S6','remove local logout','visible version v46'],
+        changes:['S11 Self-Care all preschool bands','legacy curiosity/motivation into S3','organization/time management into S4','helpful/respectful/social responsibility into S6','cycle taxonomy snapshot on reviews','remove local logout','visible version v46'],
         excluded:['student stereotype labels','teacher liking score','teacher learning-disability diagnosis','duplicate comment picking']
       };
       return true;
