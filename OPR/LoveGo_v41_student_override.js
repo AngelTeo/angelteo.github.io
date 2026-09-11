@@ -2,7 +2,9 @@
 // Base rule stays CLASS assignment. This layer handles rare student-specific exceptions only.
 (()=>{
   const wait=()=>{
-    if(typeof window.renderAssignments!=='function'||!window.sb||!window.S||!window.CLOUD){setTimeout(wait,100);return;}
+    if(!window.__LOVEGO_V40_DASHBOARD__||typeof window.renderAssignments!=='function'||typeof sb==='undefined'||typeof S==='undefined'||typeof CLOUD==='undefined'){
+      setTimeout(wait,100);return;
+    }
     install();
   };
   function install(){
