@@ -1,5 +1,5 @@
 
-const APP_VERSION=47,KEY='lovego';
+const APP_VERSION=48,KEY='lovego';
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_KEY='sb_publishable_v3Y3BD3XiPz33t-hfdX58g_BaFIkjPF';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
@@ -34,4 +34,4 @@ async function cloudPullOperational(){
   for(const x of S.cloudReviews)S.reviews[`assignment:${x.assignment_id}`]={...x};
   S.assignmentExceptions={};for(const x of S.cloudExceptions){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;S.assignmentExceptions[`${cyc}|${x.source_class_id}|${x.student_id}`]={approved:x.status==='active',approved_count:x.approved_teacher_count,reason:x.reason,approved_by:x.approved_by,approved_at:x.approved_at,id:x.id};}
 }
-(()=>{['LoveGo_v40_dashboard.js','LoveGo_v41_student_override.js','LoveGo_v42_reporting_context.js','LoveGo_v43_ptmgo_gate.js','LoveGo_v44_work_queue.js','LoveGo_v45_product_hardening.js','LoveGo_v45_teacher_scope.js','LoveGo_v46_srk_legacy_reconciliation.js','LoveGo_v47_srk_evidence_contract.js'].forEach(src=>{const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s);});})();
+(()=>{['LoveGo_v40_dashboard.js','LoveGo_v41_student_override.js','LoveGo_v42_reporting_context.js','LoveGo_v43_ptmgo_gate.js','LoveGo_v44_work_queue.js','LoveGo_v45_product_hardening.js','LoveGo_v45_teacher_scope.js','LoveGo_v46_srk_legacy_reconciliation.js','LoveGo_v47_srk_evidence_contract.js','LoveGo_v48_srk_ux_hardening.js'].forEach(src=>{const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s);});})();
