@@ -51,7 +51,7 @@ function currentTeacherAssigned(studentId){
   return getAssignedTeacherIds(studentId).includes(uid);
 }
 function exportCSV(){const rows=[['cycle_id','department','class_id','student_id','teacher_id','status','daily_routine','daily_social','daily_emotion','daily_change','strength','growth','summary']];Object.values(S.reviews).forEach(r=>rows.push([r.cycle_id,r.department,r.class_id,r.student_id,r.teacher_id,r.status,r.daily_life?.routine||'',r.daily_life?.social||'',r.daily_life?.emotion||'',r.daily_life?.change||'',r.strength||'',r.growth||'',r.summary||'']));const esc=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const csv='\uFEFF'+rows.map(row=>row.map(esc).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='LoveGo_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(a.href);toast('✓ CSV Exported')}
-function toggleAdv(){S.ui.advOpen=!S.ui.advOpen;document.getElementById('adv')?.classList.toggle('open',S.ui.advOpen);save()}
+function toggleAdv(){S.ui.advOpen=!S.ui.advOpen;document.getElementById('adv')?.classList.toggle('open',!!S.ui.advOpen);save()}
 function paintAdv(){document.getElementById('adv')?.classList.toggle('open',!!S.ui.advOpen)}
 function showGate(title,msg,act=''){document.getElementById('gateTitle').textContent=title;document.getElementById('gateMsg').innerHTML=msg;document.getElementById('gateAct').innerHTML=act;document.getElementById('gate').style.display='flex';document.getElementById('app').style.display='none'}
 function openApp(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='';paintAdv()}
@@ -62,3 +62,51 @@ if(!session){showGate('需要登入','请先从 Academee 平台登入后再进�
 const uid=session.user.id;const [permRes,metaRes]=await Promise.all([sb.rpc('can_access',{p_system:'OPR-LoveGo'}),sb.from('users_meta').select('display_name,role,department,dept_group').eq('user_id',uid).maybeSingle()]);if(permRes.error)throw permRes.error;const perm=Array.isArray(permRes.data)?permRes.data[0]:permRes.data;if(!perm||perm.can_see!==true){showGate('这个帐号没有 LoveGo 权限','请由管理层确认 OPR-LoveGo 权限。','<button class="ghost" onclick="location.href=\'../index.html\'">← 回平台</button>');return}
 const md=metaRes.data||{};S.who={id:uid,name:md.display_name||session.user.email,role:md.role||'TEACHER',department:md.department||[],dept_group:md.dept_group||[]};S.perm={can_see:!!perm.can_see,can_edit:!!perm.can_edit,can_approve:!!perm.can_approve};document.getElementById('manageTab').style.display=isAdmin()?'':'none';document.getElementById('assignTab')?.style && (document.getElementById('assignTab').style.display=isAdmin()?'':'none');let [c,st,en,tch]=await Promise.all([sb.from('classes').select('id,department,class_name,display_name,sort_order,is_active'),sb.from('students').select('id,name_en,name_cn,birth_year,date_of_birth,status'),sb.from('student_enrollments').select('student_id,class_id,class_number,session_time,is_active'),isAdmin()?sb.rpc('lovego_teacher_roster'):Promise.resolve({data:[],error:null})]);if(c.error)throw c.error;if(st.error)throw st.error;if(en.error)throw en.error;if(tch.error)throw tch.error;if(metaRes.error)throw metaRes.error;S.classes=c.data||[];S.students=st.data||[];S.enroll=en.data||[];S.teachers=(tch.data||[]).map(x=>({id:x.user_id,display_name:x.display_name,email:x.email}));try{await cloudProbe();if(CLOUD.available)await cloudPullOperational()}catch(e){CLOUD.available=false;CLOUD.reason=String(e.message||e)}
 const crs=document.getElementById('cloudReviewStatus');if(crs)crs.textContent=CLOUD.available?'Cloud 已连接；正式 Submit 只在服务器确认成功后显示完成。':'Cloud 尚未部署；目前只能保存本机草稿。';document.getElementById('sync').textContent='● 名单已同步';document.getElementById('m1').innerHTML=`登入者：${S.who.name}<br>角色：${S.who.role}<br>can_see：${S.perm.can_see?'✓':'✕'}<br>can_edit：${S.perm.can_edit?'✓':'✕'}<br>can_approve：${S.perm.can_approve?'✓':'✕'}`;save();openApp();renderCollect()}catch(e){console.error(e);showGate('LoveGo 无法完成初始化',String(e.message||e),'<button class="primary" onclick="location.reload()">重试</button>')}}init();
+
+// v40 governance override: management assigns teachers by CLASS, not student-by-student.
+async function fetchClassAssignment(classId){
+  if(!CLOUD.available||!isAdmin())return [];
+  const cyc=CLOUD.cycleMap[S.ui.cycle];if(!cyc)return [];
+  const q=await sb.from('lovego_class_assignment').select('*').eq('cycle_id',cyc.id).eq('class_id',classId).eq('status','active').is('archived_at',null).order('slot_no');
+  if(q.error)throw q.error;return q.data||[];
+}
+function classRecommendationTeacherIds(classId){
+  const cyc=CLOUD.cycleMap[S.ui.cycle];
+  const studentIds=new Set(activeStudentsForClass(classId).map(x=>x.id));
+  const score=new Map();
+  for(const r of (S.cloudRecommendations||[])){
+    if(cyc&&r.cycle_id!==cyc.id)continue;if(!studentIds.has(r.student_id))continue;
+    score.set(r.teacher_id,(score.get(r.teacher_id)||0)+(9-Number(r.rank_no||8)));
+  }
+  return [...score.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+}
+async function saveClassAssignment(){
+  if(!isAdmin()||!CLOUD.available)return;
+  const classId=document.getElementById('assignClass')?.value||S.ui.classId;
+  const cyc=CLOUD.cycleMap[S.ui.cycle];if(!classId||!cyc)return;
+  const ids=[1,2,3,4].map(i=>document.getElementById(`classTeacher${i}`)?.value||'').filter(Boolean);
+  if(!ids.length){toast('请至少选择 1 位负责老师');return}
+  if(new Set(ids).size!==ids.length){toast('同一班不能重复选择同一位老师');return}
+  try{
+    const q=await sb.rpc('lovego_set_class_assignment',{p_cycle_id:cyc.id,p_class_id:classId,p_teacher_ids:ids});
+    if(q.error)throw q.error;
+    await cloudPullOperational();
+    toast(`✓ 班级 Assignment 已保存 · ${ids.length} 位老师`);
+    await renderAssignments();renderCollect();
+  }catch(e){toast('班级 Assignment 保存失败：'+String(e.message||e));}
+}
+async function renderAssignments(){
+  if(!isAdmin())return;
+  const cls=document.getElementById('assignClass')?.value||S.ui.classId;if(cls)S.ui.classId=cls;
+  const root=document.getElementById('assignList');if(!root||!S.ui.classId)return;
+  const cl=S.classes.find(x=>x.id===S.ui.classId);const students=activeStudentsForClass(S.ui.classId);
+  root.innerHTML='<div class="card"><div class="empty">正在读取这个班级的 Assignment…</div></div>';
+  try{
+    const rows=await fetchClassAssignment(S.ui.classId);const bySlot=Object.fromEntries(rows.map(x=>[x.slot_no,x]));
+    const suggested=classRecommendationTeacherIds(S.ui.classId).slice(0,6);
+    const opt=(selected='')=>'<option value="">— 未指定 —</option>'+S.teachers.map(t=>`<option value="${t.id}" ${t.id===selected?'selected':''}>${t.display_name||t.email||t.id}</option>`).join('');
+    const assignedNames=rows.map(x=>teacherName(x.teacher_id));
+    const studentAssigned=students.filter(st=>currentAssignmentRows(st.id).length>0).length;
+    root.innerHTML=`<div class="card"><div class="title">班级负责老师 · Class Assignment</div><div style="font-size:18px;font-weight:800;margin-bottom:4px">${cl?.display_name||cl?.class_name||''}</div><div class="sub">管理层在这里决定这个班本轮由哪些老师负责。保存后，该班所有 Active Students 自动继承同一组 Teacher Assignment；不需要逐个学生重复选择。</div><div style="display:grid;grid-template-columns:repeat(2,minmax(190px,1fr));gap:9px;margin-top:14px">${[1,2,3,4].map(i=>`<label style="font-size:11px;color:var(--mut)">Teacher ${i}<select id="classTeacher${i}" style="width:100%;margin-top:3px">${opt(bySlot[i]?.teacher_id||'')}</select></label>`).join('')}</div><div class="sub" style="margin-top:10px">系统参考（不是自动 Assignment）：${suggested.length?suggested.map(teacherName).join(' · '):'暂无可验证推荐'}</div><div class="actions"><button class="primary" onclick="saveClassAssignment()">保存这个班的 Assignment</button></div></div><div class="card"><div class="title">班级覆盖</div><div class="lines">Active Students：<b>${students.length}</b><br>当前班级老师：<b>${assignedNames.length?assignedNames.join(' · '):'尚未指定'}</b><br>已产生正式 Student Assignment：<b>${studentAssigned}/${students.length}</b></div><div class="sub" style="margin-top:8px">学生级别只用于少数例外/Override；班级 Assignment 才是主规则。</div></div>`;
+  }catch(e){root.innerHTML=`<div class="card"><div class="empty">读取班级 Assignment 失败：${String(e.message||e)}</div></div>`}
+}
