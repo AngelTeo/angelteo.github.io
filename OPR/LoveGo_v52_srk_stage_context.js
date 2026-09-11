@@ -1,6 +1,5 @@
 /* LoveGo v52 · SRK stage context enrichment
-   Stores raw age + curriculum-stage signals for later canonical AGE 3/4/5/6 resolution.
-   Does NOT itself decide the final canonical age band.
+   Stores raw age + curriculum-stage signals for canonical AGE 3/4/5/6 resolution.
 */
 (()=>{
   let installed=false;
@@ -38,7 +37,7 @@
       const baseEnsure=ensure;ensure=function(){return enrich(baseEnsure());};
       if(typeof cloudReviewPayload==='function'){const basePayload=cloudReviewPayload;cloudReviewPayload=function(r,submitted=false){enrich(r);return basePayload(r,submitted);};}
       window.LoveGoSRKStageContext={version:VERSION,stageFromClassName,enrich};
-      window.__LOVEGO_V52_STAGE_CONTEXT__={installed:true,version:VERSION,principle:'store raw age/stage signals; final canonical age resolution remains downstream'};
+      window.__LOVEGO_V52_STAGE_CONTEXT__={installed:true,version:VERSION,principle:'store raw age/stage signals; v56 resolves canonical OD-1'};
       installed=true;return true;
     }catch(e){console.error('LoveGo v52 stage context install failed',e);return false;}
   }
@@ -49,6 +48,7 @@
     const s=document.createElement('script');s.id=id;s.src=src;s.async=false;document.head.appendChild(s);
   }
   loadOnce('LoveGo_v53_srk_evidence_registry.js','lovego-v53-srk-registry');
+  loadOnce('LoveGo_v56_srk_od1_guard.js','lovego-v56-srk-od1');
   loadOnce('LoveGo_v54_srk_registry_adapter.js','lovego-v54-srk-adapter');
   loadOnce('LoveGo_v55_srk_cloud_guard.js','lovego-v55-srk-cloud-guard');
 })();
