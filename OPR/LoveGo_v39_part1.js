@@ -36,5 +36,8 @@ async function cloudPullOperational(){
   for(const x of S.cloudExceptions){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;S.assignmentExceptions[`${cyc}|${x.student_id}`]={approved:x.status==='active',approved_count:x.approved_teacher_count,reason:x.reason,approved_by:x.approved_by,approved_at:x.approved_at,id:x.id};}
 }
 
-// Load LoveGo v40 management class-assignment dashboard without changing teacher flow.
-(()=>{const s=document.createElement('script');s.src='LoveGo_v40_dashboard.js';s.defer=true;document.head.appendChild(s);})();
+// Load LoveGo management layers without changing teacher flow.
+(()=>{
+  const s=document.createElement('script');s.src='LoveGo_v40_dashboard.js';s.defer=true;document.head.appendChild(s);
+  const o=document.createElement('script');o.src='LoveGo_v41_student_override.js';o.defer=true;document.head.appendChild(o);
+})();
