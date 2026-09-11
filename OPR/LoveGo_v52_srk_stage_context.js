@@ -51,4 +51,5 @@
   loadOnce('LoveGo_v56_srk_od1_guard.js','lovego-v56-srk-od1');
   loadOnce('LoveGo_v54_srk_registry_adapter.js','lovego-v54-srk-adapter');
   loadOnce('LoveGo_v55_srk_cloud_guard.js','lovego-v55-srk-cloud-guard');
+  loadOnce('LoveGo_v57_srk_registry_semantic_guard.js','lovego-v57-srk-semantic');
 })();
