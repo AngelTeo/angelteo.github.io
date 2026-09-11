@@ -1,5 +1,5 @@
 
-const APP_VERSION=39,KEY='lovego_v39';
+const APP_VERSION=42,KEY='lovego_v42';
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_KEY='sb_publishable_v3Y3BD3XiPz33t-hfdX58g_BaFIkjPF';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
@@ -17,7 +17,7 @@ function cloudReviewPayload(r,submitted=false){return {assignment_id:r.assignmen
 async function cloudUpsertReview(r,submitted=false){if(!CLOUD.available)throw new Error('LoveGo Cloud 尚未启用');if(!r.assignment_id)throw new Error('没有有效 Teacher Assignment');const cyc=CLOUD.cycleMap[S.ui.cycle];if(!cyc)throw new Error('当前周期尚未建立在 LoveGo Cloud');r.cloud_cycle_id=cyc.id;const payload=cloudReviewPayload(r,submitted);const q=await sb.from('lovego_review').upsert(payload,{onConflict:'assignment_id'}).select('id,status,submitted_at,locked_at').single();if(q.error)throw q.error;Object.assign(r,q.data||{});return q.data;}
 async function cloudCreateAssignment(studentId,classId,department,teacherId,slotNo){if(!CLOUD.available)throw new Error('LoveGo Cloud 尚未启用');const cyc=CLOUD.cycleMap[S.ui.cycle];if(!cyc)throw new Error('当前周期尚未建立在 Cloud');const q=await sb.from('lovego_assignment').insert({cycle_id:cyc.id,student_id:studentId,class_id:classId,department,teacher_id:teacherId,slot_no:slotNo,status:'active',assigned_by:S.who.id}).select('*').single();if(q.error)throw q.error;return q.data;}
 async function cloudReplaceAssignment(oldAssignment,newTeacherId,reason){if(!CLOUD.available)throw new Error('LoveGo Cloud 尚未启用');const q=await sb.rpc('lovego_replace_assignment',{p_assignment_id:oldAssignment.id,p_new_teacher_id:newTeacherId,p_reason:reason||''});if(q.error)throw q.error;await cloudPullOperational();return q.data;}
-async function cloudSetFewerTeacherException(studentId,count,reason){if(!CLOUD.available)throw new Error('LoveGo Cloud 尚未启用');const cyc=CLOUD.cycleMap[S.ui.cycle];if(!cyc)throw new Error('当前周期尚未建立在 Cloud');const payload={cycle_id:cyc.id,student_id:studentId,approved_teacher_count:count,reason,approved_by:S.who.id,status:'active'};const q=await sb.from('lovego_assignment_exception').upsert(payload,{onConflict:'cycle_id,student_id'}).select('*').single();if(q.error)throw q.error;await cloudPullOperational();return q.data;}
+async function cloudSetFewerTeacherException(studentId,count,reason){if(!CLOUD.available)throw new Error('LoveGo Cloud 尚未启用');const cyc=CLOUD.cycleMap[S.ui.cycle];if(!cyc)throw new Error('当前周期尚未建立在 Cloud');const payload={cycle_id:cyc.id,student_id:studentId,source_class_id:S.ui.classId,source_type:'student_manual',approved_teacher_count:count,reason,approved_by:S.who.id,status:'active'};const q=await sb.from('lovego_assignment_exception').upsert(payload,{onConflict:'cycle_id,source_class_id,student_id'}).select('*').single();if(q.error)throw q.error;await cloudPullOperational();return q.data;}
 async function cloudPullOperational(){
   if(!CLOUD.available)return;
   const [a,rv,ex,rec]=await Promise.all([
@@ -28,16 +28,14 @@ async function cloudPullOperational(){
   ]);
   for(const q of [a,rv,ex,rec])if(q.error)throw q.error;
   S.cloudAssignments=a.data||[];S.cloudReviews=rv.data||[];S.cloudExceptions=ex.data||[];S.cloudRecommendations=rec.data||[];
-  const byStudent={};
-  for(const x of S.cloudAssignments){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;const key=`${cyc}|${x.student_id}`;(byStudent[key] ||= []).push({...x});}
-  for(const [k,rows] of Object.entries(byStudent))S.assignments[k]=rows;
+  S.assignments={};
+  const byContext={};
+  for(const x of S.cloudAssignments){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;const key=`${cyc}|${x.class_id}|${x.student_id}`;(byContext[key] ||= []).push({...x});}
+  for(const [k,rows] of Object.entries(byContext))S.assignments[k]=rows;
   for(const x of S.cloudReviews){S.reviews[`assignment:${x.assignment_id}`]={...x};}
   S.assignmentExceptions={};
-  for(const x of S.cloudExceptions){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;S.assignmentExceptions[`${cyc}|${x.student_id}`]={approved:x.status==='active',approved_count:x.approved_teacher_count,reason:x.reason,approved_by:x.approved_by,approved_at:x.approved_at,id:x.id};}
+  for(const x of S.cloudExceptions){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;S.assignmentExceptions[`${cyc}|${x.source_class_id}|${x.student_id}`]={approved:x.status==='active',approved_count:x.approved_teacher_count,reason:x.reason,approved_by:x.approved_by,approved_at:x.approved_at,id:x.id};}
 }
 
-// Load LoveGo management layers without changing teacher flow.
-(()=>{
-  const s=document.createElement('script');s.src='LoveGo_v40_dashboard.js';s.defer=true;document.head.appendChild(s);
-  const o=document.createElement('script');o.src='LoveGo_v41_student_override.js';o.defer=true;document.head.appendChild(o);
-})();
+// Load LoveGo management layers without changing teacher evidence flow.
+(()=>{const s=document.createElement('script');s.src='LoveGo_v40_dashboard.js';s.defer=true;document.head.appendChild(s);const o=document.createElement('script');o.src='LoveGo_v41_student_override.js';o.defer=true;document.head.appendChild(o);const r=document.createElement('script');r.src='LoveGo_v42_reporting_context.js';r.defer=true;document.head.appendChild(r);})();
