@@ -9,7 +9,6 @@ async function runLoveGoV61UAT(){
 
   resetUAT();await window.saveReview(true);
   results.push(uatCheck('Incomplete submit blocked',__cloudWrites===0,__toasts.join(' | ')));
-
   resetUAT();fillAllSections();await window.saveReview(true);
   results.push(uatCheck('No Daily Student Life blocked',__cloudWrites===0,__toasts.join(' | ')));
 
@@ -24,14 +23,22 @@ async function runLoveGoV61UAT(){
   const events=window.LoveGoEvidencePlug?.buildReview?.(r)||[];
   results.push(uatCheck('v61 Evidence Plug loaded',window.__LOVEGO_V61_SRK_EVIDENCE_PLUG__?.installed===true));
   results.push(uatCheck('Canonical events exported',events.length===A.sections().length,`events=${events.length}, sections=${A.sections().length}`));
-  results.push(uatCheck('Events authoritative after submit',events.length>0&&events.every(e=>e.authoritative===true)));
+  results.push(uatCheck('Events authoritative after submit',events.length>0&&events.every(e=>e.authoritative===true&&e.identity_complete===true)));
   results.push(uatCheck('Interpretation remains null',events.length>0&&events.every(e=>e.interpretation===null)));
   results.push(uatCheck('Canonical indicator_id present',events.length>0&&events.every(e=>!!e.indicator_id)));
   results.push(uatCheck('Stable evidence_code present',events.length>0&&events.every(e=>!!e.evidence_code)));
+  const allSubmitted=window.LoveGoEvidencePlug?.buildAll?.({submittedOnly:true,countsOnly:true})||[];
+  results.push(uatCheck('submittedOnly returns current canonical events',allSubmitted.length===events.length,String(allSubmitted.length)));
+
+  const savedId=r.id;delete r.id;
+  const incompleteIdentity=window.LoveGoEvidencePlug?.buildReview?.(r)||[];
+  results.push(uatCheck('Missing source_record_id fails closed',incompleteIdentity.length>0&&incompleteIdentity.every(e=>e.authoritative===false&&e.identity_complete===false)));
+  const noSubmitted=window.LoveGoEvidencePlug?.buildAll?.({submittedOnly:true,countsOnly:true})||[];
+  results.push(uatCheck('submittedOnly excludes identity-incomplete events',noSubmitted.length===0,String(noSubmitted.length)));
+  r.id=savedId;
 
   const ok=results.every(x=>x.ok),out=document.getElementById('out');
   if(out){out.className=ok?'ok':'bad';out.textContent=(ok?'PASS':'FAIL')+'\n\n'+results.map(x=>(x.ok?'✓ ':'✕ ')+x.name+(x.detail?' · '+x.detail:'')).join('\n');}
-  window.__LOVEGO_V61_UAT_RESULT__={ok,results};
-  return window.__LOVEGO_V61_UAT_RESULT__;
+  window.__LOVEGO_V61_UAT_RESULT__={ok,results};return window.__LOVEGO_V61_UAT_RESULT__;
 }
 setTimeout(runLoveGoV61UAT,1000);
