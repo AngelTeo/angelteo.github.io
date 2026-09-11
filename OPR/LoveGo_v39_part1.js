@@ -34,4 +34,4 @@ async function cloudPullOperational(){
   for(const x of S.cloudReviews)S.reviews[`assignment:${x.assignment_id}`]={...x};
   S.assignmentExceptions={};for(const x of S.cloudExceptions){const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;S.assignmentExceptions[`${cyc}|${x.source_class_id}|${x.student_id}`]={approved:x.status==='active',approved_count:x.approved_teacher_count,reason:x.reason,approved_by:x.approved_by,approved_at:x.approved_at,id:x.id};}
 }
-(()=>{['LoveGo_v40_dashboard.js','LoveGo_v41_student_override.js','LoveGo_v42_reporting_context.js','LoveGo_v43_ptmgo_gate.js','LoveGo_v44_work_queue.js','LoveGo_v45_product_hardening.js'].forEach(src=>{const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s);});})();
+(()=>{['LoveGo_v40_dashboard.js','LoveGo_v41_student_override.js','LoveGo_v42_reporting_context.js','LoveGo_v43_ptmgo_gate.js','LoveGo_v44_work_queue.js','LoveGo_v45_product_hardening.js','LoveGo_v45_teacher_scope.js'].forEach(src=>{const s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s);});})();
