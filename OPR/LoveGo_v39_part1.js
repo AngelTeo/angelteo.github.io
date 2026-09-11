@@ -1,5 +1,5 @@
 
-const APP_VERSION=42,KEY='lovego_v42';
+const APP_VERSION=43,KEY='lovego_v43';
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_KEY='sb_publishable_v3Y3BD3XiPz33t-hfdX58g_BaFIkjPF';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
@@ -38,4 +38,4 @@ async function cloudPullOperational(){
 }
 
 // Load LoveGo management layers without changing teacher evidence flow.
-(()=>{const s=document.createElement('script');s.src='LoveGo_v40_dashboard.js';s.defer=true;document.head.appendChild(s);const o=document.createElement('script');o.src='LoveGo_v41_student_override.js';o.defer=true;document.head.appendChild(o);const r=document.createElement('script');r.src='LoveGo_v42_reporting_context.js';r.defer=true;document.head.appendChild(r);})();
+(()=>{const s=document.createElement('script');s.src='LoveGo_v40_dashboard.js';s.defer=true;document.head.appendChild(s);const o=document.createElement('script');o.src='LoveGo_v41_student_override.js';o.defer=true;document.head.appendChild(o);const r=document.createElement('script');r.src='LoveGo_v42_reporting_context.js';r.defer=true;document.head.appendChild(r);const a=document.createElement('script');a.src='LoveGo_v43_report_authority_ui.js';a.defer=true;document.head.appendChild(a);})();
