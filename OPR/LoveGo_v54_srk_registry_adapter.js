@@ -1,1 +1,1 @@
-/* LoveGo v54 placeholder marker */
+(()=>{})();
