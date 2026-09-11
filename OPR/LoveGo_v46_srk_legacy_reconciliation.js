@@ -110,9 +110,10 @@
       };
 
       const patchShell=()=>{
+        const shellVer='v'+((typeof APP_VERSION==='number'&&APP_VERSION>0)?APP_VERSION:46);
         document.querySelectorAll('.logout').forEach(el=>el.remove());
-        document.querySelectorAll('.ver').forEach(el=>{if(el.textContent!=='v46')el.textContent='v46';});
-        if(document.title.startsWith('LoveGo')&&document.title!=='LoveGo v46')document.title='LoveGo v46';
+        document.querySelectorAll('.ver').forEach(el=>{if(el.textContent!==shellVer)el.textContent=shellVer;});
+        if(document.title.startsWith('LoveGo')&&document.title!==`LoveGo ${shellVer}`)document.title=`LoveGo ${shellVer}`;
       };
       patchShell(); new MutationObserver(patchShell).observe(document.documentElement,{childList:true,subtree:true});
 
@@ -120,7 +121,7 @@
       window.__LOVEGO_V46_SRK_RECONCILIATION__={
         installed:true,
         source:'Current SRK + LOVE LOVE legacy + PTM Card Comment legacy',
-        changes:['S11 Self-Care all preschool bands','legacy curiosity/motivation into S3','organization/time management into S4','helpful/respectful/social responsibility into S6','cycle taxonomy snapshot on reviews','remove local logout','visible version v46'],
+        changes:['S11 Self-Care legacy evidence','legacy curiosity/motivation into S3','organization/time management into S4','helpful/respectful/social responsibility into S6','cycle taxonomy snapshot on reviews','remove local logout','visible version follows APP_VERSION'],
         excluded:['student stereotype labels','teacher liking score','teacher learning-disability diagnosis','duplicate comment picking']
       };
       return true;
