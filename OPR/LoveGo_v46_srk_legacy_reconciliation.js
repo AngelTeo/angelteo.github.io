@@ -101,7 +101,6 @@
         return list.filter(d=>!Array.isArray(d.activeBands)||!band||d.activeBands.includes(band));
       };
 
-      /* Review evidence must carry the active cycle taxonomy snapshot, not the old hard-coded version. */
       const baseEnsure=ensure;
       ensure=function(){
         const r=baseEnsure();
@@ -112,8 +111,8 @@
 
       const patchShell=()=>{
         document.querySelectorAll('.logout').forEach(el=>el.remove());
-        document.querySelectorAll('.ver').forEach(el=>el.textContent='v46');
-        if(document.title.startsWith('LoveGo'))document.title='LoveGo v46';
+        document.querySelectorAll('.ver').forEach(el=>{if(el.textContent!=='v46')el.textContent='v46';});
+        if(document.title.startsWith('LoveGo')&&document.title!=='LoveGo v46')document.title='LoveGo v46';
       };
       patchShell(); new MutationObserver(patchShell).observe(document.documentElement,{childList:true,subtree:true});
 
