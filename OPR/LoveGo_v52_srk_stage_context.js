@@ -43,4 +43,13 @@
     }catch(e){console.error('LoveGo v52 stage context install failed',e);return false;}
   }
   if(!install()){let n=0;const t=setInterval(()=>{n++;if(install()||n>200)clearInterval(t)},25);}
+
+  // v53/v54 are additive adapters. v54 is feature-gated and does not replace the production SRK UI
+  // unless the explicit UAT query flag ?srk_registry=1 is present.
+  function loadOnce(src,id){
+    if(document.getElementById(id))return;
+    const s=document.createElement('script');s.id=id;s.src=src;s.async=false;document.head.appendChild(s);
+  }
+  loadOnce('LoveGo_v53_srk_evidence_registry.js','lovego-v53-srk-registry');
+  loadOnce('LoveGo_v54_srk_registry_adapter.js','lovego-v54-srk-adapter');
 })();
