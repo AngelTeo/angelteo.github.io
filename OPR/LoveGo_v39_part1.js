@@ -71,13 +71,14 @@ async function cloudSetFewerTeacherException(studentId,count,reason){
 }
 async function cloudPullOperational(){
   if(!CLOUD.available)return;
-  const [a,rv,ex]=await Promise.all([
+  const [a,rv,ex,rec]=await Promise.all([
     sb.from('lovego_assignment').select('*'),
     sb.from('lovego_review').select('*'),
-    isAdmin()?sb.from('lovego_assignment_exception').select('*'):Promise.resolve({data:[],error:null})
+    isAdmin()?sb.from('lovego_assignment_exception').select('*'):Promise.resolve({data:[],error:null}),
+    isAdmin()?sb.from('lovego_assignment_recommendation').select('*').order('rank_no'):Promise.resolve({data:[],error:null})
   ]);
-  for(const q of [a,rv,ex])if(q.error)throw q.error;
-  S.cloudAssignments=a.data||[]; S.cloudReviews=rv.data||[]; S.cloudExceptions=ex.data||[];
+  for(const q of [a,rv,ex,rec])if(q.error)throw q.error;
+  S.cloudAssignments=a.data||[]; S.cloudReviews=rv.data||[]; S.cloudExceptions=ex.data||[]; S.cloudRecommendations=rec.data||[];
   const byStudent={};
   for(const x of S.cloudAssignments){
     const cyc=(Object.values(CLOUD.cycleMap).find(c=>c.id===x.cycle_id)?.cycle_code)||S.ui.cycle;
