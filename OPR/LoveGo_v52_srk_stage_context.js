@@ -1,9 +1,22 @@
-/* LoveGo v52 · SRK stage context enrichment
+/* LoveGo v52.1 · SRK stage context enrichment
    Stores raw age + curriculum-stage signals for canonical AGE 3/4/5/6 resolution.
+   Production promotion: canonical SRK registry is now the real SRK LoveGo path.
 */
 (()=>{
   let installed=false;
-  const VERSION='SRK-STAGE-CONTEXT-v1';
+  const VERSION='SRK-STAGE-CONTEXT-v1.1';
+
+  // Production promotion switch. The downstream SRK guards remain department-scoped,
+  // so non-SRK departments are unchanged. We keep the existing query-key contract
+  // to avoid rewriting every validated downstream guard at once.
+  try{
+    const u=new URL(location.href);
+    if(u.searchParams.get('srk_registry')!=='1'){
+      u.searchParams.set('srk_registry','1');
+      history.replaceState(history.state,'',u.pathname+u.search+u.hash);
+    }
+  }catch(e){console.error('LoveGo SRK production promotion URL sync failed',e);}
+
   function stageFromClassName(name){
     const n=String(name||'').toUpperCase();
     const m=n.match(/(?:^|[-_.\s])(BB|JR|IN|SR)(?:$|[-_.\s0-9])/);
@@ -37,7 +50,7 @@
       const baseEnsure=ensure;ensure=function(){return enrich(baseEnsure());};
       if(typeof cloudReviewPayload==='function'){const basePayload=cloudReviewPayload;cloudReviewPayload=function(r,submitted=false){enrich(r);return basePayload(r,submitted);};}
       window.LoveGoSRKStageContext={version:VERSION,stageFromClassName,enrich};
-      window.__LOVEGO_V52_STAGE_CONTEXT__={installed:true,version:VERSION,principle:'store raw age/stage signals; v56 resolves canonical OD-1'};
+      window.__LOVEGO_V52_STAGE_CONTEXT__={installed:true,version:VERSION,production:true,principle:'store raw age/stage signals; v56 resolves canonical OD-1'};
       installed=true;return true;
     }catch(e){console.error('LoveGo v52 stage context install failed',e);return false;}
   }
