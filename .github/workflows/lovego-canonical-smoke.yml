@@ -1,0 +1,28 @@
+name: LoveGo Canonical Smoke
+on:
+  push:
+    paths:
+      - '.github/workflows/lovego-canonical-smoke.yml'
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify canonical LoveGo runtime
+        run: |
+          set -e
+          test -f OPR/LoveGo.html
+          for f in lovego-cloud.js lovego-model.js lovego-review.js lovego-assignments.js lovego-management.js lovego-ptm-evidence.js; do
+            test -f "OPR/$f"
+            node --check "OPR/$f"
+            grep -q "$f" OPR/LoveGo.html || [ "$f" = "lovego-ptm-evidence.js" ]
+          done
+          test -d OPR/_legacy/lovego
+          if find OPR -maxdepth 1 -type f -name 'LoveGo_v*' | grep -q .; then
+            echo 'Numbered LoveGo production file still exists in OPR root'
+            exit 1
+          fi
+          test ! -e OPR/LoveGo_v61_e2e_uat.html
+          grep -q "lovego-ptm-evidence.js" OPR/_legacy/lovego/LoveGo_v60_srk_end_to_end_guard.js
+          grep -q "_legacy/lovego/" OPR/lovego-cloud.js
+          echo 'PASS: canonical LoveGo runtime structure and JS syntax'
