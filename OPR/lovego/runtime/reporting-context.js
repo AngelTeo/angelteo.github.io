@@ -1,0 +1,17 @@
+// LoveGo v42 · Reporting Context Safety
+// Report identity = cycle + department + student. Class remains assignment/evidence provenance.
+(()=>{
+  const wait=()=>{if(typeof S==='undefined'||typeof CLOUD==='undefined'||typeof currentAssignmentRows!=='function'){setTimeout(wait,100);return;}install();};
+  function install(){
+    if(window.__LOVEGO_V42_CONTEXT__)return;window.__LOVEGO_V42_CONTEXT__=true;
+    window.assignmentKey=function(cycle,studentId,classId=S.ui.classId){return `${cycle}|${classId||'NOCLASS'}|${studentId}`;};
+    window.currentAssignmentRows=function(studentId,cycle=S.ui.cycle,classId=S.ui.classId){normaliseAssignmentStore();if(CLOUD.available&&Array.isArray(S.cloudAssignments)){const cyc=CLOUD.cycleMap[cycle];return S.cloudAssignments.filter(a=>a.student_id===studentId&&a.class_id===classId&&(!cyc||a.cycle_id===cyc.id)&&!a.archived_at&&['draft','active','pending','completed'].includes(a.status)).sort((a,b)=>a.slot_no-b.slot_no);}return (S.assignments[assignmentKey(cycle,studentId,classId)]||[]).filter(a=>['draft','active','pending','completed'].includes(a.status)).sort((a,b)=>a.slot_no-b.slot_no);};
+    window.getAssignedTeacherIds=function(studentId,cycle=S.ui.cycle,classId=S.ui.classId){return currentAssignmentRows(studentId,cycle,classId).map(a=>a.teacher_id);};
+    window.exceptionKey=function(studentId,cycle=S.ui.cycle,classId=S.ui.classId){return `${cycle}|${classId||'NOCLASS'}|${studentId}`;};
+    window.getAssignmentException=function(studentId,classId=S.ui.classId){return S.assignmentExceptions?.[exceptionKey(studentId,S.ui.cycle,classId)]||null;};
+    window.currentTeacherAssigned=function(studentId){const uid=S.who?.id;if(!uid||!S.ui.classId)return false;const cyc=CLOUD.cycleMap[S.ui.cycle];if(CLOUD.available&&Array.isArray(S.cloudAssignments))return S.cloudAssignments.some(a=>a.student_id===studentId&&a.class_id===S.ui.classId&&a.teacher_id===uid&&(!cyc||a.cycle_id===cyc.id)&&!a.archived_at&&['active','pending','completed'].includes(a.status));return getAssignedTeacherIds(studentId,S.ui.cycle,S.ui.classId).includes(uid);};
+    window.assignmentCompletion=function(studentId){const n=currentAssignmentRows(studentId,S.ui.cycle,S.ui.classId).length,ex=getAssignmentException(studentId,S.ui.classId);if(n===4)return {ok:true,label:'4/4 已指定'};if(ex?.approved&&ex.approved_count===n)return {ok:true,label:`${n}/4 · 已批准例外`};return {ok:false,label:`${n}/4 · 未完成`};};
+    window.loveGoReadiness=function(studentId){const rows=currentAssignmentRows(studentId,S.ui.cycle,S.ui.classId),ex=getAssignmentException(studentId,S.ui.classId);const assignmentValid=(rows.length===4)||(ex?.approved&&ex.approved_count===rows.length&&rows.length>0);let submitted=0;for(const a of rows){const r=Object.values(S.reviews).find(x=>x.assignment_id===a.id&&x.counts_for_cycle!==false);if(r?.submitted_at||r?.status==='completed')submitted++;}const expected=rows.length,ready=assignmentValid&&expected>0&&submitted===expected;return {ready,assignmentValid,expected,submitted,label:ready?`Completed · Ready for PTMGo (${submitted}/${expected})`:!assignmentValid?`Assignment incomplete (${rows.length}/4)`:`Pending · ${submitted}/${expected} submitted`};};
+  }
+  wait();
+})();
