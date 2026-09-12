@@ -30,6 +30,6 @@
   }
   if(!install()){let n=0,t=setInterval(()=>{n++;if(install()||n>320)clearInterval(t)},25);}
   if(!document.getElementById('lovego-v61-srk-evidence-plug')){
-    const s=document.createElement('script');s.id='lovego-v61-srk-evidence-plug';s.src='LoveGo_v61_srk_evidence_plug_adapter.js';s.async=false;document.head.appendChild(s);
+    const s=document.createElement('script');s.id='lovego-v61-srk-evidence-plug';s.src='lovego-ptm-evidence.js';s.async=false;document.head.appendChild(s);
   }
 })();
