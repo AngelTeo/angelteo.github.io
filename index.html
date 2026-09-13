@@ -51,6 +51,16 @@
   .btn-vercheck:hover{background:rgba(255,255,255,.14)}
   .btn-vercheck:disabled{opacity:.45;cursor:default}
 
+  /* ── 平台层登出（2026-09-13）──────────────────────────────
+     Owner 裁定：各系统一律不得有登出，整个平台只留这一颗。
+     在这之前平台首页根本没有出口 —— 共用电脑上，上一个人的 session 会一直留著。
+     这颗一定要在各系统拿掉登出之前先上线，否则会有一段谁也登不出去的空窗期。 */
+  .btn-logout{min-height:44px;padding:0 16px;border:1px solid rgba(255,255,255,.38);
+    background:transparent;color:#fff;border-radius:8px;font-family:inherit;font-size:12px;
+    font-weight:600;letter-spacing:.3px;cursor:pointer;white-space:nowrap}
+  .btn-logout:hover{background:rgba(255,255,255,.14)}
+  .btn-logout:disabled{opacity:.45;cursor:default}
+
   .ver-report{max-width:1200px;margin:18px auto -8px;padding:0 36px;width:100%}
   .ver-box{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7}
   .ver-box b{font-size:13px}
@@ -109,6 +119,7 @@
   <div class="header-right">
     <button class="btn-vercheck" id="btn-vercheck" onclick="runVerCheck()" hidden>版本核对</button>
     <div class="header-meta" id="header-meta"></div>
+    <button class="btn-logout" id="btn-logout" onclick="doLogout()">登出</button>
   </div>
 </header>
 <div class="ver-report" id="ver-report" hidden></div>
@@ -196,6 +207,21 @@ async function doMagicLink(){
   document.getElementById('auth-err').textContent='✓ Check your email for the login link';
 }
 
+/* 平台层登出 —— 全 Academee 唯一的出口（2026-09-13 Owner 裁定）。
+   signOut() 是全域的：登出后 MiscGo / ParentGo / EvalGo / ObsGo 等共用同一个
+   Supabase session 的系统全部一起登出。所以要先问一句，别让人手滑。 */
+async function doLogout(){
+  if(!confirm('登出后，Academee 的所有系统都要重新登入。\n\n确定要登出吗？')) return;
+  const b=document.getElementById('btn-logout');
+  b.disabled=true; b.textContent='登出中…';
+  try{ await _sb.auth.signOut(); }
+  catch(e){ console.warn('signOut failed:',e); }
+  location.reload();
+}
+
+// 登入者显示名 —— 共用电脑上要一眼看得出「现在是谁」，不然登出按钮没有意义。
+let WHO='';
+
 async function showApp(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-wrap').style.display='flex';
@@ -273,8 +299,9 @@ async function showApp(){
   try{
     const{data:{user}}=await _sb.auth.getUser();
     if(user){
-      const{data:um}=await _sb.from('users_meta').select('role').eq('user_id',user.id).maybeSingle();
+      const{data:um}=await _sb.from('users_meta').select('role,display_name').eq('user_id',user.id).maybeSingle();
       if(um && VERCHECK_ROLES.indexOf(um.role)>=0) document.getElementById('btn-vercheck').hidden=false;
+      if(um && um.display_name){ WHO=um.display_name; updateClock(); }
     }
   }catch(e){ console.warn('[index] 读不到角色，版本核对按钮不显示:',e); }
 }
@@ -380,7 +407,7 @@ function updateClock(){
   const h12=h%12||12;
   const mm=(m<10?'0':'')+m;
   document.getElementById('header-meta').textContent=
-    days[d.getDay()]+' · '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear()+' · '+h12+':'+mm+' '+ampm;
+    (WHO?WHO+' · ':'')+days[d.getDay()]+' · '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear()+' · '+h12+':'+mm+' '+ampm;
 }
 setInterval(updateClock,30000);
 (async()=>{
