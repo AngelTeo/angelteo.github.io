@@ -171,7 +171,9 @@ const LIVE={
   // registry: RPT-EvalGo-ATC · layer=RPT · TEACHER see=true edit=true (已实测)
   // ⚠️ 新增 group 时必须同步加进 GROUP_ORDER,否则卡片静默不渲染。
   // 2026-09-13 实抓线上 APP_VERSION = 26，卡片原写 v25 → 已更正。
-  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v47',   group:'RPT — Reports', color:'#5A6470', order:0},
+  // 2026-09-17：卡片原写 v47 → v51（v48 删除范围 · v49 拉回分页＋残留对账 · v50 考卷项目谁都能改 · v51 资料的卷跟着资料走＋我的记录可清除）。
+  //             ⚠️ v51 须与本卡同批上线；若 EvalGo_ATC.html 不是 v51，「版本核对」会标红。
+  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v51',   group:'RPT — Reports', color:'#5A6470', order:0},
   // ── OPR-ObsGo (2026-09-09 上线 · v12 2026-09-12 上线) · 巡班观察 ──
   //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；进度页 OWNER/TOP_MGMT/ADMIN/MGMT；TEACHER 只有巡班+记录。
   //    2026-09-13 实抓线上 APP_VERSION = 12（223,344 B），卡片原写 v7 → 已更正。
