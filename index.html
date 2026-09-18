@@ -174,14 +174,14 @@ const LIVE={
   // 2026-09-17：卡片原写 v47 → v51（v48 删除范围 · v49 拉回分页＋残留对账 · v50 考卷项目谁都能改 · v51 资料的卷跟着资料走＋我的记录可清除）。
   //             v52 画面去掉程式字眼、填写改成三步引导 · v53 使用者角度整体修正（同一把尺、多卷不互相污染、上传可靠）· v54 每个项目各自从第 1 题编号 · v55 错字 / 同分二选一 / 我的记录删除键。
   //             ⚠️ v55 须与本卡同批上线；若 EvalGo_ATC.html 不是 v55，「版本核对」会标红。
-  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v60',   group:'RPT — Reports', color:'#5A6470', order:0},
+  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v56',   group:'RPT — Reports', color:'#5A6470', order:0},
   // ── OPR-ObsGo (2026-09-09 上线 · v12 2026-09-12 上线) · 巡班观察 ──
   //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；进度页 OWNER/TOP_MGMT/ADMIN/MGMT；TEACHER 只有巡班+记录。
   //    2026-09-13 实抓线上 APP_VERSION = 12（223,344 B），卡片原写 v7 → 已更正。
   'OPR-ObsGo':         {href:'academee-tools/ObsGo.html',    name:'ObsGo',    ver:'v12', group:'OPR — Operations', color:'#8B6C2A', order:11},
-  // 2026-09-15：LoveGo 首次注册（SRK PTM Teacher Lens · ObsGo taxonomy authority）。ver=v63（Owner 2026-09-15 回报：线上实际为 v63，卡片补上）。
+  // 2026-09-15：LoveGo 首次注册（SRK PTM Teacher Lens · ObsGo taxonomy authority）。ver=v68（v64 填写页独立化+上下位；v65 清除系统术语；v67 引导语改鼓励语气；v68 管理层不再只读、可正常输入）。
   //             ⚠️ 卡片需 academee-tools/LoveGo.html 已实际部署才可点开；未部署前此卡会 404。
-  'OPR-LoveGo':        {href:'academee-tools/LoveGo.html',   name:'LoveGo',   ver:'v66', group:'OPR — Operations', color:'#8B6C2A', order:12}
+  'OPR-LoveGo':        {href:'academee-tools/LoveGo.html',   name:'LoveGo',   ver:'v68', group:'OPR — Operations', color:'#8B6C2A', order:12}
 };
 
 const LAYER_COLORS={
