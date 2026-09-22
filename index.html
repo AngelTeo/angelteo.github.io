@@ -174,9 +174,10 @@ const LIVE={
   // 2026-09-17：卡片原写 v47 → v51（v48 删除范围 · v49 拉回分页＋残留对账 · v50 考卷项目谁都能改 · v51 资料的卷跟着资料走＋我的记录可清除）。
   //             v52 画面去掉程式字眼、填写改成三步引导 · v53 使用者角度整体修正（同一把尺、多卷不互相污染、上传可靠）· v54 每个项目各自从第 1 题编号 · v55 错字 / 同分二选一 / 我的记录删除键。
   //             ⚠️ v55 须与本卡同批上线；若 EvalGo_ATC.html 不是 v55，「版本核对」会标红。
+  // 2026-09-22：v63 → v64（开页不再排队：检查一起问、资料一起读，开页就带出卷清单）。
   // 2026-09-22：v62 → v63（只有一份卷时首页也列出来，写明「系统已自动选好」与建立日期）。
   // 2026-09-22：v60 → v62（v61 改项目不再变成「我登记的」、卷卡片只印真的填过的老师 · v62 有作文的卷先讲得分率（含作文））。
-  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v63',   group:'RPT — Reports', color:'#5A6470', order:0},
+  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v64',   group:'RPT — Reports', color:'#5A6470', order:0},
   // ── OPR-ObsGo (2026-09-09 上线 · v12 2026-09-12 上线) · 巡班观察 ──
   //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；进度页 OWNER/TOP_MGMT/ADMIN/MGMT；TEACHER 只有巡班+记录。
   //    2026-09-13 实抓线上 APP_VERSION = 12（223,344 B），卡片原写 v7 → 已更正。
