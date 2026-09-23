@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TrainGo · v22</title>
+<style>
+:root{
+  --layer:#236FAD;
+  --d-srk:#C45C5C; --d-gak:#E8A04E; --d-atc:#7AB05A; --d-srt:#8B6CAE;
+  --sur:#ffffff; --sur2:#f7f6f2; --bdr:#e0ddd6;
+  --txt:#1a1a1a; --mut:#888888; --hint:#bbbbbb;
+  --ok:#0F6E56; --warn:#854F0B; --danger:#A32D2D; --info:#236FAD;
+  --layer-a:#eaf2f9; --layer-b:#cfe1f0; --layer-c:#8fb8d8;
+  --ok-a:#e6f2ee; --warn-a:#fbf2e3; --danger-a:#f8ebeb;
+  --ver-bg:#F9CB42;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--sur2); color:var(--txt); font-size:14px; line-height:1.55; font-weight:400;
+}
+h1,h2,h3,h4{margin:0;font-weight:600;line-height:1.35}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--txt)}
+
+/* ══ Row 1 · Topbar —— §4-26 八元件 ══════════════════ */
+.topbar{
+  background:var(--layer); color:#fff;
+  min-height:56px; padding:0 14px;
+  padding-top:env(safe-area-inset-top);
+  display:flex; align-items:center; gap:10px;
+  position:sticky; top:0; z-index:60;
+  overflow-x:auto; scrollbar-width:none; white-space:nowrap;
+}
+.topbar::-webkit-scrollbar{display:none}
+.tb-back{
+  flex:0 0 auto; min-width:44px; min-height:44px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; text-decoration:none; font-size:19px; border-radius:8px;
+}
+.tb-back:hover{background:rgba(255,255,255,.18)}
+.brand{flex:0 0 auto;display:flex;align-items:center;gap:7px;font-size:15px;font-weight:600;min-height:44px}
+.brand-ic{font-size:17px}
+.ver{
+  background:var(--ver-bg); color:var(--layer);
+  font-size:10px; font-weight:700; border-radius:4px;
+  padding:2px 6px; letter-spacing:.03em;
+}
+.ntabs{flex:0 0 auto;display:flex;gap:2px;margin-left:10px}
+.ntab{
+  background:none; border:0; border-bottom:2.5px solid transparent;
+  color:rgba(255,255,255,.78); font-size:13px; font-weight:500;
+  padding:0 13px; min-height:44px; cursor:pointer; white-space:nowrap;
+}
+.ntab:hover{color:#fff}
+.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.tb-right{flex:0 0 auto;display:flex;align-items:center;gap:8px;margin-left:24px;padding-right:6px}
+.sync{
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,.16); border:0; color:#fff;
+  font-size:12px; font-weight:500; border-radius:16px;
+  padding:0 13px; min-height:44px; cursor:pointer;
+}
+.sync:hover{background:rgba(255,255,255,.26)}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--hint);flex:0 0 auto}
+.sync.ok  .dot{background:#6ee7b7}
+.sync.bad .dot{background:#fca5a5}
+.tb-btn{
+  background:rgba(255,255,255,.16); border:0; color:#fff;
+  font-size:12px; font-weight:500; padding:0 13px;
+  min-height:44px; border-radius:8px; cursor:pointer; white-space:nowrap;
+}
+.tb-btn:hover{background:rgba(255,255,255,.26)}
+
+/* ══ Row 3 · Filter ═══════════════════════════════════ */
+.filterbar{
+  background:var(--sur); border-bottom:.5px solid var(--bdr);
+  padding:10px 14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap
+}
+.srch{flex:1;min-width:150px;padding:0 12px;border:.5px solid var(--bdr);
+  border-radius:8px;background:var(--sur2);min-height:44px}
+.pill{
+  border:.5px solid var(--bdr); background:var(--sur); color:var(--mut);
+  padding:0 14px; border-radius:22px; font-size:12px; font-weight:500;
+  cursor:pointer; min-height:44px
+}
+.pill.on{background:var(--layer);border-color:var(--layer);color:#fff;font-weight:600}
+mark{background:#fdeeb0;color:inherit;border-radius:2px;padding:0 1px}
+
+/* ══ Row 4-5 · Page ═══════════════════════════════════ */
+.page{display:none;max-width:1200px;margin:0 auto;padding:16px 14px 80px}
+.page.on{display:block}
+.ptitle{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.ptitle h2{font-size:17px}
+.ptitle .sub{font-size:12px;color:var(--mut);font-weight:400}
+
+.card{background:var(--sur);border:.5px solid var(--bdr);border-radius:12px;
+  padding:16px;margin-bottom:10px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.muted{color:var(--mut);font-size:12px;font-weight:400}
+.hintx{color:var(--hint);font-size:12px}
+
+.btn{background:var(--sur);border:.5px solid var(--bdr);color:var(--txt);
+  padding:0 16px;border-radius:8px;font-size:13px;font-weight:500;
+  cursor:pointer;min-height:44px}
+.btn:hover{background:var(--sur2)}
+.btn-pri{background:var(--layer);border-color:var(--layer);color:#fff;font-weight:600}
+.btn-pri:hover{filter:brightness(1.08)}
+.btn-dgr{background:var(--sur);border-color:var(--danger);color:var(--danger);font-weight:600}
+.btn-sm{padding:0 12px;font-size:12px;min-height:44px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.chip{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;
+  border-radius:9px;letter-spacing:.03em;white-space:nowrap}
+.c-layer{background:var(--layer-a);color:var(--layer)}
+.c-ok{background:var(--ok-a);color:var(--ok)}
+.c-warn{background:var(--warn-a);color:var(--warn)}
+.c-dgr{background:var(--danger-a);color:var(--danger)}
+.c-mut{background:var(--sur2);color:var(--mut)}
+
+.alert{border-radius:9px;padding:12px 14px;font-size:13px;margin-bottom:10px;border:.5px solid}
+.a-warn{background:var(--warn-a);border-color:#e6d2a8;color:var(--warn)}
+.a-dgr{background:var(--danger-a);border-color:#e8c4c4;color:var(--danger)}
+.a-ok{background:var(--ok-a);border-color:#bfe0d5;color:var(--ok)}
+.a-info{background:var(--layer-a);border-color:var(--layer-b);color:var(--layer)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--mut);
+  text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;
+  border-bottom:.5px solid var(--bdr);white-space:nowrap}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--txt)}
+td{padding:9px 10px;border-bottom:.5px solid var(--bdr);height:32px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+
+/* ══ 梯级 ═════════════════════════════════════════════ */
+.rung{display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;border-radius:5px;font-size:10px;font-weight:600}
+.r0{background:var(--sur2);color:var(--hint);border:.5px dashed var(--bdr)}
+.r1{background:var(--layer-a);color:var(--layer)}
+.r2{background:var(--layer-b);color:var(--layer)}
+.r3{background:var(--layer-c);color:#fff}
+.r4{background:var(--layer);color:#fff}
+.r5{background:var(--ok-a);color:var(--ok);border:.5px solid var(--ok)}
+.r6{background:var(--ok);color:#fff}
+.rx{background:var(--danger-a);color:var(--danger);border:.5px solid var(--danger)}
+.ladder{display:flex;gap:3px;align-items:center;margin:8px 0}
+.lstep{flex:1;height:6px;border-radius:3px;background:var(--sur2);border:.5px solid var(--bdr)}
+.lstep.fill{background:var(--layer);border-color:var(--layer)}
+.lstep.done{background:var(--ok);border-color:var(--ok)}
+
+.ty{display:inline-block;width:19px;height:19px;line-height:18px;text-align:center;
+  border-radius:5px;font-size:10px;font-weight:600}
+.ty-K{background:var(--sur2);color:var(--mut);border:.5px solid var(--bdr)}
+.ty-S{background:var(--layer-a);color:var(--layer)}
+.ty-J{background:var(--warn-a);color:var(--warn)}
+.ty-C{background:var(--danger-a);color:var(--danger);border:.5px solid var(--danger)}
+
+.dept{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;color:#fff}
+.dp-CORE{background:var(--mut)} .dp-SRK{background:var(--d-srk)}
+.dp-GAK{background:var(--d-gak)} .dp-ATC{background:var(--d-atc)}
+.dp-SRT{background:var(--d-srt)}
+
+/* ══ 模块七块 ═════════════════════════════════════════ */
+.blk{border-left:3px solid var(--bdr);padding:2px 0 2px 13px;margin-bottom:16px}
+.blk-h{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:6px}
+.blk-why{border-left-color:var(--layer)}
+.blk-std{border-left-color:var(--ok)}
+.blk-step{border-left-color:var(--layer-c)}
+.blk-see{border-left-color:var(--d-gak)}
+.blk-do{border-left-color:var(--d-atc)}
+.blk-if{border-left-color:var(--warn)}
+.blk-pass{border-left-color:var(--ok)}
+.stp{display:flex;gap:10px;margin-bottom:9px}
+.stp-n{flex:0 0 22px;height:22px;border-radius:50%;background:var(--layer-a);
+  color:var(--layer);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center}
+.stp-b{flex:1}
+.stp-t{font-weight:600;font-size:13px}
+.stp-d{font-size:13px}
+.stp-w{font-size:12px;color:var(--warn);margin-top:3px}
+.pc{background:var(--ok-a);border:.5px solid #bfe0d5;border-radius:7px;
+  padding:9px 12px;font-size:13px;margin-bottom:6px}
+
+/* ══ 工作视角 / 状态 ══════════════════════════════════ */
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.wcell{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;
+  padding:14px 13px;cursor:pointer;text-align:left;min-height:64px}
+.wcell:hover{border-color:var(--layer);background:var(--layer-a)}
+.wcell-n{font-size:11px;color:var(--mut);font-weight:500}
+.wcell-t{font-size:13px;font-weight:600;margin-top:2px}
+.wcell-c{font-size:11px;color:var(--mut);margin-top:4px}
+.stat4{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+.st{background:var(--sur2);border-radius:9px;padding:12px 13px}
+.st-l{font-size:11px;color:var(--mut);font-weight:500}
+.st-n{font-size:21px;font-weight:600;margin-top:2px}
+.bar{height:5px;background:var(--bdr);border-radius:3px;margin-top:7px;overflow:hidden}
+.bar-f{height:100%;background:var(--layer);border-radius:3px}
+.bar-f.ok{background:var(--ok)}
+
+/* ══ 技能矩阵 ═════════════════════════════════════════ */
+.mx-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mx{border-collapse:separate;border-spacing:2px;font-size:11px;width:auto}
+.mx th{padding:4px 2px;font-size:10px;text-transform:none;letter-spacing:0;border:0;
+  text-align:center;vertical-align:bottom;width:30px;min-width:30px;color:var(--mut)}
+.mx th .ic{font-size:15px;line-height:1.2}
+.mx th .no{font-size:9px;font-weight:600}
+.mx td{padding:0;border:0;height:auto}
+.mx .nm{font-weight:500;white-space:nowrap;padding-right:9px;text-align:left;
+  width:auto;min-width:0;position:sticky;left:0;background:var(--sur);z-index:2}
+.mxkey{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:3px 14px;margin-top:12px}
+.mxkey div{font-size:11px;color:var(--mut)}
+.mxkey b{color:var(--txt);font-weight:600}
+.cellx{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:600}
+
+/* ══ 管理页 —— §4-24 铁则二 可量测规格 ════════════════ */
+.mg{border-radius:16px;border:.5px solid var(--bdr);background:var(--sur);
+  padding:16px 18px;margin-bottom:12px}
+.mg-h{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:10px}
+.mg-l{font-size:12px;line-height:2}
+.mg-v{background:var(--sur2);border-radius:4px;font-size:11px;padding:1px 6px}
+.mg-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mg-acc{background:none;border:0;padding:0;cursor:pointer;width:100%;text-align:left;
+  min-height:44px;display:flex;align-items:center;gap:8px}
+
+/* ══ 闸门 · Modal · Toast ═════════════════════════════ */
+.gate{position:fixed;inset:0;background:var(--layer);display:flex;
+  align-items:center;justify-content:center;padding:20px;z-index:200}
+.gate-box{background:var(--sur);border-radius:16px;padding:32px 26px;
+  width:100%;max-width:380px;text-align:center}
+.gate-ic{font-size:38px}
+.gate-box h1{font-size:22px;margin:6px 0 4px}
+
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:150}
+.ov.on{display:block}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:var(--sur);border-radius:14px;width:min(560px,94vw);
+  max-height:88vh;overflow:auto;z-index:160;display:none}
+.modal.on{display:block}
+.m-hdr{padding:16px 18px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px}
+.m-hdr h3{font-size:15px;flex:1}
+.m-x{background:none;border:0;font-size:20px;color:var(--mut);cursor:pointer;
+  width:44px;height:44px;border-radius:8px}
+.m-body{padding:18px}
+.m-foot{padding:14px 18px;border-top:.5px solid var(--bdr);display:flex;gap:9px;align-items:center}
+.m-foot .sp{flex:1}
+.toast{position:fixed;right:16px;bottom:16px;background:var(--txt);color:#fff;
+  padding:11px 17px;border-radius:9px;font-size:13px;font-weight:500;
+  opacity:0;transition:opacity .2s;z-index:300;display:flex;align-items:center;gap:10px}
+.toast.on{opacity:1}
+.toast button{background:rgba(255,255,255,.22);border:0;color:#fff;
+  border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;min-height:32px}
+
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:12px;font-weight:500;color:var(--mut);margin-bottom:5px}
+.fld .req{color:var(--danger)}
+.fld input,.fld select,.fld textarea{width:100%;padding:10px 12px;
+  border:.5px solid var(--bdr);border-radius:8px;background:var(--sur2);min-height:44px}
+.fld textarea{min-height:76px;resize:vertical}
+.opt{display:block;width:100%;text-align:left;border:.5px solid var(--bdr);
+  background:var(--sur);border-radius:9px;padding:13px 15px;margin-bottom:8px;
+  cursor:pointer;font-size:13px;min-height:48px}
+.opt.on{border-width:1.5px;font-weight:600}
+.opt.o-ok.on{border-color:var(--ok);background:var(--ok-a);color:var(--ok)}
+.opt.o-warn.on{border-color:var(--warn);background:var(--warn-a);color:var(--warn)}
+.opt.o-dgr.on{border-color:var(--danger);background:var(--danger-a);color:var(--danger)}
+.empty{text-align:center;padding:38px 18px;color:var(--mut)}
+.empty .big{font-size:30px;margin-bottom:9px}
+
+@media print{
+  .topbar,.filterbar,.btn,.tb-btn,.toast,.ov,.modal,.mg-btns{display:none!important}
+  .page{display:block!important;padding:0}
+  body{background:#fff;font-size:11pt}
+  .card,.mg{break-inside:avoid;border:.5px solid #ccc}
+  .print-sign{display:block!important;margin-top:28px;border-top:1px solid #999;width:220px;padding-top:6px}
+}
+.print-sign{display:none}
+@media(max-width:480px){
+  .page{padding:13px 11px 80px}
+  .wgrid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 未登入闸门（平台同源 SSO，本系统不设密码、不设登出）══ -->
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <div class="gate-ic">🎓</div>
+    <h1>TrainGo</h1>
+    <div class="muted">Academee 老师训练系统</div>
+    <div class="alert a-info" id="gateMsg" style="margin-top:18px;text-align:left">正在确认登入状态…</div>
+    <a class="btn btn-pri" id="gateBtn" href="../index.html" style="display:none;width:100%;text-decoration:none;display:none">← 回平台首页登入</a>
+  </div>
+</div>
+
+<!-- ══ MAIN ═══════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+
+  <!-- Row 1 · Topbar（§4-26 八元件，顺序固定）-->
+  <div class="topbar">
+    <a class="tb-back" href="../index.html" title="回平台">←</a>
+    <div class="brand"><span class="brand-ic">🎓</span>TrainGo<span class="ver" id="verBadge">v22</span></div>
+    <div class="ntabs" id="nav">
+      <button class="ntab" data-p="today"   onclick="go('today')">今天</button>
+      <button class="ntab" data-p="learn"   onclick="go('learn')">我的训练</button>
+      <button class="ntab" data-p="verify"  onclick="go('verify')">验证</button>
+      <button class="ntab" data-p="matrix"  onclick="go('matrix')">技能矩阵</button>
+      <button class="ntab" data-p="people"  onclick="go('people')">梯队</button>
+      <button class="ntab" data-p="library" onclick="go('library')">模块库</button>
+      <button class="ntab" data-p="manage"  onclick="go('manage')">管理</button>
+    </div>
+    <div class="tb-right">
+      <button class="sync" id="sync" onclick="reloadAll()" title="点一下重新载入"><i class="dot"></i><span id="syncTxt">连线中</span></button>
+      <button class="tb-btn" onclick="doExport()">↓ Export</button>
+      <button class="tb-btn" id="btnImport" onclick="el('impFile').click()">↑ Import</button>
+      <input type="file" id="impFile" accept=".json" style="display:none" onchange="doImport(event)">
+    </div>
+  </div>
+
+  <!-- Row 3 · Filter -->
+  <div class="filterbar" id="filterbar" style="display:none">
+    <input class="srch" id="srch" placeholder="搜寻模块…" oninput="onSearch()">
+    <button class="pill" id="clrBtn" style="display:none" onclick="clearSearch()">✕ 清除</button>
+    <span id="deptPills"></span>
+  </div>
+
+  <!-- Row 4-5 · Title + Content -->
+  <div class="page" id="p-today"></div>
+  <div class="page" id="p-learn"></div>
+  <div class="page" id="p-verify"></div>
+  <div class="page" id="p-matrix"></div>
+  <div class="page" id="p-people"></div>
+  <div class="page" id="p-library"></div>
+  <div class="page" id="p-manage"></div>
+</div>
+
+<div class="ov" id="ov" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="m-hdr"><h3 id="mTitle"></h3><button class="m-x" onclick="closeModal()">✕</button></div>
+  <div class="m-body" id="mBody"></div>
+  <div class="m-foot" id="mFoot"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// TrainGo · MODULES — 训练内容写在档里
+// 不写死老师 / 学生 / 班级名单；进度 · 验证 · 梯队 · 老师一律读云端
+// 版本常数在主程式（APP_VERSION / ARCH_VERSION / STD_VERSION）
+// ══════════════════════════════════════════════════════════════
+
+// 7 段工作视角（四部门共用骨架）
+const SEGMENTS=[
+  {id:'s1',n:'①',t:'上班后',     q:'我上班后做什么？'},
+  {id:'s2',n:'②',t:'学生到了',   q:'学生来了怎么办？'},
+  {id:'s3',n:'③',t:'上课中',     q:'我要怎样开始一堂课？'},
+  {id:'s4',n:'④',t:'功课',       q:'怎样教 / 检查 / 批改？'},
+  {id:'s5',n:'⑤',t:'行为',       q:'学生不听话怎么办？'},
+  {id:'s6',n:'⑥',t:'放学',       q:'放学怎样处理？'},
+  {id:'s7',n:'⑦',t:'回家前',     q:'什么必须完成才能回家？'},
+];
+
+// 六级梯（0 = 未开始）
+const RUNGS=[
+  {r:0,k:'NOT STARTED',t:'未开始', d:'还没开始'},
+  {r:1,k:'LEARN',      t:'读过',   d:'读完 为什么 / 标准 / 步骤 / 异常'},
+  {r:2,k:'SEE',        t:'看过',   d:'看过示范，或现场观摩过一次'},
+  {r:3,k:'PRACTISE',   t:'练过',   d:'受控练习一次，Mentor 在旁'},
+  {r:4,k:'DO',         t:'做过',   d:'真实课堂自己做过'},
+  {r:5,k:'VERIFIED',   t:'已验证', d:'Supervisor 现场看过，达通过标准'},
+  {r:6,k:'MASTER',     t:'已掌握', d:'连续无人提醒仍达标'},
+];
+
+// K/S/J/C — 决定要爬到第几级、谁能签、有效期
+const TYPES={
+  K:{t:'Knowledge',z:'知道就可以', goal:1, vb:'self',     vm:0,  block:false},
+  S:{t:'Skill',    z:'要做给我们看',goal:6, vb:'verifier',vm:24, block:true},
+  J:{t:'Judgement',z:'要能判断情境',goal:5, vb:'verifier',vm:12, block:false},
+  C:{t:'Critical', z:'没通过不能独立',goal:6,vb:'dual',   vm:12, block:true},
+};
+
+const DEPTS=['CORE','SRK','GAK','ATC','SRT'];
+
+// ── 助手：省字用 ──────────────────────────────
+function S_(n,t,d,w){return w?{n:n,t:t,d:d,w:w}:{n:n,t:t,d:d};}
+
+const MODULES=[
+
+// ════════ CORE · 机构层（四部门共用，跨部门抵免）════════
+{id:'core_about',layer:'CORE',dept:'CORE',type:'K',ver:1,icon:'🏫',seg:'s1',
+ name:'About Us',nameZh:'我在哪里工作',when:'DAY 0',
+ why:'知道自己在什么样的机构工作，才知道每一条规则背后在保护什么。',
+ standard:'能说出 Academee 有哪四个部门、各自服务什么年龄、自己属于哪一个。',
+ steps:[S_(1,'四个部门','SRK / GAK（3–6 岁）· ATC 安亲班（7–12 岁）· SRT 英文专科（5–15 岁）· CIY 编程'),
+        S_(2,'我的部门','确认自己的部门、班级范围、上班时间'),
+        S_(3,'找谁','记下：直属 Mentor 是谁、管理层是谁、紧急时打给谁')],
+ seeIt:'', doIt:'在系统里写下自己的部门与 Mentor 名字。',
+ whatIf:['不确定自己属于哪个部门 → 直接问管理层，不要猜'],
+ pass:['能说出四个部门与各自年龄层','知道自己的 Mentor 是谁、怎么联络']},
+
+{id:'core_firm',layer:'CORE',dept:'CORE',type:'J',ver:1,icon:'⚖️',seg:'s5',
+ name:'Firm, Not Fierce',nameZh:'严而不凶 · 爱而有度',when:'DAY 0',
+ why:'这是 Academee 全部四个部门共同的核心心法。规则要硬，方式不能凶 —— 用羞辱换来的服从，撑不过三天，而且会教坏学生怎么对人。',
+ standard:'同一个状况，后果不打折，但处理方式做到：私下、对事、只讲这一次、给下一步。',
+ steps:[S_(1,'当众 → 私下','把学生叫到旁边，蹲下与他视线同高。不在全班面前处理'),
+        S_(2,'对人 → 对事','只讲这一次这件行为。不说「你就是这样」「你看看人家」'),
+        S_(3,'翻旧帐 → 讲这一次','不数落过去。今天这件事，讲完就过'),
+        S_(4,'只讲不行 → 给下一步','他走的时候，必须知道接下来要做什么'),
+        S_(5,'后果不打折','该通知家长照通知、该回家重练照重练。严的是标准，不是语气','⚠️ 温柔 ≠ 放水。放水就完全反了')],
+ seeIt:'漫画 CORE-01「严而不凶」对比篇 · 17 格（7 组情境 + 总结页）。档名 core_firm_not_fierce_p01–p17.png',
+ doIt:'给一个新情境，写出你会怎么处理（要看得出四个维度）。',
+ whatIf:['学生当场顶嘴 → 不在全班面前对峙，先结束这一段，课后私下处理',
+         '学生哭 → 先接住情绪，再执行规则。规则不取消',
+         '两个学生打架 → 先分开、先降温，再分别听。当场审问只会越吵越大',
+         '学生故意耍宝要注意力 → 不停下全班专门盯他。注意力就是他要的奖励'],
+ pass:['能说出四个差别维度（当众→私下 / 对人→对事 / 翻旧帐→讲这一次 / 只讲不行→给下一步）',
+       '给一个新情境，能讲出私下处理的具体做法',
+       'Mentor 现场观察到一次：后果没有打折，而且没有当众处理']},
+
+{id:'core_special',layer:'CORE',dept:'CORE',type:'K',ver:1,icon:'🌱',seg:'s1',
+ name:'What Makes Us Special',nameZh:'我们的共同 DNA',when:'DAY 0',
+ why:'知道我们跟别家不一样在哪里，教的时候才知道什么不能省。',
+ standard:'能说出 Academee 老师共同要做到的事。',
+ steps:[S_(1,'读完 Handbook 1.3','在模块库 → Handbook 分页')],
+ seeIt:'', doIt:'写下三件你认为最重要的，和 Mentor 对一次。',
+ whatIf:[], pass:['能说出我们的共同标准至少三条'],
+ note:'内容沿用 SRK Handbook 1.3，四部门共用。'},
+
+{id:'core_conduct',layer:'CORE',dept:'CORE',type:'K',ver:1,icon:'📜',seg:'s1',
+ name:'Code of Conduct',nameZh:'行为守则',when:'DAY 0',
+ why:'守则是保护老师的，不是限制老师的。写清楚了，出事时你站得住。',
+ standard:'能说出守则里跟自己每天有关的条款。',
+ steps:[S_(1,'读完 Handbook 2.1','在模块库 → Handbook 分页'),
+        S_(2,'签收','读完在系统里确认')],
+ seeIt:'', doIt:'读完并确认。',
+ whatIf:['不确定某件事算不算违规 → 先问，不要自己判断'],
+ pass:['读完并确认','能说出跟自己岗位直接相关的条款']},
+
+{id:'core_escalation',layer:'CORE',dept:'CORE',type:'C',ver:1,icon:'🚨',seg:'s5',
+ name:'Escalation Protocol',nameZh:'上报触发机制',when:'AS TRIGGERED',
+ why:'有些事不是老师该自己扛的。什么时候必须往上报、用什么格式报 —— 慢一分钟就是风险。',
+ standard:'遇到触发条件时，在第一时间用正确格式通知管理层，不自行处理。',
+ steps:[S_(1,'立即上报的情况','学生未到 / 校车未到 / 学生受伤 / 学生失踪 / 家长投诉','⚠️ 这五类不等下课，当下就报'),
+        S_(2,'当天上报','学生缺席、连续遗忘、长期不交功课、行为反覆'),
+        S_(3,'格式','一句话讲清楚：谁 · 发生什么 · 什么时候 · 你已经做了什么'),
+        S_(4,'家长投诉','不自行回应，一律转交管理层','⚠️ 这一条没有例外'),
+        S_(5,'留记录','报了什么、跟谁报、几点报 —— 自己也留一份')],
+ seeIt:'', doIt:'写出三个情境的上报讯息（用真实格式）。',
+ whatIf:['不确定要不要报 → 报。宁可多报一次','管理层没回 → 再报一次，并找第二个人','下班后发生 → 一样报，用群组'],
+ pass:['能列出必须「立即」上报的情况','写得出正确格式的上报讯息','知道家长投诉一律转管理层，不自行回应']},
+
+{id:'core_parent',layer:'CORE',dept:'CORE',type:'J',ver:1,icon:'👨‍👩‍👧',seg:'s7',
+ name:'Parent Communication',nameZh:'家长沟通',when:'AS NEEDED',
+ why:'家长看到的每一句话都代表机构。写得清楚、写得正面，家长才站在我们这边。',
+ standard:'给家长的每一则讯息：具体、正面、有下一步。不带情绪、不下判断。',
+ steps:[S_(1,'讲事实不讲评价','「今天三项功课完成两项」，不是「他很懒」'),
+        S_(2,'先讲做到的','再讲要加强的'),
+        S_(3,'给下一步','家长要知道在家能做什么'),
+        S_(4,'投诉与查询','不自行回应，转管理层','⚠️ 没有例外')],
+ seeIt:'', doIt:'把三句负面评语改写成可以给家长看的句子。',
+ whatIf:['家长情绪激动 → 不辩解、不承诺，转管理层','家长私讯你个人 → 转回正式管道'],
+ pass:['写出的家长讯息是具体、正面、有下一步的','知道投诉一律转管理层']},
+
+{id:'core_privacy',layer:'CORE',dept:'CORE',type:'K',ver:1,icon:'🔒',seg:'s7',
+ name:'Data & Privacy',nameZh:'学生资料与隐私',when:'DAY 0',
+ why:'学生的姓名、联络方式、成绩、照片都是敏感资料。外流一次就收不回来。',
+ standard:'不在非正式管道传学生资料，不拍可辨识的学生照片外传。',
+ steps:[S_(1,'不外传','学生姓名 / 联络 / 成绩 / 健康状况，只在正式管道'),
+        S_(2,'照片','不上传到个人社群，不传给非相关人员'),
+        S_(3,'装置','不把学生资料留在私人手机相簿')],
+ seeIt:'', doIt:'确认自己手机里没有学生资料。',
+ whatIf:['其他老师私下问某学生的状况 → 只讲工作需要的部分','家长要另一个学生的联络 → 不给，转管理层'],
+ pass:['能说出哪些属于敏感资料','知道不可外传的管道']},
+
+// ── C 类占位（内容待 Teo 提供，但先让缺口看得见）──
+{id:'core_missing',layer:'CORE',dept:'CORE',type:'C',ver:1,icon:'🔍',seg:'s6',
+ name:'Missing Student',nameZh:'学生失踪',when:'EMERGENCY',pending:true,
+ why:'学生不见了，前十分钟决定一切。',
+ standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待 Teo 提供内容）'],
+ note:'⛔ 内容待提供。C 类，未通过不可独立上岗 —— 这个缺口现在全公司都没有验证纪录。'},
+
+{id:'core_pickup',layer:'CORE',dept:'CORE',type:'C',ver:1,icon:'🚌',seg:'s6',
+ name:'Pick-up & Dismissal Safety',nameZh:'接送安全',when:'EVERY DAY',pending:true,
+ why:'放错人手上，没有第二次机会。',
+ standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待 Teo 提供内容）'],note:'⛔ 内容待提供。C 类。'},
+
+{id:'core_injury',layer:'CORE',dept:'CORE',type:'C',ver:1,icon:'🩹',seg:'s5',
+ name:'Injury & Medication',nameZh:'受伤与药物',when:'AS NEEDED',pending:true,
+ why:'处理顺序错了，小伤会变大事。',
+ standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待 Teo 提供内容）'],note:'⛔ 内容待提供。C 类。'},
+
+{id:'core_emergency',layer:'CORE',dept:'CORE',type:'C',ver:1,icon:'🔥',seg:'s5',
+ name:'Emergency Procedure',nameZh:'紧急事故',when:'EMERGENCY',pending:true,
+ why:'火警、停电、天灾 —— 当下没有时间想。',
+ standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待 Teo 提供内容）'],note:'⛔ 内容待提供。C 类。'},
+
+{id:'core_safeguard',layer:'CORE',dept:'CORE',type:'C',ver:1,icon:'🛡️',seg:'s5',
+ name:'Child Safeguarding',nameZh:'儿童保护',when:'ALWAYS',pending:true,
+ why:'这是所有规则里最不能出错的一条。',
+ standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待 Teo 提供内容）'],note:'⛔ 内容待提供。C 类。'},
+
+// ════════ ATC · 安亲班 / 功课班（7–12 岁）════════
+{id:'atc_rollcall',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'✋',seg:'s2',
+ name:'Roll Call & Attendance',nameZh:'点名 · 考勤记录',when:'1:00 / 2:00 / 3:00pm',
+ why:'点名不是行政动作，是确认每一个孩子都安全抵达。少一个没发现，就是事故。',
+ standard:'三个时点都点完；符号记对；缺席与未到当天都追到原因并上报。',
+ steps:[S_(1,'校车优先','一般点名前，先核对校车名单全员到齐','⚠️ 校车学生未到 → 立即通知管理层'),
+        S_(2,'逐个叫名','清楚大声，等回应，眼神接触'),
+        S_(3,'记录符号','P 准时 / abs 缺席 / 留 留校 / 写实际时间＝迟到'),
+        S_(4,'三个时点','1:00pm 校车与陆续抵达 · 2:00pm 回家用餐沐浴的 · 3:00pm 留校生'),
+        S_(5,'缺席追因','向同校同班同学确认原因，当天报管理层','⚠️ 连续 3 次缺席 → 强制上报'),
+        S_(6,'抽查标记','已抽查书包者，当日功课格左上角打 ★')],
+ seeIt:'（待拍摄：点名簿前半部实拍 + 三个时点的现场）',
+ doIt:'Day 3 起自己点一次完整的三时点，Mentor 在旁。',
+ whatIf:['校车学生未到 → 立即发：「[姓名] Didn\'t arrive ATC by school bus」',
+         '超过 2:00pm 才到 → 写实际抵达时间，不要只打勾',
+         '不确定是缺席还是留校 → 问同班同学，不要猜'],
+ pass:['三个时点都能独立完成，不用提醒','点名簿符号全对（P / abs / 留 / 时间 / ★）','校车未到能在 5 分钟内用正确格式上报']},
+
+{id:'atc_hwbook',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'📒',seg:'s2',
+ name:'Homework Book Processing',nameZh:'功课簿收集与处理',when:'EVERY DAY',
+ why:'功课簿是学生与家长之间的沟通桥梁。每一个备注，家长都会看到 —— 写清楚、写正面，让家长明白。',
+ standard:'学生一到就交簿子；同班对比过；数量记对；退还前有打勾有签名。',
+ steps:[S_(1,'抵达即收','学生到 → 先交功课簿（按班级摆放）→ 才去沐浴 / 用餐','⚠️ 顺序不能反，这是每天的第一件事'),
+        S_(2,'同班对比','对比同班同学功课簿，确保功课一致'),
+        S_(3,'记录数量','记下每位学生当天功课数量（没有功课记 0）'),
+        S_(4,'没带功课簿','给多余纸张写今天功课，回家贴进功课簿','⚠️ 没带功课簿 ≠ 没有功课'),
+        S_(5,'遗忘记录','在点名簿后半部「遗忘记录」写当天日期','⚠️ 连续超过 3 次 → 通知管理层 → 通知家长'),
+        S_(6,'退还','打勾已检查的功课（确保字体工整）→ 老师签名后才退还'),
+        S_(7,'有状况','提醒学生双手拿着功课簿回家 —— 这是给家长的信号')],
+ seeIt:'（待拍摄：功课簿前页 / 后页、按班摆放、签名退还）',
+ doIt:'Day 3 起自己收一整班，Mentor 复检。',
+ whatIf:['没带功课簿 → 拿纸写下今天功课，回家贴进去，并记遗忘日期',
+         '同班同学功课不一样 → 先对比再问学生，可能有人漏抄',
+         '连续 3 次忘记 → 格式：「ATC 6 / 1. [姓名]：Forgot to bring H/W Book x4」'],
+ pass:['能独立完成收 → 对比 → 记录 → 退还全流程','退还的簿子都有打勾与签名','没带簿子的处理与记录做对']},
+
+{id:'atc_bagcheck',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'🎒',seg:'s2',
+ name:'Bag Check',nameZh:'书包抽查',when:'DAILY 1:30pm',
+ why:'抽查不是不信任学生，是确保没有功课被漏掉带回家。漏一本，家长晚上才发现。',
+ standard:'ATC 1–2 每天每个都查；ATC 3–6 按班/组抽查；查过的都有 ★ 记号。',
+ steps:[S_(1,'ATC 1–2','每天老师亲自翻查每一位学生的书包，确保没有遗漏功课','⚠️ 每天必查，不能省'),
+        S_(2,'ATC 3–6','老师亲自抽查，跟着同校同班／组别进行'),
+        S_(3,'重点班级','特别注意一直没有功课 / Spelling / Ejaan / 听写的班级'),
+        S_(4,'翻成绩','必须翻看 Spelling / Ejaan / 听写成绩'),
+        S_(5,'记录','已抽查者在点名簿当日功课格左上角标 ★')],
+ seeIt:'（待拍摄：ATC 1–2 逐个查 vs ATC 3–6 按组查）',
+ doIt:'Day 3 起自己查一组，Mentor 复检同一组。',
+ whatIf:['发现藏起来的功课 → 私下处理，先做完再谈诚实。不当众倒书包',
+         '某班长期都「没有功课」→ 特别留意并上报管理层'],
+ pass:['ATC 1–2 每天每个都查到','能说出两个年龄段的做法差别','★ 记号确实打在点名簿上']},
+
+{id:'atc_hygiene_meal',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'🚿',seg:'s2',
+ name:'Shower · Meal · Tea Break',nameZh:'沐浴 · 用餐 · 茶点',when:'EVERY DAY',
+ why:'孩子刚从学校过来，又累又饿。这一段顾好了，后面两小时的功课才带得动。',
+ standard:'全部学生 2:30pm 前完成沐浴与午餐；没吃午餐的当下就问出原因并上报。',
+ steps:[S_(1,'沐浴','有次序轮流，注意速度','⚠️ 必须确保全部学生 2:30pm 前完成沐浴与午餐'),
+        S_(2,'忘记带衣裤','依格式在群组报告：「[姓名]: Forgot to bring ATC bag today」'),
+        S_(3,'用餐','提醒学生用餐后不跳跃、不奔跑'),
+        S_(4,'没吃午餐','立即询问原因并报管理层','⚠️ 不等下课，当下就问'),
+        S_(5,'茶点 3:00pm','整理桌面 → 有次序洗手 → 吃茶点'),
+        S_(6,'喝水','检查水瓶，确保学生有喝水')],
+ seeIt:'（待拍摄：轮流沐浴的排队动线、茶点洗手次序）',
+ doIt:'Day 3 起自己带一次完整的沐浴 → 用餐 → 茶点。',
+ whatIf:['有学生拖到 2:30 还没好 → 先记下，找出是习惯还是有状况',
+         '学生说不饿不想吃 → 问原因并报管理层，不要就算了'],
+ pass:['全班 2:30pm 前完成沐浴与用餐','忘记带衣裤能用正确格式报群组','会检查水瓶']},
+
+{id:'atc_spelling',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'✏️',seg:'s4',
+ name:'Spelling Practice',nameZh:'听写练习流程',when:'DAILY 2:30pm',
+ why:'听写是学生在校能不能记下功课的根，不是额外的作业。',
+ standard:'完成主要功课才练听写；批改写全日期＋Initial＋次数；未过的有备注并通知家长。',
+ steps:[S_(1,'顺序','必须完成主要功课后，才拿听写簿练习','⚠️ 顺序不能反'),
+        S_(2,'优先','优先学习靠近的日期'),
+        S_(3,'ATC 1–2','老师进行 + 老师亲自批改'),
+        S_(4,'ATC 3–6','学生互相帮忙 + 老师亲自批改'),
+        S_(5,'写日期','学生须写上练习当天的日期'),
+        S_(6,'批改格式','日期 ＋ 老师 Initial ＋ 次数（x1 第一次，x2 第二次…）'),
+        S_(7,'有错误','该字改正 3 次，然后重新听写（视时间而定）'),
+        S_(8,'连续练','直到指定的听写／默写日为止')],
+ seeIt:'（待拍摄：听写簿批改样本，看得到 日期+Initial+x2）',
+ doIt:'Day 4 起自己带一组听写并批改，Mentor 复检。',
+ whatIf:['没全对（不熟悉）→ 功课簿圈起该科目听写 ＋ 备注「请回家继续练习，加油！」＋ 提醒双手拿回家',
+         '来不及学 → 功课簿圈起 ＋ 备注「请回家练习，加油！」＋ 提醒双手拿回家',
+         '同一项目 3 次以上还不全对 → 备注「回家继续练习」，通知家长'],
+ pass:['批改格式全对（日期＋Initial＋次数）','知道两个年龄段的进行方式差别','未过的有在功课簿备注并提醒双手拿回家']},
+
+{id:'atc_marking',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'✅',seg:'s4',
+ name:'Marking & Book Notes',nameZh:'批改标准与功课簿批注',when:'DAILY',
+ why:'批注是写给家长看的。用错词、写得含糊，家长就误会 —— 误会一次，信任就掉一块。',
+ standard:'只用 10 条标准批注用语；未完成的都圈出来并备注；退还前打勾＋签名。',
+ steps:[S_(1,'已完成','提醒收进书包 → 依学生情况分配 ATC 功课任务或自习'),
+        S_(2,'未完成','加快完成，目标 3:15pm 前'),
+        S_(3,'无法亲自完成','给辅导员协助，或借参考（仅限参考）'),
+        S_(4,'3:25pm 前仍未完成','圈出未完成项目 ＋ 备注「请回家完成」＋ 提醒双手拿功课簿'),
+        S_(5,'只用标准用语','留校日 / 已呈交 / 遗留在校·家 / 已讨论 / 抄写 / 请回家完成 / 回家继续练习 / 缺席小学 / 缺席安亲班 / 请回家继续练习，加油！','⚠️ 不自创用语'),
+        S_(6,'谁写','「留校日」由学生自行填写，其余由老师写')],
+ seeIt:'（待拍摄：功课簿批注实拍，10 条用语各一例）',
+ doIt:'Day 6 起自己批一整班，Mentor 全部复检。',
+ whatIf:['功课太多做不完 → 优先顺序：① 作业与功课簿 ② 练习听写 ③ 3M 画报（可带回家）',
+         '美术 / 书法 / 3M 报时间不够 → 左侧所有功课备注「请回家完成」',
+         '不确定用哪一条批注 → 问 Mentor，不要自己造词'],
+ pass:['10 条批注用语用对，没有自创','未完成的都有圈出来并备注','退还前都有打勾与签名']},
+
+{id:'atc_layer3',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'🔍',seg:'s4',
+ name:'3-Layer Quality Check',nameZh:'3 层功课质量检查',when:'EVERY DAY',pending:true,
+ why:'（待确认）',standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待确认）'],
+ note:'⛔ 这条只存在于 TrainGo_ATC_v1.html，找不到 Excel 正本。内容待 Teo 确认。'},
+
+{id:'atc_class_open',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'📋',seg:'s3',
+ name:'Tutorial Class Opening',nameZh:'课辅班开课准备 3:30–3:40',when:'DAILY 3:30pm',pending:true,
+ why:'（待确认）',standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待确认）'],note:'⛔ 只存在于 v1 HTML，无 Excel 正本。待确认。'},
+
+{id:'atc_teaching',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'🖊️',seg:'s3',
+ name:'Guided Teaching Flow',nameZh:'项目式引导教学 3:40–4:30',when:'TEACHING',pending:true,
+ why:'（待确认）',standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待确认）'],note:'⛔ 只存在于 v1 HTML，无 Excel 正本。待确认。'},
+
+{id:'atc_newstudent',layer:'DEPT',dept:'ATC',type:'S',ver:2,icon:'🌟',seg:'s4',
+ name:'Running New-Student Onboarding',nameZh:'带新生入学（用 SOP-NewStudent 系统）',when:'AS NEEDED',
+ why:'新生第一个月没带好，后面一整年都在补。流程与纪录的正本在 SOP-NewStudent-ATC 系统里 —— 这个模块教你怎么把它跑起来，不是另外抄一份。',
+ standard:'能在 SOP-NewStudent-ATC 系统里开一位新生、按阶段完成并记录，不靠别人代做。',
+ steps:[S_(1,'先认路','打开平台首页 → SOP-NewStudent-ATC。流程正本在那里，TrainGo 不复制一份','⚠️ 两边都写会不同步，一律以该系统为准'),
+        S_(2,'开新生','在该系统建立新生资料，确认部门与班级'),
+        S_(3,'照它的阶段走','首月分四段：日常作息与座位 → 认识功课簿与词汇 → 时间表与书包 → 第 2 个月起自行撰写'),
+        S_(4,'每一段都留纪录','做完就在该系统记，不要等到月底补'),
+        S_(5,'卡住就上报','新生跟不上、或没有同班同学可对比功课，报管理层')],
+ seeIt:'（待补：SOP-NewStudent-ATC 的操作录影，或一位新生的完整纪录截图）',
+ doIt:'实际带一位新生走完第一周，并在 SOP-NewStudent-ATC 里留下纪录。',
+ whatIf:['该系统开不进去 → 找管理层确认你的权限码，不要改用纸本','新生没有同班同学 → 一定要放班级时间表，并在系统里标注特别照顾'],
+ pass:['能独立在 SOP-NewStudent-ATC 开一位新生并完成第一周纪录','说得出首月四个阶段各要做什么','知道流程正本在该系统，不在 TrainGo'],
+ note:'⚠️ 这一条原本把 Excel 的首月流程整份抄进来。SOP-NewStudent-ATC 已是独立系统，照 v8 §4-24 铁则三「一个功能只出现在一个地方」，改成教怎么用它。'},
+
+{id:'atc_post_class',layer:'DEPT',dept:'ATC',type:'S',ver:1,icon:'📝',seg:'s7',
+ name:'Post-Class Records',nameZh:'课后记录 5:10–6:00',when:'AFTER CLASS',pending:true,
+ why:'（待确认）',standard:'（待确认）',steps:[],seeIt:'',doIt:'',whatIf:[],
+ pass:['（待确认）'],note:'⛔ 只存在于 v1 HTML，无 Excel 正本。待确认。'},
+
+{id:'atc_love_plus',layer:'DEPT',dept:'ATC',type:'S',ver:2,icon:'💛',seg:'s7',
+ name:'Student Observation via LoveGo',nameZh:'学生重点观察（用 LoveGo 系统）',when:'WEEKLY',
+ why:'每个孩子都要被真的看见一次，不是凭印象。观察的格式与纪录正本在 RPT-LoveGo-ATC 系统里。',
+ standard:'每週在 RPT-LoveGo-ATC 完成分配给你的观察，内容具体、可对照，不是笼统评语。',
+ steps:[S_(1,'先认路','平台首页 → RPT-LoveGo-ATC。周期、分配、格式都在那里','⚠️ TrainGo 不另外做一份周报'),
+        S_(2,'看本周分配给你的学生','系统会分配，不用自己挑'),
+        S_(3,'写具体的观察','写看到什么，不写评价。「今天三项功课完成两项」而不是「他很懒」'),
+        S_(4,'在期限内送出','逾期会进管理层看板'),
+        S_(5,'有状况另外上报','观察里发现的异常，照上报机制走，不要只写在观察里')],
+ seeIt:'（待补：LoveGo 里一则写得好的观察 vs 一则太笼统的对照）',
+ doIt:'完成一个周期分配给你的全部观察。',
+ whatIf:['分配到不熟的学生 → 先问带班老师，不要凭印象写','来不及写 → 宁可晚交也不要写空话，但要先通知管理层'],
+ pass:['能独立在 RPT-LoveGo-ATC 完成一个周期的观察','写的是具体行为不是评价','知道观察里的异常要另外走上报机制'],
+ note:'⚠️ 这一条原本挂着「周报格式待 Teo 提供」。RPT-LoveGo-ATC 已是独立系统，格式以它为准，TrainGo 只教怎么用。'},
+
+{id:'atc_escalation',layer:'DEPT',dept:'ATC',type:'C',ver:1,icon:'⚡',seg:'s5',
+ name:'ATC Escalation Triggers',nameZh:'ATC 上报触发条件',when:'AS TRIGGERED',
+ why:'ATC 有自己的九种触发情况。知道哪一种报给谁，才不会漏。',
+ standard:'九种情况都能辨认，并用对通知对象与格式。',
+ steps:[S_(1,'功课太多','优先顺序：① 作业与功课簿 ② 练习听写 ③ 3M 画报（可带回家）'),
+        S_(2,'美术／书法／3M 报','时间不够 → 左侧所有功课备注「请回家完成」'),
+        S_(3,'功课未完成','圈出 → 备注「请回家完成」→ 双手拿回家 → 家长（功课簿通知）'),
+        S_(4,'遗忘功课簿','连续超过 3 次 → 记录日期 → 管理层 → 家长'),
+        S_(5,'校车学生未到','立即通知管理层：「[姓名] Didn\'t arrive ATC by school bus」','⚠️ 立即，不等下课'),
+        S_(6,'学生缺席 ATC','向同班同学确认原因，记在点名簿 → 管理层'),
+        S_(7,'某班长期没功课','特别留意该班，抽查书包 → 管理层'),
+        S_(8,'听写屡次未全对','同一项目 3 次以上 → 备注「回家继续练习」→ 家长'),
+        S_(9,'家长投诉／查询','不自行回应，转交管理层','⚠️ 没有例外')],
+ seeIt:'', doIt:'写出五个情境的处理与通知对象。',
+ whatIf:['同时发生两种 → 先处理「立即」那一类','不确定报谁 → 报管理层'],
+ pass:['九种情况都能说出处理方式与通知对象','校车未到的格式写得出来','知道家长投诉一律转管理层']},
+
+// ════════ SRK / GAK · 幼儿部（3–6 岁）════════
+{id:'srk_hygiene',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'👀',seg:'s2',
+ name:'Hygiene Checking',nameZh:'头到脚健康检查',when:'MONDAY ONLY',
+ why:'一个 HFMD 没看出来，一个星期后整班都要停课。这八步是挡在前面的那道墙。',
+ standard:'八个部位都检查过；发现异常当下隔离并通知管理层；孩子不害怕、会配合。',
+ steps:[S_(1,'头发','仔细检查头发与头皮','⚠️ 头虱 / 虫卵'),
+        S_(2,'额头','摸额头确认体温','⚠️ 发烧'),
+        S_(3,'眼睛','「眼睛张大大。看上、看下、看左、看右。」','⚠️ 眼部感染'),
+        S_(4,'脸与口腔','用手电筒：「说 AHHH！给我看舌头。」问：「喉咙痛吗？嘴巴痛吗？」','⚠️ HFMD · 口疮 · 溃疡 · 流感'),
+        S_(5,'身体皮肤','「转过来！」检查皮肤有没有红点或水泡','⚠️ HFMD · 水痘'),
+        S_(6,'手与指甲','「手给我看！翻过来！手放桌上！」检查手心、手背、指甲','⚠️ HFMD · 水痘 · 指甲必须剪短'),
+        S_(7,'脚','「脚抬起来！红鹤！」两只脚都检查','⚠️ HFMD 红点 / 水泡'),
+        S_(8,'制服与整洁','鼓励刷牙、洗脸、衬衫塞好，每天穿整齐制服来')],
+ seeIt:'（待拍摄／画：八步各一格，重点是「怎么讲得好玩，孩子不怕」）',
+ doIt:'Day 3 起自己带一次完整八步，Mentor 在旁。',
+ whatIf:['发现红点或水泡 → 当下隔离该生，立即通知管理层，不要自己判断是不是 HFMD',
+         '孩子害怕不肯给看 → 先示范在自己身上，用好玩的声音，不强拉',
+         '发烧 → 立即通知管理层并联络家长'],
+ pass:['八个部位都检查到，顺序不乱','孩子配合、不害怕（会笑出来更好）','发现异常时的处理与通报做对'],
+ age:{jr:'全程示范＋一起做，慢慢引导，模仿好玩的咳嗽／打喷嚏声，绝不吓孩子',
+      in_:'示范＋引导，鼓励自己做，确认他听懂',
+      sr:'他已经知道整套流程，能独立配合，快速有效率'}},
+
+{id:'srk_bookcollect',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'📚',seg:'s2',
+ name:'Collection of Books',nameZh:'按科目收簿',when:'MONDAY ONLY',
+ why:'孩子学会按科目分类，等于在学整理与负责。收簿不只是收簿。',
+ standard:'簿子按科目分好；孩子逐渐能自己分类不用提醒。',
+ steps:[S_(1,'按科目','一科一科收，不要一次全收'),
+        S_(2,'点数','确认每一科的本数对得上人数'),
+        S_(3,'缺的记下','谁没交、缺哪一科，当天记录')],
+ seeIt:'（待拍摄：按科目分堆的桌面）',
+ doIt:'Day 3 起自己收一次，Mentor 复检。',
+ whatIf:['孩子交错科目 → 请他自己找出来重放，不要代做','长期不交 → 记录并通知家长'],
+ pass:['收完按科目分好，本数对','孩子能在引导下自己分类'],
+ age:{jr:'需要帮忙才能拿出簿子，学着交，跟着老师做',
+      in_:'引导下能分类，认得大部分科目，整理进步中',
+      sr:'能独立分类、摆放整齐、全部科目正确，不用提醒'}},
+
+{id:'srk_attendance',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'✋',seg:'s2',
+ name:'Take Attendance',nameZh:'点名',when:'EVERY DAY',
+ why:'点名是每天第一次跟每个孩子的一对一接触。他回应你的那一声，是一天的开始。',
+ standard:'每个孩子都被叫到并回应；缺席的当天追到原因。',
+ steps:[S_(1,'逐个叫名','清楚、有精神，眼神看着孩子'),
+        S_(2,'等回应','要求「Yes Teacher!」，音量适当'),
+        S_(3,'记录','准时 / 缺席 / 迟到（写时间）'),
+        S_(4,'缺席追因','当天问出原因并记录')],
+ seeIt:'（待拍摄／画：叫名时的眼神与距离）',
+ doIt:'Day 3 起自己点一次全班。',
+ whatIf:['孩子不回应或耍宝 → 不停下全班专门盯他。「我等下再叫你一次」，点完再叫一次',
+         '孩子声音太小 → 鼓励再讲一次，不羞辱'],
+ pass:['全班都被叫到并回应','缺席的当天追到原因','不回应的处理没有让他变成全班焦点'],
+ age:{jr:'听到自己名字会回应，发出任何声音都算好，不害怕',
+      in_:'清楚回应「Yes Teacher!」，音量适当，熟悉流程',
+      sr:'立即回应，大声「Yes Teacher!」，不用提醒'}},
+
+{id:'srk_washroom',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'🚿',seg:'s2',
+ name:'Washroom + Water Break',nameZh:'如厕与喝水',when:'EVERY DAY',
+ why:'这一段最容易出安全意外，也最容易失控。动线固定了，就不会乱。',
+ standard:'排队有次序；洗手确实；每个孩子都有喝到水；全程在视线内。',
+ steps:[S_(1,'排队','请孩子排好队'),
+        S_(2,'走过去','一起走，不奔跑'),
+        S_(3,'逐个进','一次一个，其余在外等','⚠️ 全程要在老师视线内'),
+        S_(4,'洗手','确实洗，不是沾一下'),
+        S_(5,'回班','一起走回教室'),
+        S_(6,'发水瓶','把水瓶发给每个孩子'),
+        S_(7,'盯着喝','确认真的有喝，不是拿着'),
+        S_(8,'关瓶收起','关好盖子，收好，继续上课')],
+ seeIt:'（待拍摄：排队动线、洗手、喝水）',
+ doIt:'Day 3 起自己带一次完整流程。',
+ whatIf:['有孩子不肯去 → 不强迫，但课中要再问一次','水瓶漏／没带水 → 记下并通知家长'],
+ pass:['排队与动线有次序，没有孩子脱离视线','每个孩子都有喝到水','洗手确实'],
+ age:{jr:'需要协助排队，洗手要全程帮忙，喝一点水，不打翻就好',
+      in_:'能自己排队、自己洗手、自己处理水瓶，喝的量适当',
+      sr:'流程完全自理，有效率，自己管理喝水，不需监督'}},
+
+{id:'srk_recess',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'🍱',seg:'s2',
+ name:'Recess / Mealtime',nameZh:'用餐与卫生',when:'EVERY DAY',
+ why:'吃饭的样子就是教养的样子。这一段教的不只是吃饭。',
+ standard:'孩子会自己准备、用餐有礼、餐后会清桌。',
+ steps:[S_(1,'准备','食物与牛奶准备好'),
+        S_(2,'用餐','注意速度，提醒细嚼'),
+        S_(3,'餐桌礼仪','不讲话含食物、不离座走动'),
+        S_(4,'清桌','餐后自己清理桌面')],
+ seeIt:'（待拍摄：餐前准备、餐后清桌）',
+ doIt:'Day 3 起自己带一次用餐。',
+ whatIf:['孩子不吃 → 问原因，不强迫，记录并通知家长','食物过敏／特殊饮食 → 先确认名单，不确定就不给'],
+ pass:['孩子能自己准备与清桌','用餐秩序稳定','不吃的有问出原因并记录'],
+ age:{jr:'食物与牛奶由老师准备，吃一些，速度适当，清桌需要帮忙',
+      in_:'大致能自己准备、自己吃，礼仪进步，能清桌',
+      sr:'完全自理，餐桌礼仪好，自我管理，能独立清桌'}},
+
+{id:'srk_flash',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'🃏',seg:'s3',
+ name:'Group Reading A: Flash Card',nameZh:'拼读闪卡',when:'TEACHING',
+ why:'拼读是孩子认字的第一把钥匙。方法对了，他自己就能读下去。',
+ standard:'孩子嘴巴要在动、会心中拼再读出来、发音清楚。',
+ steps:[S_(1,'心中拼','先在心里拼'),
+        S_(2,'读出来','大声读出'),
+        S_(3,'抽查','老师随机抽个别孩子确认','⚠️ 嘴巴必须在动 —— 不出声就是没在读')],
+ seeIt:'（待拍摄／画：拿卡的高度、抽查时的动作）',
+ doIt:'Day 3 起自己带一轮闪卡。',
+ whatIf:['孩子跟着念但没真的读 → 抽查个别，不要只看整体','发音错 → 当下纠正一次，不反覆纠到他不敢讲'],
+ pass:['全班嘴巴都在动','有做个别抽查','发音纠正的方式没有让孩子怕讲话'],
+ age:{jr:'愿意跟、在学这个概念，嘴巴要在读，不害怕，建立信心',
+      in_:'能心中拼、读出声、跟上流程、回应抽查',
+      sr:'能独立练习、技巧好、发音清楚、达到准确度标准'}},
+
+{id:'srk_book',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'📖',seg:'s3',
+ name:'Group Reading B: Reading Book',nameZh:'引导共读',when:'TEACHING',
+ why:'共读让还不敢自己读的孩子，能躲在群体里先试。',
+ standard:'孩子跟读出声、手指着字、发音准确。',
+ steps:[S_(1,'一起读','带全班一起读'),
+        S_(2,'指着字','要求手指跟着字走','⚠️ 没指字＝没在跟'),
+        S_(3,'注意个别','看有没有人只是嘴型')],
+ seeIt:'（待拍摄：指字的手势）',
+ doIt:'Day 3 起自己带一次共读。',
+ whatIf:['有孩子完全不出声 → 不当众点名，课后个别再读一次'],
+ pass:['全班有跟读、有指字','能看出谁没真的在读'],
+ age:{jr:'愿意跟着读、会指字、会发出声音、建立信心',
+      in_:'大声跟读、指字、大部分字正确',
+      sr:'流畅共读、发音准确、有自信、习惯养成'}},
+
+{id:'srk_spelling',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'✏️',seg:'s4',
+ name:'Spelling',nameZh:'拼写测验',when:'TEACHING',
+ why:'拼写看的是有没有真的记住，不是写得快不快。',
+ standard:'孩子懂拼写概念、字迹工整、错了会改。',
+ steps:[S_(1,'念题','清楚念，念两次'),
+        S_(2,'写','给足够时间'),
+        S_(3,'批改','当场或当天批完'),
+        S_(4,'订正','错的要改，确认他懂为什么错')],
+ seeIt:'（待拍摄：批改样本）',
+ doIt:'Day 6 起自己出一次并批改。',
+ whatIf:['一直错同一个字 → 拆开来教，不是罚写更多次','写不完 → 记录，不当众催'],
+ pass:['批改当天完成','错的有订正并确认懂了','字迹工整度有要求'],
+ age:{jr:'懂概念，在协助下抄字母，有努力就好，经验要正向',
+      in_:'懂拼写，80% 以上正确，字迹好，会从订正中学',
+      sr:'能独立拼写，100% 投入，字迹工整，会自己想进步'}},
+
+{id:'srk_copyboard',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'📝',seg:'s4',
+ name:'Copy Whiteboard',nameZh:'安静抄写',when:'TEACHING',
+ why:'抄写练的是专注与握笔，不是速度。抄两个字也算成功。',
+ standard:'安静、握笔正确、格式对。',
+ steps:[S_(1,'写白板','字够大、行距够'),
+        S_(2,'安静抄','保持安静的氛围'),
+        S_(3,'看握笔','逐个看握笔姿势'),
+        S_(4,'看格式','行、格、标点')],
+ seeIt:'（待拍摄：正确握笔 vs 常见错误握笔）',
+ doIt:'Day 4 起自己带一次抄写。',
+ whatIf:['抄得很慢 → 慢是可以的，抄 2–3 个字也算完成，不要让他挫折','握笔错 → 当下调整，温和不强压'],
+ pass:['全班安静','有逐个看握笔','慢的孩子没有被催到挫折'],
+ age:{jr:'抄 2–3 个字就好（慢没关系！），握笔进步中，有完成就是成功，不要让他挫折',
+      in_:'能独立抄写，握笔控制较好，准确度进步，懂格式',
+      sr:'抄写完整、字迹非常工整、全部完成、会自己订正'}},
+
+{id:'srk_indread',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'🧒',seg:'s4',
+ name:'Individual Reading',nameZh:'一对一阅读评估',when:'TEACHING',
+ why:'一对一是唯一能看出每个孩子真实程度的时候。也是他最需要被单独看见的时候。',
+ standard:'孩子愿意来、敢试、听得进回馈。',
+ steps:[S_(1,'叫来','语气要让他愿意来，不是被抓来'),
+        S_(2,'听他读','不要急着纠正'),
+        S_(3,'给回馈','先讲对的，再讲一个要改的'),
+        S_(4,'记录','记下程度与今天的重点')],
+ seeIt:'（待拍摄：一对一的座位距离与姿势）',
+ doIt:'Day 3 起自己做 3 位孩子的一对一。',
+ whatIf:['孩子怕来 → 先让他看别人做，不强拉','读得很差 → 只挑一个重点讲，不要全部纠'],
+ pass:['孩子是愿意来的，不是被抓来的','回馈先讲对的再讲要改的','有留下记录'],
+ age:{jr:'不怕来找老师、愿意来、会听会学、愿意试',
+      in_:'能跟读、能从程度好的同侪学、信心增加、听得懂回馈',
+      sr:'流畅有自信、同侪学习有效、能正面接受回馈'}},
+
+{id:'srk_activity',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'🎨',seg:'s3',
+ name:'Activity / Grammar / Worksheet',nameZh:'活动 · 文法 · 练习纸',when:'TEACHING',
+ why:'活动不是打发时间，是换一个方式让同一个概念进去。',
+ standard:'孩子投入、有学到、秩序不失控。',
+ steps:[S_(1,'A：文法／练习纸','说明清楚再发，发下去才不会乱'),
+        S_(5,'B：活动','规则先讲、材料先分、动线先定')],
+ seeIt:'（待拍摄：材料分配的方式）',
+ doIt:'Day 6 起自己带一次活动。',
+ whatIf:['活动失控 → 停下来，重新讲一次规则，再继续','有孩子不参与 → 给他一个小任务'],
+ pass:['规则有先讲','孩子投入且秩序稳','能说出这个活动在教什么'],
+ age:{jr:'好玩地学、主动参与、喜欢上课、发展小肌肉',
+      in_:'能试简单任务、学基本文法、需要协助、对学习态度正向',
+      sr:'能独立完成、懂文法规则、准确度好、发展思考力'}},
+
+{id:'srk_summary',layer:'DEPT',dept:'SRK',type:'S',ver:1,icon:'🌱',seg:'s6',
+ name:'Summary & SEEDS',nameZh:'总结与鼓励',when:'CLOSING',
+ why:'最后三分钟决定孩子记得什么。记得被肯定，明天他就想来。',
+ standard:'孩子能说出今天学了什么、带着正向情绪离开。',
+ steps:[S_(1,'总结','带孩子回想今天做了什么'),
+        S_(2,'鼓励','具体讲好在哪，不是只说「很棒」'),
+        S_(3,'🌟 Build Star','肯定具体的进步'),
+        S_(4,'👀 See and Say','请孩子说出今天学到什么'),
+        S_(5,'👨‍👩‍👧 Teach Parents','鼓励回家教爸妈'),
+        S_(6,'🏠 Do at Home','讲清楚回家要做什么'),
+        S_(7,'🎉 Tomorrow Preview','预告明天，制造期待')],
+ seeIt:'（待拍摄：SEEDS 五步的现场）',
+ doIt:'Day 6 起自己带一次完整 SEEDS。',
+ whatIf:['时间不够 → 至少要有 Build Star 与 Tomorrow Preview','孩子说不出学了什么 → 给提示，不要跳过'],
+ pass:['五步都做到','鼓励是具体的，不是笼统的「很棒」','孩子离开时是正向的'],
+ age:{jr:'觉得骄傲开心、期待明天再来、对今天有正向记忆',
+      in_:'记得学了什么、为自己的成果骄傲、有动力上下一堂',
+      sr:'能说出学了什么、自我驱动、对回家功课有责任感'}},
+
+{id:'srk_dismissal',layer:'DEPT',dept:'SRK',type:'C',ver:1,icon:'🏡',seg:'s6',
+ name:'Changing of Slot & Dismissal',nameZh:'换节与放学',when:'END OF DAY',
+ why:'放学是一天里风险最高的十分钟。东西可以再拿，孩子不能放错人手上。',
+ standard:'没有东西遗留；每个孩子都交到对的人手上；交接说清楚。',
+ steps:[S_(1,'收拾坐好','桌面清空，坐好等'),
+        S_(2,'道别口号','一起说再见'),
+        S_(3,'等下一位老师','不离开孩子'),
+        S_(4,'交接','把状况讲清楚给下一位老师'),
+        S_(5,'放学前 10 分钟','先带去洗手间'),
+        S_(6,'检查桌面','逐个确认没有遗留'),
+        S_(7,'检查晾晒区','衣物、毛巾都拿了'),
+        S_(8,'书包','确认背好'),
+        S_(9,'鞋子','穿好'),
+        S_(10,'排队','排好队再出去'),
+        S_(11,'交人','确认来接的是名单上的人','⚠️ 不确定就不放人，当下问管理层')],
+ seeIt:'（待拍摄：放学动线、交接的位置）',
+ doIt:'Day 4 起自己带一次完整放学，Mentor 全程在旁。',
+ whatIf:['来接的人不认识／不在名单上 → 不放人，立即联络管理层与家长',
+         '孩子东西忘了拿 → 隔天补，不要让孩子自己折返',
+         '家长迟到 → 孩子留在老师视线内，通知管理层'],
+ pass:['没有孩子东西遗留','每个孩子都交到名单上的人手上','不确定时会停下来问，不会先放人'],
+ age:{jr:'老师帮忙检查，书包背好，排对队，开心道别',
+      in_:'大致能自己检查、自己背书包、知道排哪一队、有礼貌道别',
+      sr:'完全自我检查、不会忘东西、有效率、能做其他孩子的榜样'}},
+
+];
+
+// 部门 → 该部门要修的模块（CORE 全部门都要）
+function modulesForDept(dept){
+  return MODULES.filter(m=>m.dept==='CORE'||m.dept===dept
+    ||(dept==='GAK'&&m.dept==='SRK'));
+}
+function moduleById(id){return MODULES.find(m=>m.id===id);}
+// ══════════════════════════════════════════════════════════════
+// TrainGo v22 · 架构 v2 · 照 Academee Universal Standard v8
+// 后端：Supabase（与平台同源 SSO，不另外登入、不设登出、不设 Reset）
+// 身份链：auth.uid() → internal.users_meta.display_name → teachers.id
+// 主数据：teachers 只读引用（Owner = MasterHub-Teacher），本系统不写
+// ══════════════════════════════════════════════════════════════
+const APP_VERSION='v22';
+const ARCH_VERSION='v2';
+const STD_VERSION='v8';
+const SYS_CODE_BASE='EDU-TrainGo';
+const SB_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+
+let sb=null;
+try{ sb=window.supabase.createClient(SB_URL,SB_ANON); }catch(e){ console.warn('supabase init',e); }
+
+const S={
+  ready:false, err:null, me:null,
+  teachers:[], cohorts:[], progress:{}, verifs:[],
+  page:'today',
+  ui:{q:'',dept:'ALL',sortKey:null,sortDir:0,advOpen:false,viewCode:null,showArch:false},
+  dirty:false,
+};
+const UIKEY='traingo_ui_v22';
+
+// ══ 工具（Universal Standard §13）══════════════════════════════
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function genId(p){return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);}
+function isoToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmtDate(ds){ if(!ds)return '—';
+  return new Date(String(ds).slice(0,10)+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function addDays(ds,n){const d=new Date(ds+'T12:00:00');d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function addMonths(ds,n){const d=new Date(ds+'T12:00:00');d.setMonth(d.getMonth()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);}
+function csvCell(v){const s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function hi(s){ const q=S.ui.q; if(!q)return esc(s);
+  const i=String(s).toLowerCase().indexOf(q); if(i<0)return esc(s);
+  return esc(String(s).slice(0,i))+'<mark>'+esc(String(s).substr(i,q.length))+'</mark>'+esc(String(s).slice(i+q.length));}
+function saveUi(){ try{localStorage.setItem(UIKEY,JSON.stringify({advOpen:S.ui.advOpen}));}catch(e){} }
+function loadUi(){ try{const r=localStorage.getItem(UIKEY); if(r)S.ui.advOpen=!!JSON.parse(r).advOpen;}catch(e){} }
+
+// ══ Toast（右下 2 秒；§4-09 Undo 30 秒）═══════════════════════
+let toastT=null, undoFn=null, undoT=null;
+function toast(msg,undoLabel,fn){
+  const t=el('toast');
+  t.innerHTML='<span>'+esc(msg)+'</span>'+(undoLabel?'<button onclick="runUndo()">'+esc(undoLabel)+'</button>':'');
+  t.classList.add('on'); clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('on'),undoLabel?30000:2000);
+  if(fn){ undoFn=fn; clearTimeout(undoT); undoT=setTimeout(()=>{undoFn=null;},30000); }
+}
+function runUndo(){ if(undoFn){const f=undoFn;undoFn=null;el('toast').classList.remove('on');f();} }
+
+// ══ 开机：同源 SSO ════════════════════════════════════════════
+async function boot(){
+  loadUi();
+  el('verBadge').textContent=APP_VERSION;
+  document.title='TrainGo · '+APP_VERSION;
+  if(!sb){ gate('读不到云端程式库。请检查网络后重新整理。<b>没有任何资料被改动。</b>'); return; }
+  let session=null;
+  try{ const r=await sb.auth.getSession(); session=r.data.session; }catch(e){}
+  if(!session){ gate('你还没有登入 Academee 平台。<br>本系统与平台共用同一个登入，请先回首页登入。'); return; }
+  let me=null;
+  try{
+    const {data,error}=await sb.rpc('traingo_me');
+    if(error) throw error;
+    me=(data&&data[0])||null;
+  }catch(e){ gate('读不到你的身份资料：'+esc(e.message||e)+'<br><b>没有任何资料被改动。</b>'); return; }
+  if(!me){ gate('你的平台帐号还没有建立资料（users_meta）。请管理层先设定。'); return; }
+  S.me={
+    code:me.teacher_code, role:me.role, name:me.display_name, isAdmin:!!me.is_admin,
+    see:{SRK:!!me.srk_see,GAK:!!me.gak_see,ATC:!!me.atc_see,SRT:!!me.srt_see},
+    edit:{SRK:!!me.srk_edit,GAK:!!me.gak_edit,ATC:!!me.atc_edit,SRT:!!me.srt_edit},
+  };
+  if(!Object.values(S.me.see).some(Boolean)){
+    gate('你的角色（'+esc(S.me.role)+'）没有任何部门的 TrainGo 权限。'); return;
+  }
+  el('gate').style.display='none';
+  el('app').style.display='block';
+  buildNav();
+  await reloadAll();
+  go('today');
+}
+function gate(msg){ el('gateMsg').innerHTML=msg; el('gateBtn').style.display='block'; }
+
+function myDepts(){ return DEPTS.filter(d=>d!=='CORE'&&S.me&&S.me.see[d]); }
+function canEditDept(d){ return !!(S.me&&S.me.edit[d]); }
+
+function buildNav(){
+  document.querySelectorAll('.ntab').forEach(b=>{
+    const show=(b.dataset.p==='manage')?S.me.isAdmin:true;   // §4-24 铁则一
+    b.style.display=show?'':'none';
+  });
+  el('btnImport').style.display=myDepts().some(canEditDept)?'':'none';
+}
+
+// ══ 载入（读不到就停下，不写回任何东西）══════════════════════
+async function reloadAll(){
+  setSync('连线中','');
+  try{
+    const [t,c,p,v]=await Promise.all([
+      sb.from('teachers').select('id,name,status,resigned').order('id'),
+      sb.from('traingo_cohort').select('*'),
+      sb.from('traingo_progress').select('*'),
+      sb.from('traingo_verification').select('*').order('verified_at',{ascending:false}).limit(500),
+    ]);
+    for(const r of [t,c,p,v]) if(r.error) throw r.error;
+    S.teachers=(t.data||[]).filter(x=>!x.resigned);
+    S.cohorts=c.data||[];
+    S.progress={}; (p.data||[]).forEach(x=>{S.progress[x.teacher_code+'__'+x.module_id]=x;});
+    S.verifs=v.data||[];
+    S.ready=true; S.err=null; setSync('已同步','ok');
+  }catch(e){
+    S.ready=false; S.err=e.message||String(e); setSync('读取失败','bad');
+  }
+  refresh();
+}
+function setSync(txt,cls){
+  const s=el('sync'); if(!s)return;
+  s.className='sync'+(cls?' '+cls:''); el('syncTxt').textContent=txt;
+}
+function cloudGuard(){
+  if(S.err) return `<div class="alert a-dgr">⛔ 读不到云端：${esc(S.err)}<br><b>没有任何资料被改动。</b>请重新整理，不要在这个状态下输入资料。</div>`;
+  if(!S.ready) return `<div class="alert a-info">正在读取云端资料…</div>`;
+  return '';
+}
+
+// ══ 进度模型（人 × 模块）══════════════════════════════════════
+function pkey(code,mid){return code+'__'+mid;}
+function rungOf(code,mid){const p=S.progress[pkey(code,mid)];return p?(p.rung||0):0;}
+function goalOf(m){return TYPES[m.type].goal;}
+function expiryOf(code,m){
+  const p=S.progress[pkey(code,m.id)]; if(!p||!p.passed_at)return null;
+  const vm=(m.validMonths!=null)?m.validMonths:TYPES[m.type].vm;
+  if(!vm)return null; return addMonths(String(p.passed_at).slice(0,10),vm);
+}
+function isExpired(code,m){const e=expiryOf(code,m);return e?e<isoToday():false;}
+function expiringSoon(code,m){const e=expiryOf(code,m);
+  if(!e)return false; const d=daysBetween(isoToday(),e); return d>=0&&d<=30;}
+function cohortOf(code){return S.cohorts.find(c=>c.mentee_code===code&&c.status==='active')||null;}
+function deptOf(code){ const c=cohortOf(code); return c?c.dept:(myDepts()[0]||'ATC'); }
+const DUE_BY_TYPE={C:5,S:10,J:14,K:1};
+function dueDateOf(code,m){
+  const c=cohortOf(code); if(!c||!c.start_date)return null;
+  const d=(m.targetDay!=null)?m.targetDay:DUE_BY_TYPE[m.type];
+  return addDays(String(c.start_date).slice(0,10),d);
+}
+function isOverdue(code,m){
+  if(rungOf(code,m.id)>=goalOf(m))return false;
+  const d=dueDateOf(code,m); return d?d<isoToday():false;
+}
+function verifierNeededFor(m,rung){
+  if(rung<=2)return 'self';
+  if(rung<=4)return 'mentor';
+  return (m.type==='C')?'dual':'verifier';
+}
+function iAmMentorOf(code){return S.cohorts.some(c=>c.mentee_code===code&&c.mentor_code===S.me.code&&c.status==='active');}
+function canIAdvance(m,code,rung){
+  const dept=(m.dept==='CORE')?deptOf(code):m.dept;
+  if(!canEditDept(dept))return false;
+  if(rung<=2) return code===S.me.code||iAmMentorOf(code)||S.me.isAdmin;
+  if(code===S.me.code)return false;                 // 不准自己签自己（DB 也挡）
+  return iAmMentorOf(code)||S.me.isAdmin;
+}
+function statusOf(code){
+  const dept=deptOf(code), mods=modulesForDept(dept);
+  const grp=t=>mods.filter(m=>m.type===t);
+  const pct=(arr,fn)=>arr.length?Math.round(arr.filter(fn).length/arr.length*100):100;
+  const K=pct(grp('K'),m=>rungOf(code,m.id)>=1);
+  const Sp=pct(grp('S'),m=>rungOf(code,m.id)>=6);
+  const V=pct(mods.filter(m=>['S','J','C'].includes(m.type)),m=>rungOf(code,m.id)>=5);
+  const C=pct(grp('C'),m=>rungOf(code,m.id)>=6&&!isExpired(code,m));
+  const J=pct(grp('J'),m=>rungOf(code,m.id)>=5);
+  const anyExpired=grp('C').some(m=>isExpired(code,m));
+  let st='IN TRAINING';
+  if(anyExpired) st='EXPIRED';
+  else if(C<100) st='IN TRAINING';
+  else if(Sp>=90&&J>=100) st='INDEPENDENT';
+  else st='SUPERVISED';
+  return {K:K,S:Sp,V:V,C:C,J:J,status:st,dept:dept,mods:mods};
+}
+const ST_CLS={'INDEPENDENT':'c-ok','SUPERVISED':'c-warn','IN TRAINING':'c-layer','EXPIRED':'c-dgr'};
+
+// ══ 导航 ══════════════════════════════════════════════════════
+const RENDER={today:renderToday,learn:renderLearn,verify:renderVerify,
+              matrix:renderMatrix,people:renderPeople,library:renderLibrary,manage:renderManage};
+function go(p){
+  if(p==='manage'&&!S.me.isAdmin) p='today';        // 守卫在最前面，不先渲染再踢
+  S.page=p;
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(x=>x.classList.remove('on'));
+  el('p-'+p).classList.add('on');
+  const tab=document.querySelector('.ntab[data-p="'+p+'"]'); if(tab)tab.classList.add('on');
+  el('filterbar').style.display=(p==='library'||p==='learn')?'flex':'none';
+  (RENDER[p]||renderToday)();
+}
+function refresh(){ if(S.me) (RENDER[S.page]||renderToday)(); }
+function onSearch(){ S.ui.q=el('srch').value.trim().toLowerCase();
+  el('clrBtn').style.display=S.ui.q?'':'none'; refresh(); }
+function clearSearch(){ el('srch').value=''; S.ui.q=''; el('clrBtn').style.display='none'; refresh(); }
+function setDept(d){ S.ui.dept=d; refresh(); }
+function deptPillsHtml(){
+  return ['ALL','CORE'].concat(myDepts()).map(d=>
+    `<button class="pill ${S.ui.dept===d?'on':''}" onclick="setDept('${d}')">${d==='ALL'?'全部':d}</button>`).join(' ');
+}
+function sortBy(k){
+  if(S.ui.sortKey!==k){S.ui.sortKey=k;S.ui.sortDir=1;}
+  else if(S.ui.sortDir===1)S.ui.sortDir=-1;
+  else {S.ui.sortKey=null;S.ui.sortDir=0;}
+  refresh();
+}
+function sortArrow(k){ if(S.ui.sortKey!==k)return ''; return S.ui.sortDir===1?' ▲':' ▼'; }
+function applySort(rows,map){
+  if(!S.ui.sortKey||!map[S.ui.sortKey])return rows;
+  const f=map[S.ui.sortKey], d=S.ui.sortDir;
+  return rows.slice().sort((a,b)=>{const x=f(a),y=f(b);return (x>y?1:x<y?-1:0)*d;});
+}
+
+// ══ 共用片段 ══════════════════════════════════════════════════
+function rungChip(code,m){
+  if(isExpired(code,m))return '<span class="rung rx" title="已过期">!</span>';
+  const r=rungOf(code,m.id);
+  return `<span class="rung r${r}" title="${RUNGS[r].k} · ${RUNGS[r].t}">${r}</span>`;
+}
+function ladderBar(code,m){
+  const r=rungOf(code,m.id), g=goalOf(m); let h='<div class="ladder">';
+  for(let i=1;i<=6;i++) h+=`<div class="lstep ${(r>=g&&i<=r)?'done':(i<=r?'fill':'')}" title="${RUNGS[i].t}"></div>`;
+  return h+'</div>';
+}
+function typeBadge(m){return `<span class="ty ty-${m.type}" title="${TYPES[m.type].t} · ${TYPES[m.type].z}">${m.type}</span>`;}
+function deptBadge(m){return `<span class="dept dp-${m.dept}">${m.dept}</span>`;}
+function teacherName(code){const t=S.teachers.find(x=>x.id===code);return t?t.name:code;}
+
+// ══ 今天 ══════════════════════════════════════════════════════
+function renderToday(){
+  let h=cloudGuard();
+  const code=S.me.code, known=S.teachers.some(t=>t.id===code), st=statusOf(code), c=cohortOf(code);
+  h+=`<div class="ptitle"><h2>👋 早，${esc(S.me.name||code)}</h2>
+      <span class="chip c-mut">${esc(S.me.role)}</span>`;
+  if(known) h+=`<span class="chip ${ST_CLS[st.status]}">${st.status}</span>`;
+  if(c) h+=`<span class="sub">${c.dept} · 第 ${daysBetween(String(c.start_date).slice(0,10),isoToday())+1} 天</span>`;
+  h+=`</div>`;
+  if(!known){
+    h+=`<div class="alert a-warn">你的代号 <b>${esc(code)}</b> 不在老师名册里，所以没有自己的训练进度。
+        名册的 Owner 是 MasterHub — Teacher，本系统只读不写。</div>`;
+  }else{
+    const todo=todayTasks(code,st.mods);
+    h+=`<div class="card"><div class="card-title">今天必须完成 ${todo.length?`<span class="chip c-layer">${todo.length}</span>`:''}</div>`;
+    if(!todo.length) h+='<div class="muted">今天没有到期的项目。</div>';
+    todo.forEach(m=>{
+      const d=dueDateOf(code,m);
+      h+=`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr)">
+        ${rungChip(code,m)}${typeBadge(m)}
+        <div style="flex:1;min-width:0"><div style="font-weight:500">${esc(m.nameZh)}</div>
+        <div class="muted">${isExpired(code,m)
+          ?`已过期 · 需重新验证（${fmtDate(expiryOf(code,m))} 到期）`
+          :`${RUNGS[rungOf(code,m.id)].t} → ${RUNGS[Math.min(rungOf(code,m.id)+1,6)].t}${d?` · 期限 ${fmtDate(d)}`:''}`}</div></div>
+        ${isOverdue(code,m)?'<span class="chip c-dgr">逾期</span>':''}
+        <button class="btn btn-sm btn-pri" onclick="openModule('${m.id}','${code}')">打开</button></div>`;
+    });
+    h+='</div>';
+    h+='<div class="card"><div class="card-title">我现在要做什么</div><div class="wgrid">';
+    SEGMENTS.forEach(s=>{
+      const n=st.mods.filter(m=>m.seg===s.id).length;
+      h+=`<button class="wcell" onclick="openSeg('${s.id}')"><div class="wcell-n">${s.n}</div>
+        <div class="wcell-t">${s.t}</div><div class="wcell-c">${s.q} · ${n} 个模块</div></button>`;
+    });
+    h+='</div></div>'+statusCard(code,st);
+  }
+  if(S.me.isAdmin||myDepts().some(canEditDept)) h+=mgmtPanel();
+  el('p-today').innerHTML=h;
+}
+function todayTasks(code,mods){
+  return mods.filter(m=>rungOf(code,m.id)<goalOf(m)||isExpired(code,m))
+    .sort((a,b)=>{
+      const ex=m=>isExpired(code,m)?0:1; if(ex(a)!==ex(b))return ex(a)-ex(b);
+      const od=m=>isOverdue(code,m)?0:1; if(od(a)!==od(b))return od(a)-od(b);
+      const w={C:0,S:1,J:2,K:3}; if(w[a.type]!==w[b.type])return w[a.type]-w[b.type];
+      return rungOf(code,b.id)-rungOf(code,a.id);
+    }).slice(0,3);
+}
+function statusCard(code,st){
+  const row=(l,v,ok)=>`<div class="st"><div class="st-l">${l}</div><div class="st-n">${v}%</div>
+    <div class="bar"><div class="bar-f ${ok?'ok':''}" style="width:${v}%"></div></div></div>`;
+  return `<div class="card"><div class="card-title">我的状态</div><div class="stat4">
+    ${row('Knowledge',st.K,st.K>=100)}${row('Practice',st.S,st.S>=90)}
+    ${row('Live Verification',st.V,st.V>=90)}${row('Critical Skills',st.C,st.C>=100)}</div>
+    <div style="display:flex;align-items:center;gap:9px"><span class="muted">STATUS</span>
+    <span class="chip ${ST_CLS[st.status]}" style="font-size:12px;padding:4px 11px">${st.status}</span></div>
+    ${st.status!=='INDEPENDENT'?`<div class="muted" style="margin-top:8px">${st.C<100
+      ?'还有 Critical 模块未通过 —— 这是独立上岗的硬门槛。'
+      :'Critical 已全过。把 Skill 类推到 90% 以上就能转 INDEPENDENT。'}</div>`:''}</div>`;
+}
+function mgmtPanel(){
+  const pend=MODULES.filter(m=>m.pending).length;
+  let alerts=[],exp=[];
+  S.teachers.forEach(t=>{ if(!cohortOf(t.id))return;
+    const st=statusOf(t.id);
+    st.mods.forEach(m=>{
+      if(isExpired(t.id,m))exp.push({t:t,m:m,k:'过期'});
+      else if(expiringSoon(t.id,m))exp.push({t:t,m:m,k:'30 天内'});
+      if(isOverdue(t.id,m)&&m.type==='C')alerts.push({t:t,m:m});
+    });
+  });
+  let h=`<div class="card"><div class="card-title">全公司训练状况</div><div class="stat4">
+    <div class="st"><div class="st-l">进行中梯队</div><div class="st-n">${S.cohorts.filter(c=>c.status==='active').length}</div></div>
+    <div class="st"><div class="st-l">在职老师</div><div class="st-n">${S.teachers.length}</div></div>
+    <div class="st"><div class="st-l">Critical 逾期</div><div class="st-n" style="color:${alerts.length?'var(--danger)':'inherit'}">${alerts.length}</div></div>
+    <div class="st"><div class="st-l">到期 / 将到期</div><div class="st-n" style="color:${exp.length?'var(--warn)':'inherit'}">${exp.length}</div></div></div>`;
+  if(pend) h+=`<div class="alert a-warn">⚠️ 有 <b>${pend}</b> 个模块还没有内容（多数是 Critical）。到「模块库」看清单。</div>`;
+  if(exp.length){
+    h+='<table><thead><tr><th>老师</th><th>模块</th><th>到期</th><th></th></tr></thead><tbody>';
+    exp.slice(0,15).forEach(e=>{h+=`<tr><td>${esc(teacherName(e.t.id))}</td><td>${esc(e.m.nameZh)}</td>
+      <td>${fmtDate(expiryOf(e.t.id,e.m))}</td><td><span class="chip ${e.k==='过期'?'c-dgr':'c-warn'}">${e.k}</span></td></tr>`;});
+    h+='</tbody></table>';
+  }
+  return h+'</div>';
+}
+function openSeg(sid){
+  const code=S.me.code, st=statusOf(code), s=SEGMENTS.find(x=>x.id===sid);
+  const mods=st.mods.filter(m=>m.seg===sid);
+  let b=`<div class="muted" style="margin-bottom:12px">${s.q}</div>`;
+  if(!mods.length) b+='<div class="empty">这一段还没有模块。</div>';
+  mods.forEach(m=>{ b+=`<button class="opt" onclick="closeModal();openModule('${m.id}','${code}')">
+    ${rungChip(code,m)} ${typeBadge(m)} ${esc(m.nameZh)}
+    <div class="muted" style="margin-top:3px">${esc(m.name)}${m.pending?' · ⛔ 内容待提供':''}</div></button>`; });
+  openModal(`${s.n} ${s.t}`,b,'<div class="sp"></div><button class="btn" onclick="closeModal()">关闭</button>');
+}
+
+// ══ 我的训练 ══════════════════════════════════════════════════
+function renderLearn(){
+  el('deptPills').innerHTML=deptPillsHtml();
+  const code=S.ui.viewCode||S.me.code;
+  let h=cloudGuard();
+  const st=statusOf(code);
+  h+=`<div class="ptitle"><h2>${esc(teacherName(code))} 的训练地图</h2>
+     <span class="chip ${ST_CLS[st.status]}">${st.status}</span>
+     ${(S.me.isAdmin||S.cohorts.some(c=>c.mentor_code===S.me.code))
+       ?'<div style="flex:1"></div><button class="btn btn-sm" onclick="pickWho()">换人看</button>':''}</div>`;
+  const q=S.ui.q,dp=S.ui.dept;
+  const mods=st.mods.filter(m=>(dp==='ALL'||m.dept===dp)&&(!q||(m.nameZh+m.name+m.id).toLowerCase().includes(q)));
+  ['C','S','J','K'].forEach(ty=>{
+    const g=mods.filter(m=>m.type===ty); if(!g.length)return;
+    const done=g.filter(m=>rungOf(code,m.id)>=goalOf(m)&&!isExpired(code,m)).length;
+    h+=`<div class="card"><div class="card-title">${typeBadge({type:ty})} ${TYPES[ty].t} · ${TYPES[ty].z}
+      <span class="muted" style="margin-left:auto">${done}/${g.length}</span></div>`;
+    g.forEach(m=>{
+      const r=rungOf(code,m.id),gl=goalOf(m),ok=r>=gl&&!isExpired(code,m);
+      h+=`<div style="padding:10px 0;border-bottom:.5px solid var(--bdr)">
+        <div style="display:flex;gap:9px;align-items:center">${rungChip(code,m)}
+        <div style="flex:1;min-width:0"><div style="font-weight:500">${hi(m.nameZh)} ${m.pending?'<span class="chip c-warn">待提供</span>':''}</div>
+        <div class="muted">${hi(m.name)} · ${RUNGS[r].t} / 目标 ${RUNGS[gl].t}${isExpired(code,m)?' · <span style="color:var(--danger)">已过期</span>':''}</div></div>
+        ${ok?'<span class="chip c-ok">达标</span>':''}
+        <button class="btn btn-sm" onclick="openModule('${m.id}','${code}')">打开</button></div>
+        ${ladderBar(code,m)}</div>`;
+    });
+    h+='</div>';
+  });
+  if(!mods.length) h+=`<div class="empty"><div class="big">🔍</div>No matching results
+    <div style="margin-top:10px"><button class="btn btn-sm" onclick="clearSearch()">Clear search</button></div></div>`;
+  el('p-learn').innerHTML=h;
+}
+function pickWho(){
+  const list=S.me.isAdmin?S.teachers:S.teachers.filter(t=>iAmMentorOf(t.id)||t.id===S.me.code);
+  let b=list.map(t=>`<button class="opt" onclick="S.ui.viewCode='${esc(t.id)}';closeModal();renderLearn()">
+    ${esc(t.name)} <span class="muted">${esc(t.id)}</span></button>`).join('');
+  if(!b) b='<div class="empty">没有可看的对象。</div>';
+  openModal('看谁的训练地图',b,'<div class="sp"></div><button class="btn" onclick="closeModal()">关闭</button>');
+}
+
+// ══ 模块详情（七块）══════════════════════════════════════════
+function openModule(mid,code){
+  const m=moduleById(mid); if(!m)return; code=code||S.me.code;
+  const r=rungOf(code,mid), gl=goalOf(m);
+  let b='';
+  if(m.pending) b+=`<div class="alert a-warn">⛔ 这个模块的内容还没有提供。${m.note?esc(m.note):''}</div>`;
+  else if(m.note) b+=`<div class="muted" style="margin-bottom:10px">${esc(m.note)}</div>`;
+  b+=`<div style="display:flex;gap:7px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+    ${typeBadge(m)}${deptBadge(m)}<span class="chip c-mut">${esc(m.when)}</span>
+    <span class="muted">目标：${RUNGS[gl].t}</span></div>`;
+  b+=`<div class="card" style="background:var(--sur2);margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:9px">${rungChip(code,m)}<b>${RUNGS[r].t}</b>
+    <span class="muted">${RUNGS[r].d}</span></div>${ladderBar(code,m)}
+    ${advanceBtns(m,code,r,gl)}</div>`;
+  const blk=(cls,h2,body)=>body?`<div class="blk ${cls}"><div class="blk-h">${h2}</div>${body}</div>`:'';
+  b+=blk('blk-why','A · 为什么',esc(m.why));
+  b+=blk('blk-std','B · 正确长什么样',esc(m.standard));
+  if(m.steps&&m.steps.length){ let s='';
+    m.steps.forEach(x=>{s+=`<div class="stp"><div class="stp-n">${x.n}</div><div class="stp-b">
+      <div class="stp-t">${esc(x.t)}</div><div class="stp-d">${esc(x.d)}</div>
+      ${x.w?`<div class="stp-w">${esc(x.w)}</div>`:''}</div></div>`;});
+    b+=blk('blk-step','C · 步骤',s); }
+  b+=blk('blk-see','D · 看真实示范',esc(m.seeIt)||'<span class="hintx">（素材待补）</span>');
+  b+=blk('blk-do','E · 自己做一次',esc(m.doIt)||'<span class="hintx">（待补）</span>');
+  if(m.whatIf&&m.whatIf.length)
+    b+=blk('blk-if','F · 异常与常见错',m.whatIf.map(w=>`<div style="margin-bottom:5px">• ${esc(w)}</div>`).join(''));
+  if(m.pass&&m.pass.length)
+    b+=blk('blk-pass','G · 通过标准',m.pass.map(p=>`<div class="pc">${esc(p)}</div>`).join(''));
+  if(m.age) b+=`<div class="blk"><div class="blk-h">年龄差异</div><table><tbody>
+    <tr><td><b>🟠 JR</b></td><td>${esc(m.age.jr)}</td></tr>
+    <tr><td><b>🔵 IN</b></td><td>${esc(m.age.in_)}</td></tr>
+    <tr><td><b>🟢 SR</b></td><td>${esc(m.age.sr)}</td></tr></tbody></table></div>`;
+  b+='<div class="muted" style="margin-top:14px">English version pending · 中文为准</div>';
+  openModal(`${m.icon} ${m.nameZh}`,b,'<div class="sp"></div><button class="btn" onclick="closeModal()">关闭</button>');
+}
+function advanceBtns(m,code,r,gl){
+  if(m.pending) return '<div class="muted">内容还没进来，这个模块暂时不能推进。</div>';
+  if(isExpired(code,m)) return `<div class="alert a-dgr" style="margin:9px 0 0">已过期，需要重新验证。</div>
+    ${canIAdvance(m,code,5)?`<button class="btn btn-pri btn-sm" style="margin-top:8px" onclick="openVerify('${m.id}','${code}',5)">重新验证</button>`:''}`;
+  if(r>=gl) return '<div class="chip c-ok">已达标</div>';
+  const nxt=Math.min(r+1,6), need=verifierNeededFor(m,nxt);
+  const lbl={self:'自己确认',mentor:'Mentor 确认',verifier:'Verifier 验证',dual:'双人验证'}[need];
+  if(!canIAdvance(m,code,nxt)){
+    const why=(code===S.me.code&&nxt>=3)?'不能自己签自己':'需要 '+lbl;
+    return `<div class="muted" style="margin-top:8px">下一级「${RUNGS[nxt].t}」${why}。</div>`;
+  }
+  return `<button class="btn btn-pri btn-sm" style="margin-top:8px"
+    onclick="openVerify('${m.id}','${code}',${nxt})">推进到「${RUNGS[nxt].t}」· ${lbl}</button>`;
+}
+
+// ══ 验证（3 步）══════════════════════════════════════════════
+let VF={mid:null,code:null,rung:null,result:null};
+function openVerify(mid,code,rung){
+  const m=moduleById(mid); VF={mid:mid,code:code,rung:rung,result:null};
+  let b=`<div class="muted" style="margin-bottom:12px">${esc(teacherName(code))} · ${esc(m.nameZh)} → <b>${RUNGS[rung].t}</b></div>`;
+  if(m.pass&&m.pass.length) b+=`<div class="blk blk-pass"><div class="blk-h">照这个看，不准自己加码或放水</div>
+    ${m.pass.map(p=>`<div class="pc">${esc(p)}</div>`).join('')}</div>`;
+  b+=`<div class="fld"><label>1 · 结果 <span class="req">*</span></label>
+    <button class="opt o-ok" id="vf-pass" onclick="vfPick('pass')">✅ 达标</button>
+    <button class="opt o-warn" id="vf-again" onclick="vfPick('again')">🔁 再练一次</button>
+    <button class="opt o-dgr" id="vf-reteach" onclick="vfPick('reteach')">↩️ 需要重教</button></div>
+    <div class="fld"><label>2 · 看到什么 <span class="req">*</span>（至少 10 字）</label>
+    <textarea id="vfNote" oninput="S.dirty=true" placeholder="写你实际看到的，不是写评价。"></textarea></div>`;
+  if(verifierNeededFor(m,rung)==='dual')
+    b+=`<div class="alert a-warn">Critical 模块需要 <b>两个人</b>分别验证。</div>
+        <div class="fld"><label>第二位验证人 <span class="req">*</span></label>
+        <select id="vfCo"><option value="">— 选一位 —</option>
+        ${S.teachers.filter(t=>t.id!==S.me.code&&t.id!==code)
+          .map(t=>`<option value="${esc(t.id)}">${esc(t.name)} (${esc(t.id)})</option>`).join('')}</select></div>`;
+  openModal('验证',b,`<div class="sp"></div><button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-pri" onclick="submitVerify()">3 · 送出</button>`);
+}
+function vfPick(v){ VF.result=v; S.dirty=true;
+  ['pass','again','reteach'].forEach(k=>el('vf-'+k).classList.toggle('on',k===v)); }
+async function submitVerify(){
+  const m=moduleById(VF.mid), note=(el('vfNote').value||'').trim();
+  if(!VF.result){toast('请先选结果');return;}
+  if(note.length<10){toast('「看到什么」至少 10 个字');return;}
+  if(!S.ready||S.err){toast('读不到云端，没有任何资料被改动');return;}
+  const dual=verifierNeededFor(m,VF.rung)==='dual';
+  const co=el('vfCo'), coVal=co?co.value:'';
+  if(dual&&!coVal){toast('Critical 模块需要第二位验证人');return;}
+  const dept=(m.dept==='CORE')?deptOf(VF.code):m.dept;
+  try{
+    const {error}=await sb.rpc('traingo_submit_verification',{
+      p_client_uid:genId('v'), p_dept:dept, p_teacher_code:VF.code,
+      p_module_id:VF.mid, p_module_ver:m.ver, p_rung:VF.rung,
+      p_result:VF.result, p_observed:note, p_dual:dual, p_co_verifier:coVal||null});
+    if(error) throw error;
+    S.dirty=false; closeModal();
+    toast(VF.result==='pass'?('✓ Saved · 已推进到「'+RUNGS[VF.rung].t+'」'):'已记录 · 安排再练一次');
+    await reloadAll();
+  }catch(e){
+    const msg=String(e.message||e);
+    if(msg.indexOf('TRAINGO_SELF_VERIFY')>=0) toast('第 3 级以上不能自己签自己');
+    else if(msg.indexOf('TRAINGO_NO_PERMISSION')>=0) toast('你没有这个部门的编辑权限');
+    else if(msg.indexOf('TRAINGO_DUAL')>=0) toast('Critical 模块的第二位验证人不正确');
+    else toast('写入失败，没有任何资料被改动');
+  }
+}
+
+// ══ 验证待办 ══════════════════════════════════════════════════
+function renderVerify(){
+  let h=cloudGuard();
+  h+='<div class="ptitle"><h2>验证</h2><span class="sub">选结果 → 写一句看到什么 → 送出</span></div>';
+  const rows=[];
+  S.teachers.forEach(t=>{
+    if(!cohortOf(t.id))return;
+    const st=statusOf(t.id);
+    st.mods.forEach(m=>{
+      if(m.pending)return;
+      const r=rungOf(t.id,m.id), gl=goalOf(m);
+      if(isExpired(t.id,m)){ if(canIAdvance(m,t.id,5))rows.push({t:t,m:m,r:5,tag:'复检'}); return; }
+      if(r>=gl)return;
+      const nxt=r+1;
+      if(verifierNeededFor(m,nxt)==='self')return;
+      if(!canIAdvance(m,t.id,nxt))return;
+      rows.push({t:t,m:m,r:nxt,tag:isOverdue(t.id,m)?'逾期':''});
+    });
+  });
+  rows.sort((a,b)=>(a.m.type==='C'?0:1)-(b.m.type==='C'?0:1));
+  if(!rows.length){ h+='<div class="empty"><div class="big">✅</div>目前没有等你验证的项目。</div>';
+    el('p-verify').innerHTML=h; return; }
+  h+='<div class="card"><table><thead><tr><th>老师</th><th>模块</th><th>要签到</th><th></th><th></th></tr></thead><tbody>';
+  rows.slice(0,60).forEach(x=>{
+    h+=`<tr><td>${esc(teacherName(x.t.id))}</td><td>${typeBadge(x.m)} ${esc(x.m.nameZh)}</td>
+      <td class="muted">${RUNGS[x.r].t}</td>
+      <td>${x.tag?`<span class="chip ${x.tag==='逾期'?'c-dgr':'c-warn'}">${x.tag}</span>`:''}</td>
+      <td><button class="btn btn-sm btn-pri" onclick="openVerify('${x.m.id}','${x.t.id}',${x.r})">验证</button></td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  el('p-verify').innerHTML=h;
+}
+
+// ══ 技能矩阵 ══════════════════════════════════════════════════
+function renderMatrix(){
+  let h=cloudGuard();
+  h+='<div class="ptitle"><h2>技能矩阵</h2><span class="sub">谁能顶谁的课，一眼看到</span></div>';
+  if(!S.teachers.length){ h+='<div class="empty"><div class="big">🗂</div>读不到老师名册。</div>';
+    el('p-matrix').innerHTML=h; return; }
+  const dp=S.ui.dept==='ALL'?null:S.ui.dept;
+  const mods=MODULES.filter(m=>!m.pending&&(!dp||m.dept===dp||m.dept==='CORE')&&['S','J','C'].indexOf(m.type)>=0);
+  let people=S.teachers.filter(t=>cohortOf(t.id)||Object.keys(S.progress).some(k=>k.indexOf(t.id+'__')===0));
+  if(!people.length) people=S.teachers.slice(0,12);
+  h+=`<div class="card"><div style="margin-bottom:10px">${deptPillsHtml()}</div>
+    <div class="mx-wrap"><table class="mx"><thead><tr><th class="nm">老师</th>`;
+  mods.forEach((m,i)=>{h+=`<th title="${esc(m.nameZh)} · ${m.type}"><div class="ic">${m.icon}</div><div class="no">${i+1}</div></th>`;});
+  h+='</tr></thead><tbody>';
+  people.forEach(t=>{
+    h+=`<tr><td class="nm">${esc(t.name)}</td>`;
+    mods.forEach(m=>{
+      const r=rungOf(t.id,m.id),gl=goalOf(m); let cls='r'+r;
+      if(isExpired(t.id,m))cls='rx'; else if(r>=gl)cls='r6';
+      h+=`<td><div class="cellx ${cls}" title="${esc(t.name)} · ${esc(m.nameZh)} · ${RUNGS[r].t}"></div></td>`;
+    });
+    h+='</tr>';
+  });
+  h+=`</tbody></table></div>
+    <div class="muted" style="margin-top:12px"><span class="rung r6"></span> 已掌握 &nbsp;
+      <span class="rung r5"></span> 已验证 &nbsp;<span class="rung r3"></span> 练/做过 &nbsp;
+      <span class="rung r0"></span> 未达 &nbsp;<span class="rung rx">!</span> 过期</div>
+    <div class="mxkey">${mods.map((m,i)=>
+      `<div><b>${i+1}</b> ${m.icon} ${esc(m.nameZh)} <span class="ty ty-${m.type}">${m.type}</span></div>`).join('')}</div></div>`;
+  const risk=mods.filter(m=>m.type==='C')
+    .map(m=>({m:m,n:S.teachers.filter(t=>rungOf(t.id,m.id)>=goalOf(m)&&!isExpired(t.id,m)).length}))
+    .filter(x=>x.n<2);
+  if(risk.length){ h+='<div class="card"><div class="card-title">⚠️ 人手风险（Critical 类够格的人少于 2）</div>';
+    risk.forEach(x=>{h+=`<div style="padding:6px 0">${esc(x.m.nameZh)} — 目前只有 <b>${x.n}</b> 人</div>`;});
+    h+='</div>'; }
+  h+='<div class="print-sign">主管签名</div>';
+  el('p-matrix').innerHTML=h;
+}
+
+// ══ 梯队 ══════════════════════════════════════════════════════
+function renderPeople(){
+  let h=cloudGuard();
+  const canAdd=myDepts().some(canEditDept);
+  h+=`<div class="ptitle"><h2>梯队</h2><div style="flex:1"></div>
+    ${canAdd?'<button class="btn btn-sm btn-pri" onclick="openCohort()">+ Add</button>':''}</div>`;
+  h+='<div class="alert a-info">老师名册的 Owner 是 <b>MasterHub — Teacher</b>，本系统只读引用，不在这里新增或修改老师。</div>';
+  let rows=S.cohorts.filter(c=>S.ui.showArch||c.status!=='archived');
+  rows=applySort(rows,{mentee:c=>teacherName(c.mentee_code),dept:c=>c.dept,
+    mentor:c=>teacherName(c.mentor_code),start:c=>String(c.start_date),status:c=>c.status});
+  h+=`<div class="card"><div class="card-title">梯队 <span class="muted">${rows.length}</span>
+    <div style="flex:1"></div><button class="btn btn-sm" onclick="S.ui.showArch=!S.ui.showArch;renderPeople()">
+    ${S.ui.showArch?'隐藏 archived':'Show archived'}</button></div>`;
+  if(!rows.length){
+    h+=`<div class="empty"><div class="big">🗂</div>No records yet
+      ${canAdd?'<div style="margin-top:10px"><button class="btn btn-sm btn-pri" onclick="openCohort()">+ Create first item</button></div>':''}</div>`;
+  }else{
+    h+=`<table><thead><tr>
+      <th class="sortable" onclick="sortBy('mentee')">新老师${sortArrow('mentee')}</th>
+      <th class="sortable" onclick="sortBy('dept')">部门${sortArrow('dept')}</th>
+      <th class="sortable" onclick="sortBy('mentor')">Mentor${sortArrow('mentor')}</th>
+      <th class="sortable" onclick="sortBy('start')">开始${sortArrow('start')}</th>
+      <th class="sortable" onclick="sortBy('status')">状态${sortArrow('status')}</th>
+      <th></th></tr></thead><tbody>`;
+    rows.forEach(c=>{
+      h+=`<tr><td>${esc(teacherName(c.mentee_code))}</td><td><span class="dept dp-${c.dept}">${c.dept}</span></td>
+        <td>${esc(teacherName(c.mentor_code))}</td><td>${fmtDate(c.start_date)}</td>
+        <td><span class="chip c-mut">${esc(c.status)}</span></td>
+        <td>${canEditDept(c.dept)?`<button class="btn btn-sm" onclick="openCohort('${c.id}')">编辑</button>`:''}</td></tr>`;
+    });
+    h+='</tbody></table>';
+  }
+  h+='</div>';
+  el('p-people').innerHTML=h;
+}
+function openCohort(id){
+  const c=id?S.cohorts.find(x=>x.id===id):null;
+  const opt=sel=>S.teachers.map(t=>`<option value="${esc(t.id)}" ${sel===t.id?'selected':''}>${esc(t.name)} (${esc(t.id)})</option>`).join('');
+  const depts=myDepts().filter(canEditDept);
+  const b=`<div class="fld"><label>新老师 <span class="req">*</span></label><select id="cMentee" onchange="S.dirty=true">${opt(c?c.mentee_code:'')}</select></div>
+    <div class="fld"><label>Mentor <span class="req">*</span></label><select id="cMentor" onchange="S.dirty=true">${opt(c?c.mentor_code:'')}</select></div>
+    <div class="fld"><label>部门 <span class="req">*</span></label><select id="cDept">
+      ${depts.map(d=>`<option ${c&&c.dept===d?'selected':''}>${d}</option>`).join('')}</select></div>
+    <div class="fld"><label>开始日期 <span class="req">*</span></label>
+      <input id="cStart" type="date" value="${c?String(c.start_date).slice(0,10):isoToday()}"></div>
+    <div class="fld"><label>类型</label><select id="cType">
+      <option value="new" ${c&&c.cohort_type==='new'?'selected':''}>新人</option>
+      <option value="transfer" ${c&&c.cohort_type==='transfer'?'selected':''}>转部门（CORE 抵免）</option>
+      <option value="rpl" ${c&&c.cohort_type==='rpl'?'selected':''}>既有老师认定 RPL</option></select></div>
+    ${c?`<div class="fld"><label>状态</label><select id="cStatus">
+      ${['draft','active','pending','completed','archived','cancelled'].map(s=>
+        `<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>`:''}
+    <div class="muted">同一位老师教两个部门 = 开两条梯队。</div>`;
+  openModal(c?'编辑梯队':'开新梯队',b,
+    `${(c&&c.status!=='archived')?`<button class="btn btn-dgr btn-sm" onclick="archiveCohort('${c.id}')">Archive</button>`:''}
+     <div class="sp"></div><button class="btn" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-pri" onclick="saveCohort('${c?c.id:''}')">Save</button>`);
+}
+async function saveCohort(id){
+  if(!S.ready||S.err){toast('读不到云端，没有任何资料被改动');return;}
+  const mentee=el('cMentee').value, mentor=el('cMentor').value, dept=el('cDept').value;
+  if(!mentee||!mentor){toast('请选新老师与 Mentor');return;}
+  if(mentee===mentor){toast('新老师与 Mentor 不能是同一人');return;}
+  const row={dept:dept,mentee_code:mentee,mentor_code:mentor,
+    start_date:el('cStart').value,cohort_type:el('cType').value};
+  if(id&&el('cStatus')) row.status=el('cStatus').value;
+  try{
+    let error;
+    if(id){ ({error}=await sb.from('traingo_cohort').update(row).eq('id',id)); }
+    else  { row.client_uid=genId('c'); ({error}=await sb.from('traingo_cohort').insert(row)); }
+    if(error) throw error;
+    S.dirty=false; closeModal(); toast('✓ Saved'); await reloadAll();
+  }catch(e){ toast('写入失败，没有任何资料被改动'); }
+}
+async function archiveCohort(id){
+  const c=S.cohorts.find(x=>x.id===id); if(!c)return;
+  if(!confirm('把这条梯队 Archive？训练纪录会留着。'))return;
+  const prev=c.status;
+  try{
+    const {error}=await sb.from('traingo_cohort').update({status:'archived'}).eq('id',id);
+    if(error)throw error;
+    S.dirty=false; closeModal(); await reloadAll();
+    toast('已 Archive','Undo',async()=>{
+      await sb.from('traingo_cohort').update({status:prev}).eq('id',id);
+      await reloadAll(); toast('已还原');
+    });
+  }catch(e){ toast('操作失败，没有任何资料被改动'); }
+}
+
+// ══ 模块库 ════════════════════════════════════════════════════
+function renderLibrary(){
+  el('deptPills').innerHTML=deptPillsHtml();
+  const q=S.ui.q,dp=S.ui.dept;
+  const visible=['CORE'].concat(myDepts());
+  const mods=MODULES.filter(m=>visible.indexOf(m.dept)>=0)
+    .filter(m=>(dp==='ALL'||m.dept===dp)&&(!q||(m.nameZh+m.name+m.id).toLowerCase().includes(q)));
+  const pend=MODULES.filter(m=>m.pending&&visible.indexOf(m.dept)>=0);
+  let h=`<div class="ptitle"><h2>模块库</h2><span class="sub">${mods.length} / ${MODULES.length} 个模块</span></div>`;
+  if(pend.length) h+=`<div class="alert a-warn">⛔ <b>${pend.length}</b> 个模块还没有内容：
+    ${pend.map(m=>esc(m.nameZh)).join('、')}。<br>Critical 类没有内容 = 全公司这一项都没有验证纪录。</div>`;
+  if(!mods.length) h+=`<div class="empty"><div class="big">🔍</div>No matching results
+    <div style="margin-top:10px"><button class="btn btn-sm" onclick="clearSearch()">Clear search</button></div></div>`;
+  visible.forEach(d=>{
+    const g=mods.filter(m=>m.dept===d); if(!g.length)return;
+    h+=`<div class="card"><div class="card-title"><span class="dept dp-${d}">${d}</span>
+      <span class="muted">${g.length} 个</span></div>`;
+    g.forEach(m=>{
+      h+=`<div style="display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr)">
+        <span style="font-size:17px">${m.icon}</span>${typeBadge(m)}
+        <div style="flex:1;min-width:0"><div style="font-weight:500">${hi(m.nameZh)} ${m.pending?'<span class="chip c-warn">待提供</span>':''}</div>
+        <div class="muted">${hi(m.name)} · ${esc(m.when)} · 目标 ${RUNGS[goalOf(m)].t}</div></div>
+        <button class="btn btn-sm" onclick="openModule('${m.id}','${esc(S.me.code)}')">看</button></div>`;
+    });
+    h+='</div>';
+  });
+  el('p-library').innerHTML=h;
+}
+
+// ══ 管理页 —— §4-24 六块骨架（无 ④，本系统不拥有主数据）══════
+function renderManage(){
+  let h='<div class="ptitle"><h2>管理</h2><span class="sub">只有 OWNER / TOP_MGMT / ADMIN 看得到</span></div>';
+
+  h+=`<div class="mg"><div class="mg-h">① 我的身份</div><div class="mg-l">
+    登入者：<span class="mg-v">${esc(S.me.name||'—')}</span><br>
+    老师代号：<span class="mg-v">${esc(S.me.code||'—')}</span><br>
+    角色：<span class="mg-v">${esc(S.me.role)}</span><br>
+    can_see：<span class="mg-v">${DEPTS.filter(d=>d!=='CORE'&&S.me.see[d]).join(' / ')||'—'}</span><br>
+    can_edit：<span class="mg-v">${DEPTS.filter(d=>d!=='CORE'&&S.me.edit[d]).join(' / ')||'—'}</span><br>
+    can_approve：<span class="mg-v">依平台设定（本系统不使用）</span>
+  </div></div>`;
+
+  h+=`<div class="mg"><div class="mg-h">② 系统资讯</div><div class="mg-l">
+    系统名：<span class="mg-v">TrainGo</span><br>
+    版本：<span class="mg-v">${APP_VERSION}</span>（架构 ${ARCH_VERSION} · 标准 ${STD_VERSION}）<br>
+    Layer：<span class="mg-v">EDU · #236FAD</span><br>
+    权限码：<span class="mg-v">${SYS_CODE_BASE}-SRK / -GAK / -ATC / -SRT</span><br>
+    Storage key：<span class="mg-v">${UIKEY}</span>（只存折叠状态，无业务资料）<br>
+    资料笔数：<span class="mg-v">梯队 ${S.cohorts.length} · 进度 ${Object.keys(S.progress).length} · 验证 ${S.verifs.length}</span><br>
+    模块：<span class="mg-v">${MODULES.length} 个（待补内容 ${MODULES.filter(m=>m.pending).length}）</span>
+  </div></div>`;
+
+  h+=`<div class="mg"><div class="mg-h">③ 云端连线</div><div class="mg-l">
+    连线状态：<span class="mg-v">${S.err?'读取失败':(S.ready?'已同步':'连线中')}</span><br>
+    待上传：<span class="mg-v">0（即时写入，不做本机暂存）</span><br>
+    名单来源：<span class="mg-v">MasterHub — Teacher（public.teachers，只读）</span><br>
+    最近错误：<span class="mg-v">${esc(S.err||'无')}</span>
+  </div><div class="mg-btns"><button class="btn btn-sm" onclick="reloadAll()">重新载入名单</button></div></div>`;
+
+  h+=`<div class="mg"><div class="mg-h">⑤ 资料备份</div><div class="mg-btns">
+      <button class="btn btn-sm" onclick="doExport()">Export JSON</button>
+      <button class="btn btn-sm" onclick="doExportCsv()">Export CSV</button>
+      <button class="btn btn-sm" onclick="el('impFile').click()">Import</button>
+      <button class="btn btn-sm" onclick="window.print()">列印</button>
+    </div><div class="mg-l" style="margin-top:8px">Import 永远 Merge，先预览再执行；CSV 含 UTF-8 BOM。</div></div>`;
+
+  h+=`<div class="mg">
+    <button class="mg-acc" onclick="S.ui.advOpen=!S.ui.advOpen;saveUi();renderManage()">
+      <span class="mg-h" style="margin:0">⑥ 进阶 · 管理员用</span>
+      <span style="margin-left:auto;color:var(--mut)">${S.ui.advOpen?'收起 ▲':'展开 ▼'}</span></button>
+    ${S.ui.advOpen?`<div class="mg-l" style="margin-top:10px">
+      Supabase ref：<span class="mg-v">qnpvqsvvsgsantekgfbz</span><br>
+      资料表：<span class="mg-v">traingo_cohort · traingo_progress · traingo_verification</span><br>
+      写入口：<span class="mg-v">traingo_submit_verification()</span>（进度与验证一起写，前端不能直接写）<br>
+      身份链：<span class="mg-v">auth.uid() → internal.users_meta.display_name → teachers.id</span><br>
+      RLS：<span class="mg-v">三张表 delete 一律 false；进度与验证前端只读</span><br>
+      自签防护：<span class="mg-v">rung ≥ 3 时 verifier ≠ 当事人（DB 层挡）</span><br>
+      Critical 双签：<span class="mg-v">p_dual=true 时必须有第二位验证人</span><br>
+      六统一状态：<span class="mg-v">draft / active / pending / completed / archived / cancelled</span>
+    </div>`:''}</div>`;
+  el('p-manage').innerHTML=h;
+}
+
+// ══ Export / Import ═══════════════════════════════════════════
+function stamp(){const d=new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=name;a.click();URL.revokeObjectURL(a.href);}
+function doExport(){
+  const d={meta:{system:'TrainGo',version:APP_VERSION,arch:ARCH_VERSION,standard:STD_VERSION,
+    exportTime:new Date().toISOString(),
+    itemCount:S.cohorts.length+Object.keys(S.progress).length+S.verifs.length},
+    cohorts:S.cohorts,progress:S.progress,verifications:S.verifs};
+  dl(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),'TrainGo_'+stamp()+'.json');
+  toast('✓ 已汇出');
+}
+function doExportCsv(){
+  const rows=[['老师代号','老师','部门','模块','类型','梯级','结果','验证人','第二验证人','看到什么','时间']];
+  S.verifs.forEach(v=>{
+    const m=moduleById(v.module_id)||{nameZh:v.module_id,type:''};
+    rows.push([v.teacher_code,teacherName(v.teacher_code),v.dept,m.nameZh,m.type,
+      RUNGS[v.rung]?RUNGS[v.rung].t:v.rung,v.result,v.verifier_code,v.co_verifier_code||'',
+      v.observed,v.verified_at]);
+  });
+  dl(new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],
+    {type:'text/csv;charset=utf-8'}),'TrainGo_验证纪录_'+stamp()+'.csv');
+  toast('✓ 已汇出 CSV');
+}
+function doImport(ev){
+  const f=ev.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    let d; try{ d=JSON.parse(e.target.result); }
+    catch(err){ toast('档案格式错误，资料没有改动'); ev.target.value=''; return; }
+    const inc=d.cohorts||[]; let nw=0,up=0,un=0;
+    inc.forEach(c=>{ const ex=S.cohorts.find(x=>x.client_uid===c.client_uid);
+      if(!ex)nw++;
+      else if(ex.dept!==c.dept||ex.mentee_code!==c.mentee_code||ex.status!==c.status)up++;
+      else un++; });
+    window._impData=inc;
+    openModal('汇入预览（永远 Merge，不覆盖）',
+      `<div class="mg-l">档案：<span class="mg-v">${esc(f.name)}</span><br>
+       梯队：<b>${nw}</b> new · <b>${up}</b> update · <b>${un}</b> unchanged<br>
+       进度与验证：<span class="mg-v">不汇入</span>（只能由验证流程产生，保证证据链）</div>
+       <div class="alert a-info" style="margin-top:10px">执行前会先自动汇出一份现况备份。</div>`,
+      `<div class="sp"></div><button class="btn" onclick="cancelImport()">Cancel</button>
+       <button class="btn btn-pri" onclick="runImport()">确认汇入</button>`);
+  };
+  rd.readAsText(f);
+}
+function cancelImport(){ S.dirty=false; closeModal(); el('impFile').value=''; }
+async function runImport(){
+  if(!S.ready||S.err){toast('读不到云端，没有任何资料被改动');return;}
+  doExport();
+  const inc=window._impData||[]; let n=0;
+  try{
+    for(const c of inc){
+      if(!c.client_uid||!canEditDept(c.dept))continue;
+      const ex=S.cohorts.find(x=>x.client_uid===c.client_uid);
+      const row={dept:c.dept,mentee_code:c.mentee_code,mentor_code:c.mentor_code,
+        start_date:String(c.start_date).slice(0,10),cohort_type:c.cohort_type||'new',
+        status:c.status||'active',client_uid:c.client_uid};
+      let error;
+      if(ex){ ({error}=await sb.from('traingo_cohort').update(row).eq('id',ex.id)); }
+      else  { ({error}=await sb.from('traingo_cohort').insert(row)); }
+      if(error) throw error;
+      n++;
+    }
+    S.dirty=false; closeModal(); el('impFile').value='';
+    toast('✓ 已汇入 '+n+' 笔（Merge）'); await reloadAll();
+  }catch(e){
+    S.dirty=false; closeModal(); el('impFile').value='';
+    toast('汇入中断，已写入的保留，请用刚才的备份比对'); await reloadAll();
+  }
+}
+
+// ══ Modal · 键盘 ══════════════════════════════════════════════
+function openModal(title,body,foot){
+  el('mTitle').textContent=title; el('mBody').innerHTML=body;
+  el('mFoot').innerHTML=foot||''; el('mFoot').style.display=foot?'flex':'none';
+  el('ov').classList.add('on'); el('modal').classList.add('on');
+}
+function closeModal(){
+  if(S.dirty&&!confirm('Unsaved changes. Discard?'))return;
+  S.dirty=false;
+  el('ov').classList.remove('on'); el('modal').classList.remove('on');
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') closeModal();
+  if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='s'){ e.preventDefault();
+    const b=document.querySelector('#mFoot .btn-pri');
+    if(b)b.click(); else toast('本系统即时储存，不需手动存档'); }
+  if(e.key==='Enter'&&el('modal').classList.contains('on')&&e.target.tagName!=='TEXTAREA'){
+    const b=document.querySelector('#mFoot .btn-pri'); if(b){e.preventDefault();b.click();} }
+});
+window.addEventListener('beforeunload',function(e){ if(S.dirty){e.preventDefault();e.returnValue='';} });
+
+boot();
+</script>
+</body>
+</html>
