@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>TrainGo · v22</title>
+<title>TrainGo · v23</title>
 <style>
 :root{
   --layer:#236FAD;
@@ -294,7 +294,7 @@ tr:last-child td{border-bottom:0}
     <h1>TrainGo</h1>
     <div class="muted">Academee 老师训练系统</div>
     <div class="alert a-info" id="gateMsg" style="margin-top:18px;text-align:left">正在确认登入状态…</div>
-    <a class="btn btn-pri" id="gateBtn" href="../index.html" style="display:none;width:100%;text-decoration:none;display:none">← 回平台首页登入</a>
+    <a class="btn btn-pri" id="gateBtn" href="/index.html" style="display:none;width:100%;text-decoration:none;display:none">← 回平台首页登入</a>
   </div>
 </div>
 
@@ -303,8 +303,8 @@ tr:last-child td{border-bottom:0}
 
   <!-- Row 1 · Topbar（§4-26 八元件，顺序固定）-->
   <div class="topbar">
-    <a class="tb-back" href="../index.html" title="回平台">←</a>
-    <div class="brand"><span class="brand-ic">🎓</span>TrainGo<span class="ver" id="verBadge">v22</span></div>
+    <a class="tb-back" href="/index.html" title="回平台">←</a>
+    <div class="brand"><span class="brand-ic">🎓</span>TrainGo<span class="ver" id="verBadge">v23</span></div>
     <div class="ntabs" id="nav">
       <button class="ntab" data-p="today"   onclick="go('today')">今天</button>
       <button class="ntab" data-p="learn"   onclick="go('learn')">我的训练</button>
@@ -917,12 +917,12 @@ function modulesForDept(dept){
 }
 function moduleById(id){return MODULES.find(m=>m.id===id);}
 // ══════════════════════════════════════════════════════════════
-// TrainGo v22 · 架构 v2 · 照 Academee Universal Standard v8
+// TrainGo v23 · 架构 v2 · 照 Academee Universal Standard v8
 // 后端：Supabase（与平台同源 SSO，不另外登入、不设登出、不设 Reset）
 // 身份链：auth.uid() → internal.users_meta.display_name → teachers.id
 // 主数据：teachers 只读引用（Owner = MasterHub-Teacher），本系统不写
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v22';
+const APP_VERSION='v23';
 const ARCH_VERSION='v2';
 const STD_VERSION='v8';
 const SYS_CODE_BASE='EDU-TrainGo';
@@ -939,7 +939,7 @@ const S={
   ui:{q:'',dept:'ALL',sortKey:null,sortDir:0,advOpen:false,viewCode:null,showArch:false},
   dirty:false,
 };
-const UIKEY='traingo_ui_v22';
+const UIKEY='traingo_ui_v22';   // 跟的是储存内容的 schema，不是 APP_VERSION —— 存的东西没变就不改
 
 // ══ 工具（Universal Standard §13）══════════════════════════════
 function el(id){return document.getElementById(id);}

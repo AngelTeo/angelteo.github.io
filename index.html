@@ -158,6 +158,16 @@ const LIVE={
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
   'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v481', group:'EDU — Education',         color:'#236FAD', order:7},
+  // ── EDU-TrainGo (2026-09-23 首次注册) · 老师入职训练 ──
+  //    四个部门码共用同一张卡片（同 MiscGo 做法），上方 dedupe 只渲染一次。
+  //    system_registry 早就有这四个码，缺的只是这里的卡片 —— 所以先前推上去也看不到。
+  //    部署在 repo 根层（angelteo.github.io/TrainGo.html），不在 EDU/ 底下。
+  //    ⚠️ 若之后搬进 EDU/，这四行的 href 要一起改成 'EDU/TrainGo.html'。
+  //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；TEACHER 看得到自己的训练与模块库。
+  'EDU-TrainGo-SRK':   {href:'TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
+  'EDU-TrainGo-GAK':   {href:'TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
+  'EDU-TrainGo-ATC':   {href:'TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
+  'EDU-TrainGo-SRT':   {href:'TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
   'EVT-SportsDay':     {href:'EVT/SportsDay.html',name:'SportsDay',  ver:'v24', group:'EVT — Events',            color:'#7870CC', order:10},
   'EVT-FieldTrip':     {href:'EVT/FieldTrip.html',name:'FieldTrip',  ver:'v1',  group:'EVT — Events',            color:'#7870CC', order:11},
   // ── academee-tools repo (同网域,不同 repo) ──
