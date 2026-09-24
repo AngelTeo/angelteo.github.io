@@ -143,16 +143,16 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 //    2026-09-13 下午：NoticeGo-Holiday 与 MiscGo 都已补上 APP_VERSION，18 张卡全部可被程式核实。
 const LIVE={
   'CORE-MasterAuth':   {href:'CORE/MasterAuth.html',   name:'MasterAuth',   ver:'v10', group:'CORE — Permissions',      color:'#5C1010', order:0},
-  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v12', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
+  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v13', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
   // 2026-09-13：Owner 部署 v26（241,549 B），实抓线上 APP_VERSION = 26。卡片原写 v23 → 已更正。
   // 2026-09-23：v27 → v28（离开流程 · 请假 / 暂停 · 删除改封存 · 存档不覆盖别人 · 结束班级 · 转班自动给空号）。
   // 2026-09-23：v28 → v29（存档失败不再静默：跳讯息＋红色横幅＋视窗不关 · 新增校外补习，存在独立表 hub_student_outside_tuition）。
   // 2026-09-23：v29 → v30（顶栏版本徽章以前硬写 v26，v27/v28/v29 顶栏都显示 v26；改成自动跟 APP_VERSION 走）。
   'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v31', group:'MasterHub — Master Data', color:'#993556', order:2},
-  'CORE-Subject':      {href:'CORE/Subject.html',  name:'Subject',      ver:'v8',  group:'MasterHub — Master Data', color:'#C45C5C', order:3},
+  'CORE-Subject':      {href:'CORE/Subject.html',  name:'Subject',      ver:'v9',  group:'MasterHub — Master Data', color:'#C45C5C', order:3},
   'CORE-Teacher':      {href:'CORE/Teacher.html',  name:'Teacher',      ver:'v15',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
-  'CORE-Calendar':     {href:'CORE/Calendar.html', name:'Calendar',     ver:'v12',  group:'MasterHub — Master Data', color:'#BA7517', order:5},
-  'CORE-Class':        {href:'CORE/Class.html',    name:'Class',        ver:'v7',  group:'MasterHub — Master Data', color:'#7AB05A', order:6},
+  'CORE-Calendar':     {href:'CORE/Calendar.html', name:'Calendar',     ver:'v13',  group:'MasterHub — Master Data', color:'#BA7517', order:5},
+  'CORE-Class':        {href:'CORE/Class.html',    name:'Class',        ver:'v8',  group:'MasterHub — Master Data', color:'#7AB05A', order:6},
   // 2026-09-13：v10 与本卡同批上线（去重守卫）。若 v10 未 push，这张卡会被「版本核对」标红。
   'OPR-AttendanceGo':  {href:'OPR/AttendanceGo.html',       name:'AttendanceGo', ver:'v11', group:'OPR — Operations',        color:'#8B6C2A', order:7},
   // 2026-09-13：原本常数叫 HOLIDAYGO_BUILD，版本核对读不到 → 改名 APP_VERSION 并补进 <title>，37→38。
