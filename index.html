@@ -148,9 +148,9 @@ const LIVE={
   // 2026-09-23：v27 → v28（离开流程 · 请假 / 暂停 · 删除改封存 · 存档不覆盖别人 · 结束班级 · 转班自动给空号）。
   // 2026-09-23：v28 → v29（存档失败不再静默：跳讯息＋红色横幅＋视窗不关 · 新增校外补习，存在独立表 hub_student_outside_tuition）。
   // 2026-09-23：v29 → v30（顶栏版本徽章以前硬写 v26，v27/v28/v29 顶栏都显示 v26；改成自动跟 APP_VERSION 走）。
-  'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v30', group:'MasterHub — Master Data', color:'#993556', order:2},
+  'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v31', group:'MasterHub — Master Data', color:'#993556', order:2},
   'CORE-Subject':      {href:'CORE/Subject.html',  name:'Subject',      ver:'v8',  group:'MasterHub — Master Data', color:'#C45C5C', order:3},
-  'CORE-Teacher':      {href:'CORE/Teacher.html',  name:'Teacher',      ver:'v14',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
+  'CORE-Teacher':      {href:'CORE/Teacher.html',  name:'Teacher',      ver:'v15',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
   'CORE-Calendar':     {href:'CORE/Calendar.html', name:'Calendar',     ver:'v12',  group:'MasterHub — Master Data', color:'#BA7517', order:5},
   'CORE-Class':        {href:'CORE/Class.html',    name:'Class',        ver:'v7',  group:'MasterHub — Master Data', color:'#7AB05A', order:6},
   // 2026-09-13：v10 与本卡同批上线（去重守卫）。若 v10 未 push，这张卡会被「版本核对」标红。
@@ -159,7 +159,7 @@ const LIVE={
   'OPR-NoticeGo-Holiday': {href:'OPR/NoticeGo-Holiday.html', name:'NoticeGo-Holiday', ver:'v38', group:'OPR — Operations',    color:'#8B6C2A', order:8},
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
-  'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v481', group:'EDU — Education',         color:'#236FAD', order:7},
+  'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v482', group:'EDU — Education',         color:'#236FAD', order:7},
   // ── EDU-TrainGo (2026-09-23 首次注册) · 老师入职训练 ──
   //    四个部门码共用同一张卡片（同 MiscGo 做法），上方 dedupe 只渲染一次。
   //    system_registry 早就有这四个码，缺的只是这里的卡片 —— 所以先前推上去也看不到。
