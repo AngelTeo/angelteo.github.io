@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MasterHub — Class v9</title>
+<title>MasterHub — Class v10</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -249,7 +249,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 const STORAGE_KEY = 'masterhub_class_v6';
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1349,6 +1349,50 @@ function showLoadFail(){
 // beforeunload
 /* v7 · 不再在本机留一份班级资料：本机旧资料正是以前覆盖云端的来源 */
 try{ ['masterhub_class_v6','masterhub_class_v5','masterhub_class_v3','masterhub_class_v1'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
+
+/* ══════════════════════════════════════════════════════════════════
+   断线重试 + 关页面补送 · 照 ObsGo v14 的做法，另加 pagehide
+   ① 网路一回来 → 立刻补送
+   ② 画面被切走（切 App / 换分页）→ 马上补送
+   ③ 分页被关掉 / 被手机回收（pagehide）→ 马上补送
+      —— iOS Safari 直接回收分页时不保证跑 visibilitychange，pagehide 会跑
+   ④ 还有没送出去的 → 每 60 秒自己再试
+   ⑤ 开页面 / 登入後 → 本机还有没上云的，自动补送
+   全部走既有的 saveData()，不另开推云路径；送之前先看有没有真的还没送的，避免重复送。
+   ══════════════════════════════════════════════════════════════════ */
+function _resendPending(){
+  try{ return !!(UNSYNCED || _pendingGet()); }catch(e){ return false; }
+}
+let _resendBusy = false;
+async function _resendNow(why){
+  if(_resendBusy) return;
+  if(!_resendPending()) return;
+  _resendBusy = true;
+  try{
+    /* 表单里还没送出的那一下，先送完 */
+    try{ if(typeof _afFlush === 'function' && (_afTimer || _afBusy)) await _afFlush(); }catch(e){}
+    if(!_resendPending()) return;
+    console.log('[补送] ' + why);
+    await saveData();
+  }catch(e){ console.warn('[补送] 失败，等下次再试：', (e && e.message) || e); }
+  finally{ _resendBusy = false; }
+}
+window.addEventListener('online', () => { _resendNow('网路回来了'); });
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden') _resendNow('画面被切走');
+});
+window.addEventListener('pagehide', () => { _resendNow('分页被关掉'); });
+setInterval(() => { if(navigator.onLine !== false) _resendNow('每 60 秒再试一次'); }, 60000);
+/* 开页面 / 登入後补送：等载入流程（含「要保留哪一份」）走完再看 */
+(function(){
+  const _origInitApp = (typeof initApp === 'function') ? initApp : null;
+  if(!_origInitApp) return;
+  initApp = async function(){
+    const r = await _origInitApp.apply(this, arguments);
+    setTimeout(() => _resendNow('开页面时本机还有没上云的'), 1500);
+    return r;
+  };
+})();
 </script>
 </body>
 </html>
