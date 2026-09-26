@@ -143,16 +143,16 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 //    2026-09-13 下午：NoticeGo-Holiday 与 MiscGo 都已补上 APP_VERSION，18 张卡全部可被程式核实。
 const LIVE={
   'CORE-MasterAuth':   {href:'CORE/MasterAuth.html',   name:'MasterAuth',   ver:'v10', group:'CORE — Permissions',      color:'#5C1010', order:0},
-  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v13', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
+  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v14', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
   // 2026-09-13：Owner 部署 v26（241,549 B），实抓线上 APP_VERSION = 26。卡片原写 v23 → 已更正。
   // 2026-09-23：v27 → v28（离开流程 · 请假 / 暂停 · 删除改封存 · 存档不覆盖别人 · 结束班级 · 转班自动给空号）。
   // 2026-09-23：v28 → v29（存档失败不再静默：跳讯息＋红色横幅＋视窗不关 · 新增校外补习，存在独立表 hub_student_outside_tuition）。
   // 2026-09-23：v29 → v30（顶栏版本徽章以前硬写 v26，v27/v28/v29 顶栏都显示 v26；改成自动跟 APP_VERSION 走）。
-  'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v31', group:'MasterHub — Master Data', color:'#993556', order:2},
-  'CORE-Subject':      {href:'CORE/Subject.html',  name:'Subject',      ver:'v9',  group:'MasterHub — Master Data', color:'#C45C5C', order:3},
-  'CORE-Teacher':      {href:'CORE/Teacher.html',  name:'Teacher',      ver:'v15',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
+  'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v32', group:'MasterHub — Master Data', color:'#993556', order:2},
+  'CORE-Subject':      {href:'CORE/Subject.html',  name:'Subject',      ver:'v10', group:'MasterHub — Master Data', color:'#C45C5C', order:3},
+  'CORE-Teacher':      {href:'CORE/Teacher.html',  name:'Teacher',      ver:'v16',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
   'CORE-Calendar':     {href:'CORE/Calendar.html', name:'Calendar',     ver:'v13',  group:'MasterHub — Master Data', color:'#BA7517', order:5},
-  'CORE-Class':        {href:'CORE/Class.html',    name:'Class',        ver:'v8',  group:'MasterHub — Master Data', color:'#7AB05A', order:6},
+  'CORE-Class':        {href:'CORE/Class.html',    name:'Class',        ver:'v9',  group:'MasterHub — Master Data', color:'#7AB05A', order:6},
   // 2026-09-13：v10 与本卡同批上线（去重守卫）。若 v10 未 push，这张卡会被「版本核对」标红。
   'OPR-AttendanceGo':  {href:'OPR/AttendanceGo.html',       name:'AttendanceGo', ver:'v11', group:'OPR — Operations',        color:'#8B6C2A', order:7},
   // 2026-09-13：原本常数叫 HOLIDAYGO_BUILD，版本核对读不到 → 改名 APP_VERSION 并补进 <title>，37→38。
@@ -160,23 +160,29 @@ const LIVE={
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
   'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v482', group:'EDU — Education',         color:'#236FAD', order:7},
-  // ── EDU-TrainGo (2026-09-23 首次注册) · 老师入职训练 ──
+  // ── EDU-TrainGo · 老师入职训练 —— 2026-09-26 恢复上架 ──
+  //    档名永远是 EDU/TrainGo.html，后面不加版本号 —— 换版只覆盖同一个档，这四行的 href 不必再动。
+  //    版本号在档案里（topbar 显示），这里的 ver 只是首页卡片上的标示，换版时手动跟一下即可。
   //    四个部门码共用同一张卡片（同 MiscGo 做法），上方 dedupe 只渲染一次。
-  //    system_registry 早就有这四个码，缺的只是这里的卡片 —— 所以先前推上去也看不到。
-  //    部署在 repo 根层（angelteo.github.io/TrainGo.html），不在 EDU/ 底下。
-  //    ⚠️ 若之后搬进 EDU/，这四行的 href 要一起改成 'EDU/TrainGo.html'。
-  //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；TEACHER 看得到自己的训练与模块库。
-  'EDU-TrainGo-SRK':   {href:'EDU/TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
-  'EDU-TrainGo-GAK':   {href:'EDU/TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
-  'EDU-TrainGo-ATC':   {href:'EDU/TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
-  'EDU-TrainGo-SRT':   {href:'EDU/TrainGo.html',             name:'TrainGo',      ver:'v23',  group:'EDU — Education',         color:'#236FAD', order:8},
+  //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；TEACHER 看得到自己的训练计划与 SOP 库。
+  //    ⚠️ 推档顺序：先推 EDU/TrainGo.html，再推这份 index.html。
+  'EDU-TrainGo-SRK':   {href:'EDU/TrainGo.html',         name:'TrainGo',      ver:'v25',  group:'EDU — Education',         color:'#236FAD', order:8},
+  'EDU-TrainGo-GAK':   {href:'EDU/TrainGo.html',         name:'TrainGo',      ver:'v25',  group:'EDU — Education',         color:'#236FAD', order:8},
+  'EDU-TrainGo-ATC':   {href:'EDU/TrainGo.html',         name:'TrainGo',      ver:'v25',  group:'EDU — Education',         color:'#236FAD', order:8},
+  'EDU-TrainGo-SRT':   {href:'EDU/TrainGo.html',         name:'TrainGo',      ver:'v25',  group:'EDU — Education',         color:'#236FAD', order:8},
+  // ── 26-09-2026 · 卡片版本号补正（Owner 授权）──
+  //    卡片 ver 落後於线上实际档案，实 clone 两个 repo 逐档 grep 版本号比对後补正。
+  //    本轮改五行：MiscGo v5→v6（三笔）· ObsGo v12→v14 · LoveGo v81→v84
+  //    MasterHub 五支（Room v14 · Student v32 · Subject v10 · Teacher v16 · Class v9）
+  //    与 TrainGo v25 在本轮之前已由 TrainGo 线改好，本轮未动。
+  //    ⚠️ 只改 ver 显示字串，href / 权限码 / group / color / order 一律没动。
   'EVT-SportsDay':     {href:'EVT/SportsDay.html',name:'SportsDay',  ver:'v24', group:'EVT — Events',            color:'#7870CC', order:10},
   'EVT-FieldTrip':     {href:'EVT/FieldTrip.html',name:'FieldTrip',  ver:'v1',  group:'EVT — Events',            color:'#7870CC', order:11},
   // ── academee-tools repo (同网域,不同 repo) ──
   // MiscGo 有 3 个部门码,共用同一张卡片;下方 dedupe 只渲染一次。
-  'OPR-MiscGo-SRK-GAK':{href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'v5', group:'OPR — Operations', color:'#8B6C2A', order:9},
-  'OPR-MiscGo-ATC':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'v5', group:'OPR — Operations', color:'#8B6C2A', order:9},
-  'OPR-MiscGo-SRT':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'v5', group:'OPR — Operations', color:'#8B6C2A', order:9},
+  'OPR-MiscGo-SRK-GAK':{href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'v6', group:'OPR — Operations', color:'#8B6C2A', order:9},
+  'OPR-MiscGo-ATC':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'v6', group:'OPR — Operations', color:'#8B6C2A', order:9},
+  'OPR-MiscGo-SRT':    {href:'academee-tools/MiscGo.html',   name:'MiscGo',   ver:'v6', group:'OPR — Operations', color:'#8B6C2A', order:9},
   // 2026-09-13：ParentGo 首次有版本号（原本档内完全没有，线上是哪一版查不出来）。
   //             v1 与本卡同批上线。
   'OPR-ParentGo':      {href:'academee-tools/parent-go.html',name:'ParentGo', ver:'v3', group:'OPR — Operations', color:'#8B6C2A', order:10},
@@ -197,10 +203,10 @@ const LIVE={
   // ── OPR-ObsGo (2026-09-09 上线 · v12 2026-09-12 上线) · 巡班观察 ──
   //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；进度页 OWNER/TOP_MGMT/ADMIN/MGMT；TEACHER 只有巡班+记录。
   //    2026-09-13 实抓线上 APP_VERSION = 12（223,344 B），卡片原写 v7 → 已更正。
-  'OPR-ObsGo':         {href:'academee-tools/ObsGo.html',    name:'ObsGo',    ver:'v12', group:'OPR — Operations', color:'#8B6C2A', order:11},
+  'OPR-ObsGo':         {href:'academee-tools/ObsGo.html',    name:'ObsGo',    ver:'v14', group:'OPR — Operations', color:'#8B6C2A', order:11},
   // 2026-09-15：LoveGo 首次注册（SRK PTM Teacher Lens · ObsGo taxonomy authority）。ver=v68（v64 填写页独立化+上下位；v65 清除系统术语；v67 引导语改鼓励语气；v68 管理层不再只读、可正常输入）。
   //             ⚠️ 卡片需 academee-tools/LoveGo.html 已实际部署才可点开；未部署前此卡会 404。
-  'OPR-LoveGo':        {href:'academee-tools/LoveGo.html',   name:'LoveGo',   ver:'v81', group:'OPR — Operations', color:'#8B6C2A', order:12}
+  'OPR-LoveGo':        {href:'academee-tools/LoveGo.html',   name:'LoveGo',   ver:'v84', group:'OPR — Operations', color:'#8B6C2A', order:12}
 };
 
 const LAYER_COLORS={
