@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MasterHub — Class v8</title>
+<title>MasterHub — Class v9</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -169,7 +169,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 <!-- ══ NAV ══ -->
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home">←</button>
-  <div class="nav-logo">MasterHub — Class <span class="ver">v8</span></div>
+  <div class="nav-logo">MasterHub — Class <span class="ver">v9</span></div>
   <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
   <button class="ntab" onclick="goPage('list')">All Classes</button>
   <button class="ntab" onclick="goPage('manage')">Manage</button>
@@ -235,7 +235,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
       <div>System: <b>MasterHub — Class</b></div>
       <div>资料来源: <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:11px">云端（全平台唯一）</code></div>
       <div>Records: <b><span id="manage-total">0</span> total (<span id="manage-active">0</span> active, <span id="manage-archived">0</span> archived)</b></div>
-      <div>Version: <span class="ver">v8</span></div>
+      <div>Version: <span class="ver">v9</span></div>
     </div>
   </div>
   <div style="margin-top:40px;text-align:center">
@@ -249,7 +249,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 const STORAGE_KEY = 'masterhub_class_v6';
 
 /* ══════════════════════════════════════════════════════════════════
@@ -647,7 +647,7 @@ function openClassForm(id){
 
   let body = `
     <div class="form-row"><label>Code <span style="color:var(--danger)">*</span></label>
-      <input type="text" id="f-code" value="${isEdit ? esc(c.code) : ''}" oninput="markDirty()" placeholder="e.g. SR 1"></div>
+      <input type="text" id="f-code" value="${isEdit ? esc(c.code) : ''}" oninput="markDirty('blur')" onchange="markDirty('now')" placeholder="e.g. SR 1"></div>
     <div class="form-grid-2">
       <div class="form-row"><label>Department <span style="color:var(--danger)">*</span></label>
         <select id="f-dept" onchange="markDirty();toggleSRTFields()">
@@ -677,12 +677,13 @@ function openClassForm(id){
         <option value="">—</option>
         ${SRT_SLOTS.map(s => `<option value="${s}" ${isEdit && c.slot===s ? 'selected':''}>${s}</option>`).join('')}
       </select></div>
+    <div id="af-hint" style="font-size:12px;font-weight:600;margin-top:10px;color:#2D6A4F">✓ 改了就自动存进云端，不用按按钮</div>
   `;
 
   // Delete button (only for edit, left side)
   const deleteBtn = isEdit
-    ? `<button class="btn btn-dng btn-sm" onclick="deleteClass('${esc(c.id)}')" style="margin-right:auto">Delete</button>`
-    : '';
+    ? `<button class="btn btn-dng btn-sm" onclick="deleteClass(editId)" style="margin-right:auto">Delete</button>`
+    : `<button class="btn btn-dng btn-sm" id="af-del" onclick="deleteClass(editId)" style="margin-right:auto;display:none">Delete</button>`;
 
   document.getElementById('modal-slot').innerHTML = `
     <div class="modal-bg" onclick="if(event.target===this)tryCloseModal()">
@@ -694,11 +695,11 @@ function openClassForm(id){
         <div class="modal-body">${body}</div>
         <div class="modal-foot">
           ${deleteBtn}
-          <button class="btn" onclick="tryCloseModal()">Cancel</button>
-          <button class="btn btn-pri" onclick="saveClass()">Done</button>
+          <button class="btn btn-pri" onclick="tryCloseModal()">Close</button>
         </div>
       </div>
     </div>`;
+  _afReset(isEdit ? _classSig() : null); _afCreatedId = null;
 }
 
 function toggleSRTFields(){
@@ -707,20 +708,70 @@ function toggleSRTFields(){
   document.getElementById('srt-slot-row').style.display = isSRT ? 'block' : 'none';
 }
 
-function markDirty(){ modalDirty = true; }
 
-function tryCloseModal(){
-  if(modalDirty && !confirm('Unsaved changes. Discard?')) return;
+/* ══════════════════════════════════════════════════════════════════
+   v9 · 2026-09-26 · 表单一输入就上云（Owner：「我的系统都要一输入就上传云，不需要按 save」）
+   以前（vv8）：弹窗里改完要按 Done 才存；没按就关 = 白填。
+   现在：改一格 → 停 1 秒自动存进云端；名称 / 代号这种关键栏位，离开栏位才存（免得打一半就建出一笔）。
+        弹窗只剩「Close」，关的时候把还没送出的那一下先送完。
+   ══════════════════════════════════════════════════════════════════ */
+let _afTimer = null, _afBusy = false, _afAgain = false;
+let _afLast = null;       /* 这一笔上次存进去的样子；一样就不重送 */
+let _afInvalid = '';      /* 目前为什么还不能存（空 = 可以存） */
+let _afTouched = false;   /* 使用者有没有动过这个表单 */
+function _afHint(msg){
+  const el = document.getElementById('af-hint'); if(!el) return;
+  if(msg){ el.textContent = '⚠ ' + msg; el.style.color = '#c0392b'; }
+  else   { el.textContent = '✓ 改了就自动存进云端，不用按按钮'; el.style.color = '#2D6A4F'; }
+}
+function _afQueue(ms){ clearTimeout(_afTimer); _afTimer = setTimeout(_afRun, ms == null ? 1000 : ms); }
+async function _afRun(){
+  clearTimeout(_afTimer); _afTimer = null;
+  if(_afBusy){ _afAgain = true; return; }
+  _afBusy = true;
+  try { do { _afAgain = false; await commitForm(); } while(_afAgain); }
+  catch(e){ console.error('[auto-save]', e); }
+  finally { _afBusy = false; }
+}
+async function _afFlush(){
+  if(_afTimer) await _afRun();
+  while(_afBusy) await new Promise(r => setTimeout(r, 50));
+}
+function _afReset(sig){ clearTimeout(_afTimer); _afTimer = null; _afLast = sig; _afInvalid = ''; _afTouched = false; _afHint(''); }
+/* 关弹窗：先把还没送的送完；真的存不进去（例如必填没填）才问一次 */
+async function _afBeforeClose(){
+  await _afFlush();
+  if(_afTouched && _afInvalid){
+    return confirm('这一笔还没存：' + _afInvalid + '\n\n现在关掉，这一笔就不会存。确定关掉？');
+  }
+  return true;
+}
+
+let _afCreatedId = null;   /* 这次弹窗里刚建立的班：代号 / 部门改了，编号可以跟着改（还没有学生用到） */
+function markDirty(mode){ modalDirty = true; _afTouched = true; if(mode === 'blur') return; _afQueue(mode === 'now' ? 0 : 1000); }
+
+async function tryCloseModal(){
+  if(!document.querySelector('#modal-slot .modal-bg')) return;
+  if(!(await _afBeforeClose())) return;
   closeModal();
+  try{ renderList(); renderDashboard(); }catch(e){}
 }
 function closeModal(){
+  clearTimeout(_afTimer); _afTimer = null;
   document.getElementById('modal-slot').innerHTML = '';
-  editId = null; modalDirty = false;
+  editId = null; modalDirty = false; _afTouched = false;
 }
-
-function saveClass(){
+function _classSig(){
+  const g = id => (document.getElementById(id)||{value:''}).value;
+  const dept = g('f-dept');
+  return JSON.stringify([g('f-code').trim(), dept, g('f-status'), g('f-label').trim() || g('f-code').trim(), g('f-teacher').trim(),
+                         parseInt(g('f-cap')) || null, dept === 'SRT' ? g('f-level') : '', dept === 'SRT' ? g('f-slot') : '']);
+}
+/* v9 · 自动存：读表单 → 检查 → 写进 S → saveData()（单一出口） */
+async function commitForm(){
+  if(!document.querySelector('#modal-slot .modal-bg')) return;
   const code = document.getElementById('f-code').value.trim();
-  if(!code){ toast('✕ Code is required'); return; }
+  if(!code){ _afInvalid = '还没填班级代号'; _afHint(_afInvalid); return; }
   const dept = document.getElementById('f-dept').value;
   const status = document.getElementById('f-status').value;
   const label = document.getElementById('f-label').value.trim() || code;
@@ -728,24 +779,36 @@ function saveClass(){
   const cap = parseInt(document.getElementById('f-cap').value) || null;
   const level = document.getElementById('f-level')?.value || '';
   const slot = document.getElementById('f-slot')?.value || '';
-
-  if(editId){
-    const c = S.classes.find(x => x.id === editId);
-    if(c){
-      c.code = code; c.dept = dept; c.status = status; c.label = label;
-      c.classTeacher = teacher; c.capacity = cap;
-      if(dept === 'SRT'){ c.level = level; c.slot = slot; }
-      else { delete c.level; delete c.slot; }
+  if(S.classes.find(x => x.id !== editId && x.dept === dept && String(x.code).trim().toUpperCase() === code.toUpperCase())){
+    _afInvalid = dept + ' 已经有「' + code + '」这个班，请换一个代号'; _afHint(_afInvalid); return;
+  }
+  _afInvalid = ''; _afHint('');
+  const sig = _classSig(); if(sig === _afLast) return;
+  let c = editId ? S.classes.find(x => x.id === editId) : null;
+  if(c){
+    if(_afCreatedId && _afCreatedId === editId && (c.code !== code || c.dept !== dept)){
+      /* 刚建立的班改了代号 / 部门：编号跟着改，免得编号跟代号对不上 */
+      const old = c.id; c.id = '__tmp__';
+      c.id = makeClassId(dept, code);
+      if(c.id !== old){ editId = c.id; _afCreatedId = c.id; }
     }
+    c.code = code; c.dept = dept; c.status = status; c.label = label;
+    c.classTeacher = teacher; c.capacity = cap;
+    if(dept === 'SRT'){ c.level = level; c.slot = slot; }
+    else { delete c.level; delete c.slot; }
   } else {
     const obj = { id:makeClassId(dept, code), code, dept, label, capacity:cap, classTeacher:teacher, status };
     if(dept === 'SRT'){ obj.level = level; obj.slot = slot; }
     S.classes.push(obj);
+    editId = obj.id; _afCreatedId = obj.id;
+    const t = document.querySelector('#modal-slot .modal-title'); if(t) t.textContent = 'Edit Class';
+    const d = document.getElementById('af-del'); if(d) d.style.display = '';
   }
-  saveData(); modalDirty = false; closeModal();
-  renderList();   /* v8 · 不在推云之前说「已储存」，结果看顶栏指示器 */
+  _afLast = sig; modalDirty = false;
+  await saveData();
 }
 
+async function saveClass(){ await _afFlush(); }   /* v9 · 旧名称保留给快捷键用 */
 // ══ DELETE (双确认 — 主数据源) ══
 function deleteClass(id){
   if(!confirm('Delete this class?')) return;
@@ -753,6 +816,7 @@ function deleteClass(id){
   const idx = S.classes.findIndex(x => x.id === id);
   if(idx === -1) return;
   const removed = S.classes.splice(idx, 1)[0];
+  clearTimeout(_afTimer); _afTimer = null;
   saveData(); closeModal();
   // Undo toast
   toast('✓ Deleted <button onclick="undoDelete()" style="background:none;border:none;color:#F9CB42;cursor:pointer;font-weight:700;text-decoration:underline;font-family:inherit;font-size:12px;margin-left:6px">Undo</button>', 30000);

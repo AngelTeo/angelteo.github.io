@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MasterHub — Subject v9</title>
+<title>MasterHub — Subject v10</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -219,7 +219,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 <!-- ══════ NAV (TOPBAR) ══════ -->
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home">←</button>
-  <div class="nav-logo">MasterHub — Subject <span class="ver">v9</span></div>
+  <div class="nav-logo">MasterHub — Subject <span class="ver">v10</span></div>
   <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
   <button class="ntab" onclick="goPage('list')">All Subjects</button>
   <button class="ntab" onclick="goPage('manage')">Manage</button>
@@ -289,7 +289,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
       <div>System: <b>MasterHub — Subject</b></div>
       <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:3px;font-size:11px">masterhub_subject_v7</code></div>
       <div>Records: <b id="manage-count">—</b></div>
-      <div>Version: <span class="ver">v9</span></div>
+      <div>Version: <span class="ver">v10</span></div>
     </div>
   </div>
   <div style="margin-top:40px;text-align:center">
@@ -307,7 +307,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
     <div class="modal-body">
       <div class="form-row">
         <label class="form-label">Code *</label>
-        <input type="text" id="f-code" style="width:100%" oninput="markDirty()" placeholder="e.g. ENG" maxlength="10">
+        <input type="text" id="f-code" style="width:100%" oninput="markDirty('blur')" onchange="markDirty('now')" placeholder="e.g. ENG" maxlength="10">
       </div>
       <div class="form-row">
         <label class="form-label">Department *</label>
@@ -330,10 +330,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
         </select>
       </div>
     </div>
+      <div id="af-hint" style="font-size:12px;font-weight:600;margin-top:10px;color:#2D6A4F">✓ 改了就自动存进云端，不用按按钮</div>
     <div class="modal-foot">
       <button class="btn btn-dng btn-sm" id="modal-del" onclick="deleteItem()" style="margin-right:auto;display:none">Delete</button>
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-pri" onclick="saveItem()">Done</button>
+      <button class="btn btn-pri" onclick="closeModal()">Close</button>
     </div>
   </div>
 </div>
@@ -342,7 +342,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 const STORAGE_KEY = 'masterhub_subject_v7';
 
 /* ══════════════════════════════════════════════════════════════════
@@ -724,7 +724,7 @@ function sortBy(col) {
 
 // ══════ MODAL ══════
 function openAdd() {
-  editId = null; modalDirty = false;
+  editId = null; modalDirty = false; _afReset(null);
   document.getElementById('modal-title').textContent = 'Add Subject';
   document.getElementById('f-code').value = '';
   document.getElementById('f-dept').value = 'SRK';
@@ -746,42 +746,89 @@ function openEdit(id) {
   document.getElementById('f-status').value = s.status || 'active';
   document.getElementById('modal-del').style.display = '';
   document.getElementById('modal').style.display = 'flex';
+  _afReset(_subjSig());
 }
 
 let modalDirty = false;
 function markDirty() { modalDirty = true; }
-function closeModal() {
-  if (modalDirty && !confirm('Unsaved changes. Discard?')) return;
-  document.getElementById('modal').style.display = 'none';
-  editId = null; modalDirty = false;
+
+/* ══════════════════════════════════════════════════════════════════
+   v10 · 2026-09-26 · 表单一输入就上云（Owner：「我的系统都要一输入就上传云，不需要按 save」）
+   以前（vv9）：弹窗里改完要按 Done 才存；没按就关 = 白填。
+   现在：改一格 → 停 1 秒自动存进云端；名称 / 代号这种关键栏位，离开栏位才存（免得打一半就建出一笔）。
+        弹窗只剩「Close」，关的时候把还没送出的那一下先送完。
+   ══════════════════════════════════════════════════════════════════ */
+let _afTimer = null, _afBusy = false, _afAgain = false;
+let _afLast = null;       /* 这一笔上次存进去的样子；一样就不重送 */
+let _afInvalid = '';      /* 目前为什么还不能存（空 = 可以存） */
+let _afTouched = false;   /* 使用者有没有动过这个表单 */
+function _afHint(msg){
+  const el = document.getElementById('af-hint'); if(!el) return;
+  if(msg){ el.textContent = '⚠ ' + msg; el.style.color = '#c0392b'; }
+  else   { el.textContent = '✓ 改了就自动存进云端，不用按按钮'; el.style.color = '#2D6A4F'; }
+}
+function _afQueue(ms){ clearTimeout(_afTimer); _afTimer = setTimeout(_afRun, ms == null ? 1000 : ms); }
+async function _afRun(){
+  clearTimeout(_afTimer); _afTimer = null;
+  if(_afBusy){ _afAgain = true; return; }
+  _afBusy = true;
+  try { do { _afAgain = false; await commitForm(); } while(_afAgain); }
+  catch(e){ console.error('[auto-save]', e); }
+  finally { _afBusy = false; }
+}
+async function _afFlush(){
+  if(_afTimer) await _afRun();
+  while(_afBusy) await new Promise(r => setTimeout(r, 50));
+}
+function _afReset(sig){ clearTimeout(_afTimer); _afTimer = null; _afLast = sig; _afInvalid = ''; _afTouched = false; _afHint(''); }
+/* 关弹窗：先把还没送的送完；真的存不进去（例如必填没填）才问一次 */
+async function _afBeforeClose(){
+  await _afFlush();
+  if(_afTouched && _afInvalid){
+    return confirm('这一笔还没存：' + _afInvalid + '\n\n现在关掉，这一笔就不会存。确定关掉？');
+  }
+  return true;
 }
 
-async function saveItem() {
+function markDirty(mode) { modalDirty = true; _afTouched = true; if (mode === 'blur') return; _afQueue(mode === 'now' ? 0 : 1000); }
+async function closeModal() {
+  if (document.getElementById('modal').style.display !== 'flex') return;
+  if (!(await _afBeforeClose())) return;
+  _hideModal(); renderList();
+}
+function _hideModal() { clearTimeout(_afTimer); _afTimer = null; document.getElementById('modal').style.display = 'none'; editId = null; modalDirty = false; _afTouched = false; }
+function _subjSig() {
+  const code = document.getElementById('f-code').value.trim();
+  return JSON.stringify([code, document.getElementById('f-dept').value, document.getElementById('f-name').value.trim() || code, document.getElementById('f-status').value]);
+}
+/* v10 · 自动存：读表单 → 检查 → 写进 S → saveData()（单一出口） */
+async function commitForm() {
+  if (document.getElementById('modal').style.display !== 'flex') return;
   const code = document.getElementById('f-code').value.trim();
   const dept = document.getElementById('f-dept').value;
   const name = document.getElementById('f-name').value.trim() || code;
   const status = document.getElementById('f-status').value;
-  if (!code) { toast('Code is required'); return; }
-
+  if (!code) { _afInvalid = '还没填科目代号'; _afHint(_afInvalid); return; }
+  if (S.subjects.find(x => x.code === code && x.dept === dept && x.id !== editId)) { _afInvalid = dept + ' 已经有「' + code + '」，请换一个代号'; _afHint(_afInvalid); return; }
+  _afInvalid = ''; _afHint('');
+  const sig = _subjSig(); if (sig === _afLast) return;
   if (editId) {
     const s = S.subjects.find(x => x.id === editId);
     if (!s) return;
     s.code = code; s.dept = dept; s.name_full = name; s.name = name; s.status = status;
-    s.updatedAt = new Date().toISOString();   /* v9 · 不在推云之前说「已储存」，结果看顶栏指示器 */
+    s.updatedAt = new Date().toISOString();
   } else {
-    const dup = S.subjects.find(s => s.code === code && s.dept === dept);
-    if (dup && !confirm(dept + ' already has "' + code + '". Add anyway?')) return;
-    S.subjects.push({
-      id: genId(), code, dept, name, name_full: name, status,
-      updatedAt: new Date().toISOString()
-    });
-    toast('✓ Added ' + dept + '-' + code);
+    const id = genId();
+    S.subjects.push({ id, code, dept, name, name_full: name, status, updatedAt: new Date().toISOString() });
+    editId = id;
+    document.getElementById('modal-title').textContent = 'Edit Subject';
+    document.getElementById('modal-del').style.display = '';
   }
-  modalDirty = false;
+  _afLast = sig; modalDirty = false;
   await saveData();
-  closeModal();
   renderList();
 }
+async function saveItem() { await _afFlush(); }   /* 旧名称保留给快捷键用 */
 
 // ══════ DELETE + UNDO ══════
 async function deleteItem() {
@@ -790,12 +837,13 @@ async function deleteItem() {
   if (!confirm('Delete ' + s.dept + '-' + s.code + '?\n\nConsider archiving instead if other systems reference it.')) return;
   if (prompt('Type DELETE to confirm:') !== 'DELETE') { toast('Delete cancelled'); return; }
   // Remove and hold for undo
+  clearTimeout(_afTimer); _afTimer = null;
   S.subjects = S.subjects.filter(x => x.id !== editId);
   undoItem = s;
   clearTimeout(undoTimer);
   modalDirty = false;
   await saveData();
-  closeModal();
+  _hideModal();
   renderList();
   showUndo(s.dept + '-' + s.code);
 }
@@ -985,7 +1033,7 @@ document.addEventListener('keydown', async e => {
   }
   if (e.key === 'Enter' && document.getElementById('modal').style.display === 'flex') {
     e.preventDefault();
-    await saveItem();
+    await closeModal();   /* v10 · Enter = 存好并关掉 */
   }
 });
 

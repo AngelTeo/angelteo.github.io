@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v31</title>
+<title>MasterHub — Student v32</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -401,7 +401,7 @@ table.data tbody tr:hover{background:#FFF9E6}
 <div class="app">
   <div class="nav" style="background:var(--layer);border-bottom:.5px solid rgba(0,0,0,.2);display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:50;overflow-x:auto;gap:0">
     <button onclick="location.href='/index.html'" title="Home" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;padding:11px 10px 11px 0;flex-shrink:0">←</button>
-    <div style="font-size:13px;font-weight:600;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.2);margin-right:4px;white-space:nowrap;flex-shrink:0;color:#fff">MasterHub — Student <span class="ver" id="topbar-ver">v31</span></div>
+    <div style="font-size:13px;font-weight:600;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.2);margin-right:4px;white-space:nowrap;flex-shrink:0;color:#fff">MasterHub — Student <span class="ver" id="topbar-ver">v32</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('students')">Students</button>
     <button class="ntab" onclick="goPage('crossclass')">Cross-Class</button>
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 31;
+const APP_VERSION = 32;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -639,7 +639,7 @@ async function saveAll() {
     safeSet('last-saved', '❌ NOT SAVED ' + new Date().toLocaleTimeString('en-GB'));
     _saveBanner(msg);
     toast('❌ 存档失败：' + msg, 6000);
-    try { alert('存档失败，资料没有进云端。\n\n原因：' + msg + '\n\n请截图这段话给 Owner，先不要关掉页面。'); } catch(_e){}
+    if (!window._stuAuto) { try { alert('存档失败，资料没有进云端。\n\n原因：' + msg + '\n\n请截图这段话给 Owner，先不要关掉页面。'); } catch(_e){} }   /* v32 · 自动存时靠横幅，不连跳 alert */
     return false;
   }
 }
@@ -1785,7 +1785,7 @@ window.openStudent = function(id) {
     if (r.start_date && dd < r.start_date) { toast('End date cannot be before the start date (' + r.start_date + ')', 3500); return; }
     r.end_date = dd;
     renderOutside();
-    toast('Ended ' + dd + ' — record kept. Press Save.', 3000);
+    toast('Ended ' + dd + ' — record kept（会自动存）', 3000);
   };
   
   function renderMemberships() {
@@ -1891,7 +1891,7 @@ window.openStudent = function(id) {
     buf.memberships_history.push(JSON.parse(JSON.stringify(m)));
     buf.memberships.splice(idx, 1);
     renderMemberships(); renderHistory();
-    toast('Class ended ' + dd + ' — record kept. Press Save.', 3000);
+    toast('Class ended ' + dd + ' — record kept（会自动存）', 3000);
   };
   window.addMembership = function() {
     buf.memberships.push({ dept: 'SRK', class: S.classes.SRK[0] || '', num: null, start_date: _today(), end_date: null });
@@ -1901,7 +1901,7 @@ window.openStudent = function(id) {
   window.cancelTransfer = function(idx) {
     const m = buf.memberships[idx];
     if (!m || !m.end_date) return;
-    if (isModalDirty()) { toast('Save or Cancel current changes first', 3000); return; }
+    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('先把这个补好：' + _stInvalid) : '正在自动存，请一秒后再按', 3000); return; }
     const dept = m.dept, oldClass = m.class, endDate = m.end_date;
     if (!confirm('Cancel the transfer scheduled on ' + endDate + '?\n\n' + dept + ' ' + oldClass + ' will stay as the current class.')) return;
     (async function() {
@@ -1931,8 +1931,8 @@ window.openStudent = function(id) {
   window.openTransfer = function(idx) {
     const m = buf.memberships[idx];
     if (!m) return;
-    if (isNew) { toast('Save the student before transferring', 2500); return; }
-    if (isModalDirty()) { toast('Save or Cancel current changes before transferring', 3000); return; }
+    if (isNew) { toast('先填好英文名字，学生建立后才能转班', 2500); return; }
+    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('先把这个补好：' + _stInvalid) : '正在自动存，请一秒后再按', 3000); return; }
     const dept = m.dept, oldClass = m.class, oldNum = (m.num != null ? m.num : null), oldStart = m.start_date || null;
     const opts = getClasses(dept).filter(c => c !== oldClass);
     if (!opts.length) { toast('No other ' + dept + ' classes available', 2500); return; }
@@ -2013,7 +2013,7 @@ window.openStudent = function(id) {
      现在：选离开类型 → 填最后一天 → 所有生效班籍在那天结束 → 状态跟着改。 */
   window.openLeave = function() {
     if (isNew) { toast('Save the student first', 2500); return; }
-    if (isModalDirty()) { toast('Save or Cancel current changes first', 3000); return; }
+    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('先把这个补好：' + _stInvalid) : '正在自动存，请一秒后再按', 3000); return; }
     const live = (buf.memberships || []).filter(m => !m.end_date);
     const lov = document.createElement('div');
     lov.className = 'modal-bg'; lov.style.zIndex = '1001';
@@ -2031,6 +2031,7 @@ window.openStudent = function(id) {
     lov.innerHTML = lh;
     document.body.appendChild(lov);
     document.getElementById('lv-confirm').onclick = async function() {
+      await _stFlush();   /* v32 · 先把视窗里还没送的送完 */
       const type = document.getElementById('lv-type').value;
       const T = (document.getElementById('lv-date').value || '').trim();
       const note = (document.getElementById('lv-note').value || '').trim();
@@ -2068,7 +2069,7 @@ window.openStudent = function(id) {
   const _footLeft = isNew ? '' :
     '<button class="btn btn-sm" style="color:#A32D2D;border-color:#A32D2D;margin-right:auto" onclick="window.openLeave()">Student leaving</button>' +
     '<button class="btn btn-sm" style="color:var(--mut);margin-right:8px" onclick="window.archiveStudent(\'' + esc(buf.id) + '\')">' + (buf.status === 'Archived' ? 'Restore' : 'Archive') + '</button>';
-  overlay.innerHTML = '<div class="modal"><div class="modal-hdr"><div class="modal-title">' + (isNew ? 'New Student' : 'Student — ' + esc(buf.name) + (buf.name_cn ? ' ' + esc(buf.name_cn) : '')) + '</div><button class="x-btn" id="modal-close-x">×</button></div><div class="modal-body">' + modalBody() + '</div><div class="modal-foot">' + _footLeft + '<button class="btn" id="modal-cancel">Cancel</button><button class="btn btn-pri" id="ed-save">Save</button></div></div>';
+  overlay.innerHTML = '<div class="modal"><div class="modal-hdr"><div class="modal-title">' + (isNew ? 'New Student' : 'Student — ' + esc(buf.name) + (buf.name_cn ? ' ' + esc(buf.name_cn) : '')) + '</div><button class="x-btn" id="modal-close-x">×</button></div><div class="modal-body">' + modalBody() + '</div><div class="modal-foot">' + _footLeft + '<span id="st-af-hint" style="font-size:12px;font-weight:600;color:#2D6A4F;align-self:center;margin-right:8px">✓ 改了就自动存进云端，不用按按钮</span><button class="btn btn-pri" id="modal-cancel">Close</button></div></div>';
   document.body.appendChild(overlay);
   renderMemberships();
   renderHistory();
@@ -2076,37 +2077,107 @@ window.openStudent = function(id) {
 
   // --- formDirty: snapshot original for comparison ---
   var originalSnap = JSON.stringify(buf);
-  function isModalDirty() {
-    // Read current form values into temp
-    var curName = (document.getElementById('ed-name') || {}).value || '';
-    var curCn = (document.getElementById('ed-name-cn') || {}).value || '';
-    var curBy = (document.getElementById('ed-byear') || {}).value || '';
-    var curGender = (document.getElementById('ed-gender') || {}).value || '';
-    var curStatus = (document.getElementById('ed-status') || {}).value || '';
-    var curNotes = (document.getElementById('ed-notes') || {}).value || '';
-    /* v29 · 校外补习也要算「改过了」，否则只改补习就直接关掉，资料没了也不会问 */
-    var _otNorm = function(list){ return JSON.stringify((list||[]).map(function(r){
-      return [r.id||0, r.provider||'', r.subject||'', r.subject_note||'', Number(r.day_of_week)||0,
-              (r.from_time||'').slice(0,5), (r.to_time||'').slice(0,5), r.start_date||'', r.end_date||'',
-              r.clash_effect||'none', r.note||''].join('|'); }).sort()); };
-    var cur = JSON.stringify({n:curName,c:curCn,b:curBy,g:curGender,s:curStatus,o:curNotes,m:buf.memberships,t:_otNorm(buf.outside)});
-    var orig = JSON.stringify({n:s.name||'',c:s.name_cn||'',b:s.birth_year!=null?String(s.birth_year):'',g:s.gender||'',s:s.status||'Active',o:s.notes||'',m:s.memberships,t:_otNorm(OUTSIDE[s.id])});
-    return cur !== orig;
+  /* ══ v32 · 2026-09-26 · 一输入就上云（Owner：「我的系统都要一输入就上传云，不需要按 save」）══
+     以前（v31）：改完要按 Save；没按就关 = 白填。班籍、校外补习每一行也一样。
+     现在：视窗里任何输入 / 点选 → 停 1 秒自动存进云端。只剩「Close」，关之前先把还没送的送完。
+     转班、学生离开这种会影响别人的动作，照样保留确认按钮（存档统一逻辑 规则二）。 */
+  let _stTimer = null, _stBusy = false, _stAgain = false, _stLast = null, _stInvalid = '', _stTouched = false;
+  function _stHint(msg, warn) {
+    const el = document.getElementById('st-af-hint'); if (!el) return;
+    if (msg) { el.textContent = '⚠ ' + msg; el.style.color = warn ? '#854F0B' : '#c0392b'; }
+    else { el.textContent = '✓ 改了就自动存进云端，不用按按钮'; el.style.color = '#2D6A4F'; }
   }
-  function closeModal() {
-    if (isModalDirty()) {
-      if (!confirm('You have unsaved changes. Discard?')) return;
+  function _stQueue(ms) { clearTimeout(_stTimer); _stTimer = setTimeout(_stRun, ms == null ? 1000 : ms); }
+  async function _stRun() {
+    clearTimeout(_stTimer); _stTimer = null;
+    if (_stBusy) { _stAgain = true; return; }
+    _stBusy = true;
+    try { do { _stAgain = false; await commitStudent(); } while (_stAgain); }
+    catch (e) { console.error('[auto-save]', e); }
+    finally { _stBusy = false; }
+  }
+  async function _stFlush() {
+    if (_stTimer) await _stRun();
+    while (_stBusy) await new Promise(r => setTimeout(r, 50));
+  }
+  window._stuFlush = _stFlush;
+  /* 还有东西没送完、或有栏位没填好 → 算「还没存」 */
+  function isModalDirty() { return !!(_stTimer || _stBusy || (_stTouched && _stInvalid)); }
+  /* 把表单读进 buf（不做检查） */
+  function _stRead() {
+    buf.name = (document.getElementById('ed-name').value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    buf.name_cn = document.getElementById('ed-name-cn').value.trim();
+    const by = parseInt(document.getElementById('ed-byear').value);
+    buf.birth_year = isNaN(by) ? null : by;
+    buf.gender = document.getElementById('ed-gender').value || null;
+    buf.status = document.getElementById('ed-status').value || 'Active';
+    const noteEl = document.getElementById('ed-status-note');
+    buf.status_note = (['Transferred','Stopped','Graduated','Moved','Paused','Archived'].indexOf(buf.status) >= 0 && noteEl) ? noteEl.value.trim() : '';
+    if (buf.flags) delete buf.flags;
+    buf.notes = document.getElementById('ed-notes').value;
+  }
+  async function commitStudent() {
+    if (!document.body.contains(overlay)) return;
+    _stRead();
+    if (!buf.name) { _stInvalid = '还没填英文名字'; _stHint(_stInvalid); return; }
+    const otRows = (buf.outside || []);
+    const badOt = otRows.find(r => (!r.end_date || r.end_date >= _today())
+                    && r.from_time && r.to_time && r.to_time <= r.from_time);
+    if (badOt) { _stInvalid = '校外补习：结束时间要比开始时间晚'; _stHint(_stInvalid); return; }
+    _stInvalid = '';
+    const clash = seatClashes(buf.id, buf.memberships);
+    const sig = JSON.stringify(buf);
+    if (sig === _stLast) { clash.length ? _stHint('座号跟 ' + clash.join('、') + ' 撞了，请确认', true) : _stHint(''); return; }
+    const _outBuf = JSON.parse(JSON.stringify(otRows));
+    const stu = JSON.parse(sig); delete stu.outside;   /* 校外补习不跟着学生 blob 一起写 */
+    if (isNew) { S.students.push(stu); isNew = false; }
+    else {
+      const idx = S.students.findIndex(x => x.id === buf.id);
+      if (idx >= 0) S.students[idx] = stu; else S.students.push(stu);
     }
+    window._stuAuto = true;
+    let ok = false;
+    try { ok = await saveAll(); } finally { window._stuAuto = false; }
+    if (!ok) { _stHint('没有存进云端，看顶部红色横幅'); return; }
+    if (_outBuf.length || (OUTSIDE[buf.id] || []).length) {
+      try { await saveOutsideRows(buf.id, _outBuf); }
+      catch (e) {
+        const msg = (e && (e.message || e.details)) ? (e.message || e.details) : String(e);
+        _saveBanner('校外补习 — ' + msg);
+        _stHint('校外补习没存进云端：' + msg);
+        return;
+      }
+    }
+    _stLast = sig;
+    const t = overlay.querySelector('.modal-title'); if (t) t.textContent = 'Student — ' + buf.name + (buf.name_cn ? ' ' + buf.name_cn : '');
+    clash.length ? _stHint('座号跟 ' + clash.join('、') + ' 撞了，请确认', true) : _stHint('');
+  }
+  async function closeModal() {
+    await _stFlush();
+    if (_stTouched && _stInvalid) {
+      if (!confirm('这位学生还没存：' + _stInvalid + '\n\n现在关掉就不会存。确定关掉？')) return;
+    }
+    clearTimeout(_stTimer); _stTimer = null;
     overlay.remove();
     document.removeEventListener('keydown', modalKeyHandler);
+    renderCurrentPage();
   }
+  /* 视窗里任何输入 / 点选都排一次自动存；内容没变就不会真的送 */
+  const _stOnEdit = ev => {
+    const body = overlay.querySelector('.modal-body');
+    if (!body || !body.contains(ev.target)) return;
+    _stTouched = true; _stQueue(1000);
+  };
+  overlay.addEventListener('input', _stOnEdit);
+  overlay.addEventListener('change', _stOnEdit);
+  overlay.addEventListener('click', _stOnEdit);
+  setTimeout(() => { if (!isNew) { _stRead(); _stLast = JSON.stringify(buf); } }, 0);   /* 打开不算改 */
   // --- ESC + Ctrl+S handler ---
   function modalKeyHandler(e) {
     if (e.key === 'Escape') { closeModal(); e.preventDefault(); }
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      var saveBtn = document.getElementById('ed-save');
-      if (saveBtn) saveBtn.click();
+      _stFlush();   /* v32 · 只是快捷键 */
     }
   }
   document.addEventListener('keydown', modalKeyHandler);
@@ -2129,58 +2200,7 @@ window.openStudent = function(id) {
     });
   }
   
-  document.getElementById('ed-save').onclick = async function() {
-    let newName = document.getElementById('ed-name').value.trim().toUpperCase().replace(/\s+/g, ' ');
-    if (!newName) { toast('Name is required', 2000); return; }
-    buf.name = newName;
-    buf.name_cn = document.getElementById('ed-name-cn').value.trim();
-    const by = parseInt(document.getElementById('ed-byear').value);
-    buf.birth_year = isNaN(by) ? null : by;
-    buf.gender = document.getElementById('ed-gender').value || null;
-    buf.status = document.getElementById('ed-status').value || 'Active';
-    const noteEl = document.getElementById('ed-status-note');
-    buf.status_note = (['Transferred','Stopped','Graduated','Moved','Paused','Archived'].indexOf(buf.status) >= 0 && noteEl) ? noteEl.value.trim() : '';
-    // Remove old flags field for cleanliness
-    if (buf.flags) delete buf.flags;
-    buf.notes = document.getElementById('ed-notes').value;
-    
-    /* v28 · 同班撞座号检查 */
-    const clash = seatClashes(buf.id, buf.memberships);
-    if (clash.length) {
-      if (!confirm('Seat number already used in: ' + clash.join(', ') + '\n\nSave anyway?')) return;
-    }
-    /* v29 · 校外补习先检查，再一起存 */
-    const otRows = (buf.outside || []);
-    const badOt = otRows.find(r => (!r.end_date || r.end_date >= _today())
-                    && r.from_time && r.to_time && r.to_time <= r.from_time);
-    if (badOt) { toast('校外补习：结束时间要比开始时间晚', 3000); return; }
-
-    const _outBuf = JSON.parse(JSON.stringify(otRows));
-    delete buf.outside;                       /* 不可以跟着学生 blob 一起写 */
-    if (isNew) S.students.push(buf);
-    else {
-      const idx = S.students.findIndex(x => x.id === buf.id);
-      if (idx >= 0) S.students[idx] = buf;
-    }
-    /* v29 · 等存档真的成功才关视窗、才说「Saved」。失败留在画面上让人重按。 */
-    const ok = await saveAll();
-    if (!ok) { buf.outside = _outBuf; return; }
-    if (!isNew && (_outBuf.length || (OUTSIDE[buf.id] || []).length)) {
-      try { await saveOutsideRows(buf.id, _outBuf); }
-      catch (e) {
-        const msg = (e && (e.message || e.details)) ? (e.message || e.details) : String(e);
-        buf.outside = _outBuf;
-        _saveBanner('校外补习 — ' + msg);
-        toast('❌ 校外补习没存进去：' + msg, 6000);
-        try { alert('学生资料存好了，但校外补习那几笔没有进云端。\n\n原因：' + msg); } catch(_e){}
-        return;
-      }
-    }
-    overlay.remove();
-    document.removeEventListener('keydown', modalKeyHandler);
-    toast(isNew ? 'Student added' : 'Saved', 1500);
-    renderCurrentPage();
-  };
+  /* v32 · 旧的「Save」按钮处理已拿掉，改由 commitStudent() 自动存 */
 };
 
 window.onStatusChange = function() {
@@ -2211,7 +2231,8 @@ window.onStatusChange = function() {
    旧版是永久删除，连同所有班籍历史，删错救不回；而且 09-23 起资料库对有出席或
    家长沟通纪录的学生不准硬删，按下去只会失败。
    现在：封存 = 从名单藏起来，资料留着，随时可以复原。 */
-window.archiveStudent = function(id) {
+window.archiveStudent = async function(id) {
+  if (window._stuFlush) await window._stuFlush();   /* v32 · 先把视窗里还没送的送完 */
   const s = S.students.find(x => x.id === id);
   if (!s) return;
   if (isInactiveStatus(s.status) && s.status === 'Archived') {

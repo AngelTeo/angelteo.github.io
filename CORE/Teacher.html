@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MasterHub — Teacher v15</title>
+<title>MasterHub — Teacher v16</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -213,7 +213,7 @@ select.fi{background:var(--sur)}
 <!-- ══ NAV ══ -->
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home">←</button>
-  <div class="nav-logo">MasterHub — Teacher <span class="ver">v14</span></div>
+  <div class="nav-logo">MasterHub — Teacher <span class="ver">v16</span></div>
   <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
   <button class="ntab" onclick="goPage('list')">All Teachers</button>
   <button class="ntab" onclick="goPage('manage')">Manage</button>
@@ -311,7 +311,7 @@ select.fi{background:var(--sur)}
       <div>System: <b>MasterHub — Teacher</b></div>
       <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:11px">masterhub_teacher_v8</code></div>
       <div>Records: <b><span id="manage-total">0</span> total (<span id="manage-active">0</span> active, <span id="manage-archived">0</span> archived)</b></div>
-      <div>Version: <span class="ver">v14</span></div>
+      <div>Version: <span class="ver">v16</span></div>
     </div>
   </div>
   <div style="margin-top:40px;text-align:center">
@@ -323,7 +323,7 @@ select.fi{background:var(--sur)}
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION = 'v15';
+const APP_VERSION = 'v16';
 const STORAGE_KEY = 'masterhub_teacher_v8';
 /* v15 · 2026-09-24 事故修补。起因：有人把职位设成 Caregiver（当时 DB enum 没这个值），
    云端整批退回 400；本机其实存住了，但使用者 Ctrl+Shift+R 之后，
@@ -461,10 +461,12 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 // ══ NAVIGATION ══
 function goPage(p){
-  if(p !== 'edit' && formDirty){
-    if(!confirm('Unsaved changes. Discard?')) return;
-    formDirty = false;
+  const _onEdit = document.getElementById('page-edit') && document.getElementById('page-edit').classList.contains('on');
+  if(p !== 'edit' && _onEdit && (_afTimer || _afBusy)){ _afFlush().then(() => goPage(p)); return; }   /* v16 · 先送完 */
+  if(p !== 'edit' && _onEdit && _afTouched && _afInvalid){
+    if(!confirm('这位老师还没存：' + _afInvalid + '\n\n现在离开就不会存。确定离开？')) return;
   }
+  if(p !== 'edit'){ formDirty = false; _afTouched = false; }
   document.querySelectorAll('.page').forEach(el => el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el => el.classList.remove('on'));
   document.getElementById('page-' + p).classList.add('on');
@@ -677,6 +679,8 @@ function openEdit(id){
   document.querySelectorAll('.page').forEach(el => el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el => el.classList.remove('on'));
   document.getElementById('page-edit').classList.add('on');
+  clearTimeout(_afTimer); _afTimer = null; _afInvalid = ''; _afTouched = false;
+  _afLast = editIsNew ? null : JSON.stringify(_readTeacherForm());   /* v16 · 打开不算改 */
 }
 
 function renderEditPage(){
@@ -745,7 +749,7 @@ function renderEditPage(){
 
       <div class="row2">
         <div class="fg"><label class="fl">Initial *</label>
-          <input class="fi" id="tf-code" value="${esc(t.id)}" placeholder="e.g. SA" oninput="markDirty();syncCode()" style="text-transform:uppercase"></div>
+          <input class="fi" id="tf-code" value="${esc(t.id)}" placeholder="e.g. SA" oninput="markDirty('blur');syncCode()" onchange="markDirty('now')" ${editIsNew?'':'readonly title="Initial 建立后不能改（其他系统用它认人）"'} style="text-transform:uppercase${editIsNew?'':';background:var(--sur2);cursor:not-allowed'}"></div>
         <div class="fg"><label class="fl">Full Name *</label>
           <input class="fi" id="tf-name" value="${esc(t.name)}" placeholder="Full name" oninput="markDirty()"></div>
       </div>
@@ -836,15 +840,97 @@ function renderEditPage(){
         <input class="fi" id="tf-note" value="${esc(t.note||'')}" placeholder="Optional note" oninput="markDirty()"></div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:.5px solid var(--bdr)">
-        ${editIsNew?'':`<button class="btn btn-dng btn-sm" onclick="deleteTeacher()" style="margin-right:auto">Delete</button>`}
-        <button class="btn" onclick="goPage('list')">Cancel</button>
-        <button class="btn btn-pri" onclick="saveTeacher()">${editIsNew?'Add Teacher':'Save Changes'}</button>
+        <div id="af-hint" style="font-size:12px;font-weight:600;color:#2D6A4F;align-self:center;margin-right:auto">✓ 改了就自动存进云端，不用按按钮</div>
+        ${editIsNew?'':`<button class="btn btn-dng btn-sm" onclick="deleteTeacher()">Delete</button>`}
+        <button class="btn btn-pri" onclick="goPage('list')">← Back to list</button>
       </div>
     </div>
   `;
 }
 
-function markDirty(){ formDirty = true; }
+/* ══════════════════════════════════════════════════════════════════
+   v16 · 2026-09-26 · 一输入就上云（Owner：「我的系统都要一输入就上传云，不需要按 save」）
+   以前（v15）：33 个栏位改完都只在画面上，要按「Save Changes / Add Teacher」才存。
+   现在：改一格 → 停 1 秒自动存进云端。Initial 离开栏位才存（免得打一半就建出一位）。
+        按钮只剩「← Back to list」，离开前先把还没送的送完。
+   ══════════════════════════════════════════════════════════════════ */
+let _afTimer = null, _afBusy = false, _afAgain = false, _afLast = null, _afInvalid = '', _afTouched = false;
+function markDirty(mode){ formDirty = true; _afTouched = true; if(mode === 'blur') return; _afQueue(mode === 'now' ? 0 : 1000); }
+function _afHint(msg){
+  const el = document.getElementById('af-hint'); if(!el) return;
+  if(msg){ el.textContent = '⚠ ' + msg; el.style.color = '#c0392b'; }
+  else   { el.textContent = '✓ 改了就自动存进云端，不用按按钮'; el.style.color = '#2D6A4F'; }
+}
+function _afQueue(ms){ clearTimeout(_afTimer); _afTimer = setTimeout(_afRun, ms == null ? 1000 : ms); }
+async function _afRun(){
+  clearTimeout(_afTimer); _afTimer = null;
+  if(_afBusy){ _afAgain = true; return; }
+  _afBusy = true;
+  try { do { _afAgain = false; await commitTeacher(); } while(_afAgain); }
+  catch(e){ console.error('[auto-save]', e); }
+  finally { _afBusy = false; }
+}
+async function _afFlush(){
+  if(_afTimer) await _afRun();
+  while(_afBusy) await new Promise(r => setTimeout(r, 50));
+}
+/* 表单里任何点选 / 输入都排一次自动存；内容没变就不会真的送 */
+document.addEventListener('DOMContentLoaded', () => {
+  const pg = document.getElementById('page-edit'); if(!pg) return;
+  const h = ev => {
+    if(!pg.classList.contains('on')) return;
+    if(ev.target && ev.target.id === 'tf-code') return;          /* Initial 自己处理 */
+    if(ev.type === 'click' && !(ev.target.closest && ev.target.closest('.card'))) return;
+    _afTouched = true; _afQueue(1000);
+  };
+  pg.addEventListener('input', h); pg.addEventListener('change', h); pg.addEventListener('click', h);
+});
+/* 读表单 → 检查 → 写进 S.teachers → saveData()（单一出口）。回传 false = 这次没有存 */
+function _readTeacherForm(){
+  const t = editTeacher;
+  if(editIsNew) t.id = (document.getElementById('tf-code')||{value:t.id}).value.trim().toUpperCase();
+  t.name = (document.getElementById('tf-name')||{value:t.name}).value.trim();
+  t.joinDate = (document.getElementById('tf-joindate')||{value:''}).value;
+  t.note = (document.getElementById('tf-note')||{value:''}).value.trim();
+  t.color = (document.getElementById('tf-color')||{value:'#5C1010'}).value;
+  t.canSub = (document.getElementById('tf-cansub')||{checked:false}).checked;
+  t.workingPeriod = (document.getElementById('tf-working-period')||{value:''}).value.trim();
+  t.resigned = (document.getElementById('tf-resigned')||{checked:false}).checked;
+  t.lastDate = (document.getElementById('tf-last-date')||{value:''}).value;
+  t.resignReason = (document.getElementById('tf-resign-reason')||{value:''}).value.trim();
+  t.canLeave = (document.getElementById('tf-canleave')||{checked:false}).checked;
+  if(!t.subjByDept) t.subjByDept = {};
+  const all = new Set(); Object.values(t.subjByDept).forEach(arr => arr.forEach(x => all.add(x)));
+  t.subjects = [...all];
+  return t;
+}
+async function commitTeacher(){
+  if(!document.getElementById('page-edit').classList.contains('on') || !editTeacher) return;
+  const t = _readTeacherForm();
+  if(!t.id)   { _afInvalid = '还没填 Initial'; _afHint(_afInvalid); return; }
+  if(!t.name) { _afInvalid = '还没填名字'; _afHint(_afInvalid); return; }
+  const _perr = normalisePeriodsForSave();
+  if(_perr){ _afInvalid = _perr.day + ' 上班时间：' + _perr.detail; _afHint(_afInvalid); return; }
+  if(editIsNew){
+    const dup = S.teachers.find(x => x.id === t.id);
+    if(dup){ _afInvalid = 'Initial「' + t.id + '」已经给 ' + dup.name + ' 用了'; _afHint(_afInvalid); return; }
+  }
+  _afInvalid = ''; _afHint('');
+  const sig = JSON.stringify(t); if(sig === _afLast) return;
+  if(editIsNew){
+    S.teachers.push(JSON.parse(sig));
+    editIsNew = false;
+    const c = document.getElementById('tf-code');
+    if(c){ c.readOnly = true; c.title = 'Initial 建立后不能改（其他系统用它认人）'; c.style.background = 'var(--sur2)'; }
+  } else {
+    const idx = S.teachers.findIndex(x => x.id === t.id);
+    if(idx < 0) return;
+    S.teachers[idx] = JSON.parse(sig);
+  }
+  _afLast = sig; formDirty = false;
+  await saveData();
+}
+async function saveTeacher(){ await _afFlush(); }   /* 旧名称保留 */
 
 // ══ TOGGLE/SET FUNCTIONS ══
 function syncCode(){
@@ -1076,50 +1162,11 @@ function setSgNote(day, val){
   editTeacher.schedule[day].note = val;
 }
 
-// ══ SAVE ══
-async function saveTeacher(){
-  const t = editTeacher;
-  t.id = (document.getElementById('tf-code')||{value:t.id}).value.trim().toUpperCase();
-  t.name = (document.getElementById('tf-name')||{value:t.name}).value.trim();
-  t.joinDate = (document.getElementById('tf-joindate')||{value:''}).value;
-  t.note = (document.getElementById('tf-note')||{value:''}).value.trim();
-  t.color = (document.getElementById('tf-color')||{value:'#5C1010'}).value;
-  t.canSub = (document.getElementById('tf-cansub')||{checked:false}).checked;
-  t.workingPeriod = (document.getElementById('tf-working-period')||{value:''}).value.trim();
-  t.resigned = (document.getElementById('tf-resigned')||{checked:false}).checked;
-  t.lastDate = (document.getElementById('tf-last-date')||{value:''}).value;
-  t.resignReason = (document.getElementById('tf-resign-reason')||{value:''}).value.trim();
-  t.canLeave = (document.getElementById('tf-canleave')||{checked:false}).checked;
-  if(!t.id) { toast('Please enter an Initial'); return; }
-  if(!t.name) { toast('Please enter a Name'); return; }
-  // BUG-D: never let malformed working hours reach the database. Bad data would
-  // make the teacher unavailable everywhere with no obvious cause.
-  const _perr = normalisePeriodsForSave();
-  if(_perr){ toast(`${_perr.day} working hours: ${_perr.detail}`); _repaintPeriods(); return; }
-  if(!t.subjByDept) t.subjByDept = {};
-  const allSubjs2 = new Set();
-  Object.values(t.subjByDept).forEach(arr => arr.forEach(x => allSubjs2.add(x)));
-  t.subjects = [...allSubjs2];
-
-  if(editIsNew){
-    const dup = S.teachers.find(x => x.id === t.id && x.status === 'active');
-    if(dup){ toast('Initial "' + t.id + '" is already used by ' + dup.name); return; }
-    S.teachers.push(JSON.parse(JSON.stringify(t)));
-  } else {
-    const idx = S.teachers.findIndex(x => x.id === t.id);
-    if(idx >= 0) S.teachers[idx] = JSON.parse(JSON.stringify(t));
-  }
-  formDirty = false;
-  const _receipt = _periodsReceipt();
-  const _ok = await saveData(); goPage('list');
-  // v14: 云端写失败时, Store.set 已经发出警告 — 不可再发成功讯息盖掉它。
-  if(_ok) toast((editIsNew ? '✓ Teacher added' : '✓ Saved') +
-        (_receipt ? '<br>Working hours saved: ' + _receipt : '<br>No exact working hours set (using AM/PM)'),
-        _receipt ? 7000 : 3000);
-}
+// ══ SAVE ══ → v16 改成自动存，见 commitTeacher()
 
 // ══ DELETE (双确认) ══
 async function deleteTeacher(){
+  clearTimeout(_afTimer); _afTimer = null;
   if(!confirm('Delete ' + editTeacher.name + '?')) return;
   if(prompt('Type DELETE to confirm:') !== 'DELETE'){ toast('Delete cancelled'); return; }
   const id = editTeacher.id;
@@ -1132,7 +1179,7 @@ async function deleteTeacher(){
     return;
   }
   const removed = S.teachers.splice(idx, 1)[0];
-  formDirty = false;
+  formDirty = false; _afTouched = false; _afInvalid = '';
   const _ok = await saveData();
   if(_ok) toast('✓ Deleted <button onclick="undoDelete()" style="background:none;border:none;color:#F9CB42;cursor:pointer;font-weight:700;text-decoration:underline;font-family:inherit;font-size:12px;margin-left:6px">Undo</button>', 30000);
   window._undoTeacher = { item:removed, idx };
@@ -1152,7 +1199,7 @@ document.addEventListener('keydown', async e => {
   if(e.key === 'Escape'){
     if(document.getElementById('page-edit').classList.contains('on')) goPage('list');
   }
-  if((e.ctrlKey || e.metaKey) && e.key === 's'){ e.preventDefault(); const _ok = await saveData(); if(_ok) toast('✓ Saved'); }
+  if((e.ctrlKey || e.metaKey) && e.key === 's'){ e.preventDefault(); if(document.getElementById('page-edit').classList.contains('on')) await _afFlush(); else await saveData(); }   /* v16 · 只是快捷键 */
 });
 
 // ══ PRINT ══
