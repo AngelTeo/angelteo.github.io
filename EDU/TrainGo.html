@@ -1188,7 +1188,7 @@ function getStageForDay(d){return D.STAGES.find(s=>s.days.includes(d))||D.STAGES
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v25';
+const APP_VERSION='v26';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1435,7 +1435,9 @@ async function reloadAll(){
     settleRole();
     if(!S.planUid){
       const mine=myPlan();
-      S.planUid = mine ? mine.uid : (S.plans[0]?S.plans[0].uid:null);
+      // Mentor 没有自己的训练计划时，预设落在她带的第一个学员身上
+      const led=(S.role==='mentor'&&typeof mentorPlans==='function')?mentorPlans():[];
+      S.planUid = mine ? mine.uid : (led[0] ? led[0].uid : (S.plans[0]?S.plans[0].uid:null));
     }
     const cur=getPlan();
     if(cur&&!S.dept)S.dept=(cur.depts[0]||{}).dept||'SRK';
@@ -1540,7 +1542,10 @@ function settleRole(){
   if(S.role==='mgmt')return;
   if(!S.me)return;
   const my=S.me.code;
-  S.role = S.plans.some(p=>p.mentorCode===my && p.teacherCode!==my) ? 'mentor' : 'mentee';
+  // 中途接手的 Mentor（写在 mentorHistory 里）也要升成 Mentor 身份
+  S.role = S.plans.some(p=>p.teacherCode!==my &&
+            (p.mentorCode===my || (p.mentorHistory||[]).some(e=>e.mentor_code===my)))
+          ? 'mentor' : 'mentee';
   applyRole();
 }
 
@@ -1812,6 +1817,7 @@ function renderDashboard(){
   const el=document.getElementById('dashboard-content');
   if(S.role==='mgmt'){renderMgmtDashboard(el);return;}
   if(S.role==='mentee'){renderMenteeHome();return;}
+  if(S.role==='mentor'){renderMentorHome();return;}
   const cohort=getCohort();
   if(!cohort){
     el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
@@ -3015,6 +3021,147 @@ function renderPasswordMgmt(){
 // ══════════════════════════════════════════════════════════════
 // 新老师首页：三层（今天一件 / 这一週 / 整份计划点开看）
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// Mentor 首页（多部门 · 多学员）
+// 跟新老师那边同一套逻辑：今天做这一件 → 我带的人 → 要处理的事
+// ══════════════════════════════════════════════════════════════
+function mentorPlans(){
+  const me=S.me&&S.me.code;
+  if(!me)return [];
+  return S.plans.filter(p=>{
+    if(p.teacherCode===me)return false;                 // 自己的训练计划不算
+    if(p.status==='completed'&&!(p.depts||[]).some(x=>x.status==='active'))return false;
+    if(p.mentorCode===me)return true;
+    return (p.mentorHistory||[]).some(e=>e.mentor_code===me);   // 中途接手的也算
+  });
+}
+
+function renderMentorHome(){
+  const el=document.getElementById('dashboard-content');
+  const plans=mentorPlans();
+  const iso=todayISO();
+
+  if(!plans.length){
+    el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
+      <div style="font-size:30px;margin-bottom:10px">👨‍🏫</div>
+      <div style="font-weight:600;margin-bottom:5px">你现在没有带人</div>
+      <div style="color:var(--mut);font-size:12px">管理层把新老师指派给你之后，这里就会出现。</div>
+    </div>`;return;
+  }
+
+  // 先把每个学员今天该做的算出来，顺便记住第一件还没做的
+  const cards=[];
+  let first=null;
+  plans.forEach(p=>{
+    const blocks=todayDeptTasks(p);          // S.role 是 mentor，回传的就是 mentor 的任务
+    const onDuty=deptsOnDay(p.teacherCode,iso);
+    if(!first){
+      for(const b of blocks){
+        if(b.rest)continue;
+        const t=b.tasks.find(x=>!S.taskChecks[checkKey(p.uid,b.dept,'mentor',b.day,x.id)]);
+        if(t){first={task:t,plan:p,dept:b.dept,day:b.day};break;}
+      }
+    }
+    cards.push({plan:p,blocks,onDuty});
+  });
+
+  const anyDuty=cards.some(c=>c.blocks.length);
+  const restAll=anyDuty&&cards.every(c=>!c.blocks.length||c.blocks.every(b=>b.rest));
+
+  let h='';
+
+  // ── 第一层：今天做这一件 ──────────────────────────────────
+  if(restAll){
+    h+=`<div class="card" style="border:2px solid var(--gold)">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">今天是整理日</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">陪她把弱的地方补起来</div>
+      <div style="font-size:12px;color:var(--mut)">今天不出任务。看她这一週哪里卡住，带她过一遍。</div>
+    </div>`;
+  }else if(first){
+    h+=`<div class="card" style="border:2px solid var(--acc)">
+      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">今天做这一步</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px;line-height:1.35">${esc(first.task.text)}</div>
+      <div style="font-size:12px;color:var(--mut)">带 ${esc(first.plan.teacherName)} · ${deptShort(first.dept)} · ${dayLabel(first.day)} · ${tagBadge(first.task.tag)}</div>
+      <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-pri" onclick="openMentorPlan('${first.plan.uid}','${first.dept}','tasks')">开始</button>
+        <button class="btn" onclick="openMentorPlan('${first.plan.uid}','${first.dept}','report')">写今天的日报</button>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--mut);font-size:11px;margin:-4px 0 10px">系统一次只叫你做一件事。</div>`;
+  }else if(anyDuty){
+    h+=`<div class="card" style="border:2px solid var(--grn)">
+      <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">今天的都做完了</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">剩下写日报</div>
+    </div>`;
+  }else{
+    h+=`<div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">今天没有要带的课</div>
+      <div style="font-size:12px;color:var(--mut)">你带的新老师今天的课表里，没有还在训练中的部门。</div>
+    </div>`;
+  }
+
+  // ── 第二层：我带的人 ──────────────────────────────────────
+  cards.forEach(c=>{
+    const p=c.plan;
+    const allDone=(p.depts||[]).length&&(p.depts||[]).every(x=>x.status==='completed');
+    h+=`<div class="card">
+      <div class="card-hdr">
+        <span class="card-title">🎓 ${esc(p.teacherName)}</span>
+        ${allDone?'<span class="chip chip-grn">训练跑完了</span>':''}
+      </div>`;
+
+    (p.depts||[]).forEach(pd=>{
+      setRD(pd.dept);
+      const day=pd.currentDay||1;
+      const rest=isRestDate(p,pd.dept,iso);
+      const duty=c.onDuty.includes(pd.dept);
+      const active=pd.status==='active';
+      const tasks=(!active||rest||!duty)?[]:((D.TASKS.mentor||{})[day]||[]);
+      const done=tasks.filter(t=>S.taskChecks[checkKey(p.uid,pd.dept,'mentor',day,t.id)]).length;
+      const dots=tasks.map((t,i)=>`<i style="display:inline-block;width:15px;height:6px;border-radius:3px;margin-right:4px;background:${i<done?'var(--grn)':(i===done?'var(--acc)':'var(--bdr)')}"></i>`).join('');
+
+      // 她的日报交了没
+      const hers=getReport(p.uid,'mentee',day,pd.dept);
+      const mine=getReport(p.uid,'mentor',day,pd.dept);
+      let rpt='';
+      if(active&&duty&&!rest){
+        rpt = hers ? '<span class="chip chip-grn" style="font-size:9px">她交了</span>'
+                   : '<span class="chip chip-amb" style="font-size:9px">她还没交</span>';
+        if(!mine) rpt += ' <span class="chip chip-red" style="font-size:9px">你还没交</span>';
+      }
+
+      h+=`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr);cursor:pointer"
+             onclick="openMentorPlan('${p.uid}','${pd.dept}','tasks')">
+        <span class="chip ${duty&&active?'chip-blue':''}" style="min-width:42px;text-align:center">${deptShort(pd.dept)}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;font-weight:500">${pd.status==='completed'?'这个部门跑完了':(rest?'整理日':dayLabel(day))} ${rpt}</div>
+          <div style="margin-top:5px">${dots||'<span style="font-size:11px;color:var(--mut)">—</span>'}</div>
+        </div>
+        <div style="font-size:11.5px;color:var(--mut);white-space:nowrap">
+          ${pd.status==='completed'?'<span style="color:var(--grn)">✅ 完成</span>'
+            :(rest?'整理':(duty?`做完 ${done}／${tasks.length}`:'今天没课'))}
+        </div>
+      </div>`;
+    });
+
+    if(allDone){
+      h+= p.released
+        ? `<div class="alert alert-grn" style="margin-top:10px">🎉 她已经被放行了。</div>`
+        : `<div class="alert alert-amb" style="margin-top:10px">她训练跑完了，等管理层放行。</div>`;
+    }
+    h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">看她的整份计划 ›</button></div>
+    </div>`;
+  });
+
+  el.innerHTML=h;
+}
+
+// 从 Mentor 首页跳进某一个学员的某一个部门
+function openMentorPlan(uid,dept,page){
+  S.planUid=uid; S.dept=dept; setRD(dept);
+  goPage(page||'tasks');
+}
+
 function renderMenteeHome(){
   const el=document.getElementById('dashboard-content');
   const p=getPlan();
