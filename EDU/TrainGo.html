@@ -20,6 +20,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--sur2);color:var(--
 .ntab{border:none;background:none;padding:12px 9px;font-size:11px;cursor:pointer;color:rgba(255,255,255,.65);border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap;}
 .ntab.on{color:#ffffff;border-bottom-color:#ffffff;font-weight:600;}
 .ntab:hover{color:#ffffff;}
+.ntab-gear{font-size:15px;padding:10px 8px;margin-left:4px}
+.subnav{display:flex;gap:6px;max-width:1100px;margin:14px auto 0;padding:0 16px}
+.subnav:empty{display:none}
+.subnav button{border:1px solid var(--bdr);background:var(--sur,#fff);border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--mut)}
+.subnav button.on{background:#1B3A5C;border-color:#1B3A5C;color:#fff;font-weight:600}
 .role-badge{margin-left:auto;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid;flex-shrink:0;}
 .role-mentor{background:rgba(24,95,165,.25);color:#9EC8FF;border-color:rgba(158,200,255,.4);}
 .role-mentee{background:rgba(15,110,86,.25);color:#7BE8C8;border-color:rgba(123,232,200,.4);}
@@ -171,17 +176,12 @@ label.lbl:first-child{margin-top:0;}
     <span class="topbar-brand">🎯 TrainGo</span>
     <span class="topbar-ver" id="topbarVer"></span>
     <span id="syncStatus" style="font-size:10px;margin-left:2px;opacity:.7" title="Cloud sync status"></span>
-    <button class="ntab on" data-pg="dashboard" onclick="goPage('dashboard')">🏠 Home</button>
-    <button class="ntab" data-pg="tasks" onclick="goPage('tasks')">📋 Today</button>
-    <button class="ntab" data-pg="sop" onclick="goPage('sop')">📖 SOP</button>
-    <button class="ntab" data-pg="report" onclick="goPage('report')">📝 Day Report</button>
-    <button class="ntab" data-pg="comp" onclick="goPage('comp')">✅ Job Checklist</button>
-    <button class="ntab" data-pg="progress" onclick="goPage('progress')">📊 Progress</button>
-    <button class="ntab" data-pg="handbook" onclick="goPage('handbook')">🏫 Handbook</button>
-    <button class="ntab" data-pg="mgmt" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ Settings</button>
+    <span id="navTabs" style="display:contents"></span>
     <span id="roleBadgeTop" class="role-badge" style="margin-left:auto"></span>
+    <button class="ntab ntab-gear" data-pg="settings" id="tab-settings" style="display:none" title="Releasers and sign-in" onclick="goPage('settings')">⚙️</button>
 
   </div>
+  <div id="subnav" class="subnav"></div>
   <div class="page on" id="page-dashboard"><div id="dashboard-content"></div></div>
   <div class="page" id="page-tasks"><div id="tasks-content"></div></div>
   <div class="page" id="page-report"><div id="report-content"></div></div>
@@ -190,6 +190,7 @@ label.lbl:first-child{margin-top:0;}
   <div class="page" id="page-sop"><div id="sop-content" class="tg-protect"></div></div>
   <div class="page" id="page-handbook"><div id="handbook-content" class="tg-protect"></div></div>
   <div class="page" id="page-mgmt"><div id="mgmt-content"></div></div>
+  <div class="page" id="page-settings"><div id="settings-content"></div></div>
 </div>
 
 <script>
@@ -204,7 +205,7 @@ try{ sb=window.supabase.createClient(SB_URL,SB_ANON); }catch(e){ console.warn('s
 
 function setSyncStatus(icon){const el=document.getElementById('syncStatus');if(el)el.textContent=icon;}
 function refreshCurrentPage(){
-  const pages=['dashboard','tasks','report','progress','sop','handbook','mgmt'];
+  const pages=['dashboard','tasks','report','progress','comp','sop','handbook','mgmt','settings'];
   for(const p of pages){const el=document.getElementById('page-'+p);
     if(el&&el.classList.contains('on')){goPage(p);break;}}
 }
@@ -331,7 +332,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v34';
+const APP_VERSION='v35';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -808,8 +809,31 @@ function maxSignableLevel(plan){
   if(plan.teacherCode===S.me.code)return 1;             // 本人：只到 1（自己说「我知道了」）
   return 0;
 }
+// v35：跟 private.traingo_competency_guard() 一格一格对齐（含「调低」的规矩）。
+// 以前 MGMT 画面可选 1–4，资料库却只收 4 与 0 —— 按了才被挡。
+function signableLevels(plan,cur){
+  const out=new Set(); if(!S.me||!plan)return out;
+  cur=cur||0;
+  const me=S.me.code;
+  const adm=isAdminRole(), mg=canCertifyMentor();
+  const mentor=plan.mentorCode===me||(plan.mentorHistory||[]).some(e=>e.mentor_code===me);
+  const mentee=plan.teacherCode===me;
+  const lowerOK=n=>n>=cur||mentor||mg||(mentee&&cur<=1);
+  [0,1,2,3,4].forEach(n=>{
+    let ok;
+    if(n>=4)ok=mg;
+    else if(n>=2)ok=mentor||adm;
+    else if(n===1)ok=mentee||mentor||adm;
+    else ok=true;
+    if(ok&&lowerOK(n)&&!(n===0&&cur===0&&!(mentor||mg||mentee)))out.add(n);
+  });
+  if(!(adm||mentor||mg||mentee))out.clear();
+  return out;
+}
 function signerHint(plan){
   const m=maxSignableLevel(plan);
+  if(canCertifyMentor()&&!isAdminRole()&&!(plan.mentorCode===S.me.code||(plan.mentorHistory||[]).some(e=>e.mentor_code===S.me.code)))
+    return'Management signs <b>Level 4</b> here. Level 1 is the new teacher’s, Levels 2–3 are the Mentor’s. You can also set an item back to 0.';
   if(m>=4)return'You can sign any level, including Level 4.';
   if(m===3)return'As the Mentor you can sign up to Level 3. Level 4 is management only.';
   if(m===1)return'You can mark Level 1 (“I know it”) yourself. Levels 2 and 3 are your Mentor’s to sign, Level 4 is management.';
@@ -889,7 +913,7 @@ function showWatermark(){
   const m=S.me||{}; const d=new Date();
   const stamp=(m.name||m.code||'')+' · '+(m.code||'')+' · '+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   const txt=(stamp+' · Academee confidential').replace(/[<&>"]/g,'');
-  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='420' height='220'><text x='10' y='120' transform='rotate(-24 210 110)' font-family='Arial,sans-serif' font-size='15' fill='rgba(20,30,50,0.085)'>${txt}</text></svg>`;
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='600' height='320'><text x='40' y='170' transform='rotate(-24 300 160)' font-family='Arial,sans-serif' font-size='15' fill='rgba(20,30,50,0.05)'>${txt}</text></svg>`;
   const w=document.createElement('div'); w.id='tgWatermark';
   w.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99998;background-repeat:repeat;background-image:url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
   document.body.appendChild(w);
@@ -912,14 +936,15 @@ function decideRole(){
   S.role = (m.isAdmin||['OWNER','ADMIN','TOP_MGMT','MGMT'].includes(m.role)) ? 'mgmt' : 'mentee';
 }
 
-// 只负责画面：角色徽章、Settings 页签、版本号。不改 S.role
+// 只负责画面：角色徽章、选单、齿轮、版本号。不改 S.role
 function applyRole(){
   const m=S.me;
   const labels={mgmt:'🏫 Management',mentor:'👨‍🏫 Mentor',mentee:'🎓 New Teacher'};
   const cls={mgmt:'role-mgmt',mentor:'role-mentor',mentee:'role-mentee'};
   const b=document.getElementById('roleBadgeTop');
   if(b){b.textContent=(labels[S.role]||'')+' · '+(m.name||m.code);b.className='role-badge '+(cls[S.role]||'');}
-  const t=document.getElementById('tab-mgmt'); if(t)t.style.display=(S.role==='mgmt')?'':'none';
+  renderNavTabs();
+  const g=document.getElementById('tab-settings'); if(g)g.style.display=(S.role==='mgmt')?'':'none';
   // v33：Export／Import 按钮已拿掉（Owner 指示）。资料的正本在资料库，不需要从画面汇出汇入。
   const vEl=document.getElementById('topbarVer'); if(vEl)vEl.textContent=APP_VERSION;
 }
@@ -942,15 +967,59 @@ function logout(){ location.href='../index.html'; }   // 登出在平台层，�
 // NAVIGATION
 // ══════════════════════════════════════════════════════════════
 // v31：以前用索引对位（PAGE_MAP），一改选单顺序高亮就跑掉。改成认 data-pg。
+// v35：三种身份一天要做的事不一样，选单各自排，照「先做什么、后做什么」。
+//   新老师：先认识学校 → 今天 → 下班写日报 → 还差什么 → 工具书
+//   Mentor：今天陪谁 → 日报 → 签核 → 学员进度 → 工具书
+//   管理层：该处理的事 → 计划 → 签核 → 看日报 → 工具书；齿轮放不常碰的设定
+const NAV={
+  mentee:[['handbook','🧭 Start here'],['dashboard','🏠 Today'],['report','📝 Day Report'],['comp','✅ My Checklist'],['sop','📖 SOP']],
+  mentor:[['dashboard','🏠 Today'],['report','📝 Day Report'],['comp','✅ Sign-off'],['progress','📊 My Trainees'],['sop','📖 SOP']],
+  mgmt:  [['dashboard','🏠 Overview'],['mgmt','👥 Plans'],['comp','✅ Sign-off'],['report','📝 Reports'],['sop','📖 SOP']]
+};
+// 没有自己选单的页，亮哪一个选单
+const TAB_OF={
+  mentee:{tasks:'dashboard',progress:'comp'},
+  mentor:{tasks:'dashboard',handbook:'sop'},
+  mgmt:  {progress:'mgmt',handbook:'sop'}
+};
+// 各身份能进的页（其余一律回首页）
+const PAGES_OF={
+  mentee:['handbook','dashboard','tasks','report','comp','progress','sop'],
+  mentor:['dashboard','tasks','report','comp','progress','sop','handbook'],
+  mgmt:  ['dashboard','mgmt','comp','report','sop','handbook','progress','settings']
+};
+function renderNavTabs(){
+  const box=document.getElementById('navTabs'); if(!box)return;
+  box.innerHTML=(NAV[S.role]||[]).map(([pg,label])=>
+    `<button class="ntab" data-pg="${pg}" onclick="goPage('${pg}')">${label}</button>`).join('');
+  const cur=document.querySelector('.page.on');
+  if(cur){const p=cur.id.slice(5);const tp=((TAB_OF[S.role]||{})[p])||p;
+    const t=box.querySelector('.ntab[data-pg="'+tp+'"]'); if(t)t.classList.add('on');}
+}
+// 同一件事的两种看法，放在同一个选单底下，用上方小按钮切换
+function renderSubnav(p){
+  const el=document.getElementById('subnav'); if(!el)return;
+  const pair=(a,b)=>[a,b].map(([pg,l])=>`<button class="${pg===p?'on':''}" onclick="goPage('${pg}')">${l}</button>`).join('');
+  let h='';
+  if(S.role==='mentee'&&(p==='comp'||p==='progress'))h=pair(['comp','✅ Checklist'],['progress','📅 Calendar']);
+  else if(S.role!=='mentee'&&(p==='sop'||p==='handbook'))h=pair(['sop','📖 SOP library'],['handbook','🏫 Staff Handbook']);
+  else if(S.role==='mgmt'&&(p==='mgmt'||p==='progress'))h=pair(['mgmt','👥 Plans'],['progress','📅 Calendar of all plans']);
+  el.innerHTML=h;
+}
+function isAdminRole(){return !!(S.me&&['OWNER','TOP_MGMT','ADMIN'].includes(S.me.role));}
+const ADMIN_ONLY_MSG='Creating, changing, advancing and deleting plans is done by OWNER, TOP_MGMT or ADMIN. Your account can view plans and sign Level 4.';
 function goPage(p){
   flushDraft();
-  // Access control — only MGMT can access Admin page
-  if(p==='mgmt'&&S.role!=='mgmt'){goPage('dashboard');return;}
+  const allowed=PAGES_OF[S.role]||['dashboard'];
+  if(!allowed.includes(p)){ if(p!=='dashboard'){goPage('dashboard');} return; }
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
   const pg=document.getElementById('page-'+p);if(pg)pg.classList.add('on');
-  const tab=document.querySelector('.ntab[data-pg="'+p+'"]');
+  const tp=((TAB_OF[S.role]||{})[p])||p;
+  const tab=document.querySelector('.ntab[data-pg="'+tp+'"]');
   if(tab)tab.classList.add('on');
+  renderSubnav(p);
+  window.scrollTo(0,0);
   if(p==='dashboard')renderDashboard();
   if(p==='tasks')renderTasks();
   if(p==='report')renderReport();
@@ -959,6 +1028,7 @@ function goPage(p){
   if(p==='sop')renderSopLibrary();
   if(p==='handbook')renderHandbook();
   if(p==='mgmt')renderMgmt();
+  if(p==='settings')renderSettings();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1495,8 +1565,8 @@ function renderMgmtDashboard(el){
     ${renderMgmtCompBoard()}
     ${renderMgmtActionItems(active)}
     <div class="card">
-      <div class="card-hdr"><span class="card-title">Plans in progress</span><button class="btn btn-pri btn-sm" onclick="goPage('mgmt')">+ New plan</button></div>
-      ${active.length===0?`<div style="text-align:center;padding:20px;color:var(--mut)">No plans in progress. Create one on the Settings page.</div>`:active.map(c=>renderCohortRow(c)).join('')}
+      <div class="card-hdr"><span class="card-title">Plans in progress</span>${isAdminRole()?`<button class="btn btn-pri btn-sm" onclick="goPage('mgmt');openNewPlan()">+ New plan</button>`:''}</div>
+      ${active.length===0?`<div style="text-align:center;padding:20px;color:var(--mut)">No plans in progress.${isAdminRole()?' Start one with <b>+ New plan</b>.':''}</div>`:active.map(c=>renderCohortRow(c)).join('')}
     </div>
     ${completed.length?`<div class="card"><div class="card-hdr"><span class="card-title">Completed ✅</span></div>${completed.map(c=>renderCohortRow(c)).join('')}</div>`:''}`;
 }
@@ -1770,7 +1840,7 @@ function renderSkillConfirm(cohort,role,day,stage,existing){
     ${meta.risk?`<div style="font-size:10px;color:var(--mut);margin-bottom:6px;font-style:italic">Risk this stage: ${meta.risk}</div>`:''}
     <div style="background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:10px">
       ${role==='mentor'
-        ? 'This is your read of how they did today. It does <b>not</b> sign anything off — go to the <b>Job Checklist</b> page to actually sign an item.'
+        ? 'This is your read of how they did today. It does <b>not</b> sign anything off — go to <b>Sign-off</b> to actually sign an item.'
         : 'This is your own read of today, and your Mentor reads it. It does <b>not</b> sign anything off — the Job Checklist only moves when your Mentor signs it there.'}</div>`;
 
   sops.forEach(sopId=>{
@@ -2126,7 +2196,7 @@ async function deleteReport(cid,role,day){
 }
 
 function renderMgmtReportView(el){
-  if(!S.cohorts.length){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plans yet. Create one on the Settings page.</div>`;return;}
+  if(!S.cohorts.length){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plans yet.</div>`;return;}
   const sel=getCohort()||S.cohorts[0];S.cohortId=sel.id;
   el.innerHTML=`
     <div style="margin-bottom:10px"><div class="card-title">Day reports side by side</div></div>
@@ -2316,6 +2386,7 @@ async function advanceDay(planUid,dept){
 }
 
 async function openAdvanceModal(planUid,dept){
+  if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
   const p=getPlan(planUid); if(!p)return;
   const dp=dept||S.dept;
   const pd=(p.depts||[]).find(x=>x.dept===dp); if(!pd)return;
@@ -2831,8 +2902,9 @@ function openCompModal(compId){
   const ck=compCheck(p.uid,it.id);
   const req=it.level_required||3;
   const maxSign=maxSignableLevel(p);
-  const opts=[0,1,2,3,4].filter(n=>n<=maxSign||n===lv)
-    .map(n=>`<option value="${n}" ${n===lv?'selected':''} ${n>maxSign?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${n>maxSign?'　(not yours to sign)':''}</option>`).join('');
+  const _can=signableLevels(p,lv);
+  const opts=[0,1,2,3,4].filter(n=>_can.has(n)||n===lv||n<=maxSign)
+    .map(n=>{const no=!_can.has(n)&&n!==lv;return `<option value="${n}" ${n===lv?'selected':''} ${no?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${no?'　(not yours to sign)':''}</option>`;}).join('');
   // v32：以前只排除「我自己」，学员本人还留在选单里 ——
   // 安全类项目让被评核的人替自己背书，等於没有第二签名。
   // 现在也排除：被评核的学员，以及任何还在受训中的人。
@@ -2887,7 +2959,8 @@ async function submitCompLevel(compId,btn){
   const maxSign=maxSignableLevel(p);
   if(maxSign<=0){alert('You cannot sign on this training plan — this page is view only for you.');return;}
   const lv=parseInt(document.getElementById('cmLevel').value,10);
-  if(lv>maxSign){alert(signerHint(p));return;}
+  const _cur=compLevel(p.uid,compId);
+  if(lv!==_cur&&!signableLevels(p,_cur).has(lv)){alert(signerHint(p).replace(/<[^>]+>/g,''));return;}
   const secEl=document.getElementById('cmSecond');
   const sec=secEl?secEl.value:'';
   const note=(document.getElementById('cmNote')||{}).value||'';
@@ -3006,7 +3079,8 @@ function renderPasswordMgmt(){
     <div style="font-size:12px;line-height:1.8;color:var(--mut);margin-top:6px">
       This system <b>no longer has its own password</b>. Sign-in, role and department access all come from the Academee platform
       (permission codes <code>EDU-TrainGo-SRK / GAK / ATC / SRT</code>).<br>
-      To let a teacher in, or change which departments they can see, use the platform permission settings.
+      To let a teacher in, or change which departments they can see, use the platform permission settings.<br>
+      Training content opens only for <b>management</b> and for teachers who are in an <b>unfinished plan</b> (as the new teacher or a Mentor). Once a plan is completed, those two can no longer open it.
     </div>
     <div style="margin-top:10px;font-size:12px">
       You are signed in as: <b>${S.me?(S.me.name||S.me.code):'—'}</b> ·
@@ -3251,14 +3325,14 @@ function renderMenteeHome(){
   let h=`<details class="card" ${_d1<=1?'open':''} style="border:1.5px solid var(--acc)">
     <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div class="card-title">👋 How this training works</div>
-      <span class="chip chip-blue">Start here</span>
+      <span class="chip chip-blue">Read first</span>
     </summary>
     <div style="font-size:12.5px;line-height:1.75;margin-top:10px">
       <b>${esc(p.teacherName)}</b> — welcome. Your Mentor is <b>${esc(mentorOnDay(p,(active[0]||{}).day||1,(active[0]||{}).dept)||p.mentorName||'—')}</b>. Ask them anything; asking is never the problem.
       <div style="margin-top:9px"><b>How long.</b> 12 training days${p.targetDate?`, target <b>${fmtDate(p.targetDate)}</b>`:''}. Catch-up days sit in between and are not numbered. Your day number only moves when your Mentor confirms it — not automatically at midnight.</div>
       <div style="margin-top:9px"><b>What finishes it.</b> Not the day count — the <b>Job Checklist</b>. Training is done when every item on it has been signed at its required level, and then management releases you to take a class on your own.</div>
-      <div style="margin-top:9px"><b>Your day.</b> Home shows the one next thing → <b>Today</b> has the full list and the SOP for each → teach → <b>Day Report</b> before you go home. That is the whole loop.</div>
-      <div style="margin-top:9px"><b>Where things are.</b> 📖 SOP = how every step is done, open it any time. ✅ Job Checklist = what you still have to be signed off on. 📊 Progress = the calendar view. 🏫 Handbook = who we are and the Code of Conduct.</div>
+      <div style="margin-top:9px"><b>Your day.</b> <b>Today</b> shows the one next thing and the full list, with the SOP for each → teach → <b>Day Report</b> before you go home. That is the whole loop.</div>
+      <div style="margin-top:9px"><b>Where things are.</b> 🧭 Start here = who we are and the Code of Conduct — read it in your first week. ✅ My Checklist = what you still have to be signed off on (the calendar is inside it). 📖 SOP = how every step is done, open it any time.</div>
       <div style="margin-top:9px;background:#FCEBEB;border:.5px solid #F09595;border-radius:6px;padding:9px 10px">
         <b style="color:#7a1f1f">One rule from day one.</b> If a parent asks you anything — at the door, by phone, by message — you say one line: <i>“I will pass this to management and they will contact you.”</i> Then you file it in <b>MiscGo</b>. Never handle it yourself, never promise anything, never report it verbally or in a group chat. Everything goes into MiscGo so nothing gets missed.
       </div>
@@ -3446,6 +3520,7 @@ function renderMenteeHome(){
 // ══════════════════════════════════════════════════════════════
 function renderMgmt(){
   const el=document.getElementById('mgmt-content');
+  const _adm=isAdminRole();
   const rows=S.plans.map(p=>{
     const allDone=(p.depts||[]).length&&(p.depts||[]).every(x=>x.status==='completed');
     const tgt=targetDateOf(p);
@@ -3459,11 +3534,11 @@ function renderMgmt(){
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <div><span style="font-weight:600;font-size:13px">${esc(p.teacherName)}</span>
           ${p.released?'<span class="chip chip-grn" style="margin-left:6px">Released</span>':''}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="openPlanEdit('${p.uid}')">✏️</button>
+        ${_adm?`<div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="openPlanEdit('${p.uid}')" title="Edit plan">✏️</button>
           ${adv}
-          <button class="btn btn-sm btn-red" onclick="deletePlan('${p.uid}')">🗑</button>
-        </div>
+          <button class="btn btn-sm btn-red" onclick="deletePlan('${p.uid}')" title="Delete plan">🗑</button>
+        </div>`:''}
       </div>
       <div style="margin-top:6px">${deptChips}</div>
       <div class="cohort-meta">Mentor: ${esc(p.mentorName)} · started ${fmtDate(p.startDate)}${tgt?' · target '+fmtDate(tgt):''}</div>
@@ -3479,12 +3554,14 @@ function renderMgmt(){
   el.innerHTML=`
     <div class="card">
       <div class="card-hdr"><span class="card-title">⚙️ Training plans</span>
-        <button class="btn btn-pri" onclick="openNewPlan()">+ New plan</button></div>
-      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">One plan per new teacher. Each department inside a plan runs its own progress line.</div>
-      ${S.plans.length?rows:`<div style="text-align:center;padding:28px;color:var(--mut)">No plans yet.</div>`}
-    </div>
-    ${renderReleaserCard()}
-    ${renderPasswordMgmt()}`;
+        ${_adm?`<button class="btn btn-pri" onclick="openNewPlan()">+ New plan</button>`:''}</div>
+      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">One plan per new teacher. Each department inside a plan runs its own progress line.${_adm?'':' <b>View only for you</b> — OWNER, TOP_MGMT or ADMIN create, change and advance plans.'}</div>
+      ${S.plans.length?rows:`<div style="text-align:center;padding:28px;color:var(--mut)">No plans yet.${_adm?' Press <b>+ New plan</b> to start one.':''}</div>`}
+    </div>`;
+}
+function renderSettings(){
+  const el=document.getElementById('settings-content'); if(!el)return;
+  el.innerHTML=renderReleaserCard()+renderPasswordMgmt();
 }
 
 function renderReleaserCard(){
@@ -3507,6 +3584,7 @@ async function doRelease(uid){
 
 // ── 新增计划 ─────────────────────────────────────────────────
 function openNewPlan(){
+  if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
   const tOpts=S.teachers.map(t=>`<option value="${esc(t.id)}">${esc(t.name||t.id)} (${esc(t.id)})</option>`).join('');
   const dChips=DEPT_OPTIONS.map(o=>`<span class="cb${o.code==='SRK'?' on':''}" data-d="${o.code}" onclick="npToggle(this)">
       <span>${o.code==='SRK'?'✓':'＋'}</span> ${o.code}</span>`).join('');
@@ -3582,6 +3660,7 @@ async function createPlan(){
 
 // ── 编辑计划：Mentor 换人 · 标注例外 ─────────────────────────
 function openPlanEdit(uid){
+  if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
   const p=getPlan(uid); if(!p)return;
   const tOpts=S.teachers.map(t=>`<option value="${esc(t.id)}" ${t.id===p.mentorCode?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
   const dOpts=['<option value="">All departments</option>'].concat((p.depts||[]).map(d=>`<option value="${d.dept}">${d.dept}</option>`)).join('');
@@ -3670,6 +3749,7 @@ async function savePlanEdit(uid){
   alert('✅ Saved');
 }
 async function deletePlan(uid){
+  if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
   const p=getPlan(uid); if(!p)return;
   if(!confirm(`Delete ${p.teacherName}'s whole plan?\nDay reports and task checks go with it. This cannot be undone.`))return;
   const {error}=await sb.from('traingo_plan').delete().eq('client_uid',uid);
