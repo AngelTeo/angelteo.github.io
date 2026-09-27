@@ -172,6 +172,7 @@ label.lbl:first-child{margin-top:0;}
     <button class="ntab" onclick="goPage('tasks')">📋 任务</button>
     <button class="ntab" onclick="goPage('report')">📝 日报</button>
     <button class="ntab" onclick="goPage('progress')">📊 进度</button>
+    <button class="ntab" onclick="goPage('comp')">✅ 清单</button>
     <button class="ntab" onclick="goPage('sop')">📖 SOP</button>
     <button class="ntab" onclick="goPage('handbook')">🏫 手册</button>
     <button class="ntab" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ 设定</button>
@@ -184,6 +185,7 @@ label.lbl:first-child{margin-top:0;}
   <div class="page" id="page-tasks"><div id="tasks-content"></div></div>
   <div class="page" id="page-report"><div id="report-content"></div></div>
   <div class="page" id="page-progress"><div id="progress-content"></div></div>
+  <div class="page" id="page-comp"><div id="comp-content"></div></div>
   <div class="page" id="page-sop"><div id="sop-content"></div></div>
   <div class="page" id="page-handbook"><div id="handbook-content"></div></div>
   <div class="page" id="page-mgmt"><div id="mgmt-content"></div></div>
@@ -238,7 +240,7 @@ const SRK_SOP_DATA= {
       {n:2,do_:'Students submit books. Walk around to check, sort by subject, stack neatly.'},
       {n:3,do_:'Check subject by subject: "English book!" Count each. Compare with attendance number.'},
       {n:4,warn:'⚠️ Number wrong',do_:'"Everyone stand up!" → Call names one by one → Check bags → Check cupboard → Sit when confirmed.'},
-      {n:5,warn:'Report: Unfound Book',do_:'Write student name on board (top right) → Photo → WhatsApp to MGMT group.'},
+      {n:5,warn:'Report: Unfound Book',do_:'Write student name on board (top right) → Photo → file it in <b>MiscGo</b> (report type <b>UNFOUND_BOOKS</b>). All reporting goes to MiscGo — one place, one standard.'},
       {n:6,do_:'Keep books in cupboard by subject. Continue to next activity.'},
     ],
     age:{
@@ -246,7 +248,7 @@ const SRK_SOP_DATA= {
       in_:{tips:['GUIDE sorting: "Find your English book"','Help if stuck','Check organization','Encourage neatness'],goal:'Can sort with guidance, knows most subjects, improving organization'},
       sr:{tips:['BRIEF instruction only','MONITOR independently','Should be efficient — quick process'],goal:'Sorts independently, neat organization, all subjects correct, no prompting needed'},
     },
-    warns:['⚠️ 3 weeks consecutive missing same book → Serious concern → Parent contact needed','📝 Photo + WhatsApp to MGMT when names written on board'],
+    warns:['⚠️ 3 weeks consecutive missing same book → file it in MiscGo. MGMT contacts the parent, never you','📝 Photo + MiscGo entry when names are written on the board'],
   },
 
   attendance:{id:'attendance',n:3,name:'Take Attendance',nameZh:'Roll Call',icon:'✋',when:'EVERY DAY',cat:'daily',
@@ -433,6 +435,25 @@ const SRK_SOP_DATA= {
       sr:{tips:['Summary: what we learned + why it matters','Praise specific achievement and improvement','SEEDS: expect independence in follow-through'],goal:'Can articulate what was learned, self-motivated, takes ownership of homework task'},
     },
     warns:['💡 SEEDS: do 1–2 per class. Cover ALL 5 within one month.','💡 "Write as you teach" — record SEEDS done in Day Report immediately after class','⚠️ Specific praise is always more powerful than general praise: name + what they did well'],
+  },
+
+  escalation:{id:'escalation',n:14,name:'Escalation & Parent Contact',nameZh:'Reporting & Parent Boundary',icon:'🚨',when:'AS TRIGGERED',cat:'end',
+    steps:[
+      {n:1,title:'Everything goes to MiscGo — nothing else',do_:'One place, one standard, so nothing gets missed. No WhatsApp, no verbal, no asking someone else to pass it on. Pick the right report type, write what actually happened — not your guess, not your opinion.',warn:'⚡ File it, then stop. MGMT handles the rest — do not chase it yourself'},
+      {n:2,title:'Never respond to a parent',do_:'If a parent messages you, calls you, or stops you at the door — you say one line and nothing else: <b>"I will pass this to management and they will contact you."</b> Then end the conversation and file it in MiscGo.',warn:'⚠️ Never say "OK", "no problem", "I will sort it out" or "that should be fine" — to a parent that is a promise'},
+      {n:3,title:'What you must never discuss with a parent',do_:'Other children · other teachers · fees · staffing or scheduling · discipline decisions. However friendly or however angry the parent is, the rule does not change.',warn:'⚠️ A parent\'s mood is not an exception'},
+      {n:4,title:'Immediately — child not accounted for',do_:'A child who should be here and is not → file MiscGo at once, report type <b>PICKUP</b>. Say which child and which pickup or bus. Do not finish what you are doing first.',warn:'⚡ Immediately'},
+      {n:5,title:'Immediately — child unwell or injured',do_:'Any sign of illness → <b>HEALTH</b>. Any injury, however small → <b>INJURED</b>. Do not decide for yourself whether it is serious enough.',warn:'⚡ Immediately'},
+      {n:6,title:'Immediately — conflict between children',do_:'Separate them. Stay calm. Do not question anyone alone. Then file MiscGo, report type <b>BEHAVIOUR_R</b>.',warn:'⚡ Immediately'},
+      {n:7,title:'Same day — upset or crying',do_:'A private check-in after class, then file MiscGo, report type <b>EMOTION</b>. Write what set it off.'},
+      {n:8,title:'Pick the right report type',do_:'Complaint → <b>COMPLAINT</b> · Request (time change, leave, special arrangement) → <b>REQUEST</b> · Pickup → <b>PICKUP</b> · Unwell → <b>HEALTH</b> · Injury → <b>INJURED</b> · Medicine → <b>MEDICINE</b> · Behaviour → <b>BEHAVIOUR_R</b> · Upset → <b>EMOTION</b> · Forgot something → <b>FORGOT</b> · Lost or found → <b>LOST</b> / <b>FOUND</b> · None of these → <b>GENERAL</b>.'},
+    ],
+    age:{
+      jr:{tips:['Same rule at every age — the child being 4 changes nothing'],goal:'Files every incident in MiscGo; never answers a parent directly'},
+      in_:{tips:['Same rule at every age'],goal:'Files every incident in MiscGo; never answers a parent directly'},
+      sr:{tips:['Same rule at every age'],goal:'Files every incident in MiscGo; never answers a parent directly'},
+    },
+    warns:['⚠️ You are NOT expected to handle any of this alone — filing it IS the action','⚠️ Not sure whether to report? Report. Getting the call wrong is not a mistake; staying quiet is','⚠️ Nobody is ever criticised for filing too much','⚠️ A parent question is never yours to answer — one line, then MiscGo'],
   },
 
   morning:{id:"morning",n:0,name:"Before Class: Morning Routine",nameZh:"Ready Class & Morning Duty",icon:"🌅",when:"EVERY DAY",cat:"morning",
@@ -775,7 +796,7 @@ const SRK_STAGE_SOPS={
   2:['attendance','washroom','recess','flash','book','spelling'],
   3:['flash','book','spelling','copyboard','indread','activity'],
   4:['summary','dismissal','copyboard','activity'],
-  5:['hygiene','bookcollect','attendance','washroom','recess','flash','book','spelling','copyboard','indread','activity','summary','dismissal'],
+  5:['hygiene','bookcollect','attendance','washroom','recess','flash','book','spelling','copyboard','indread','activity','summary','dismissal','escalation'],
 };
 const SRK_SUCCESS_CRITERIA={
   1:{mentor:'Mentee completes detailed activity logs, understands lesson structure, asks relevant questions',mentee:'Complete all observation logs, understand lesson plan structure, identify key teaching steps'},
@@ -903,17 +924,19 @@ const ATC_SOP_DATA={
   },
   escalation:{id:'escalation',n:12,icon:'🚨',name:'Escalation Protocol',nameZh:'上报触发机制',when:'AS TRIGGERED',cat:'alert',
     steps:[
-      {n:1,title:'IMMEDIATE — Bus student missing',do_:'Roll call: student absent → INSTANT WhatsApp to MGMT. Format: "[Name] Didn\'t arrive ATC by school bus"',warn:'⚡ IMMEDIATE — no delay'},
-      {n:2,title:'IMMEDIATE — Student unwell',do_:'Any sign of illness → do NOT handle yourself → notify MGMT at once.',warn:'⚡ IMMEDIATE'},
-      {n:3,title:'IMMEDIATE — Student conflict',do_:'Separate parties. Keep calm. Notify MGMT immediately. No interrogation alone.',warn:'⚡ IMMEDIATE'},
-      {n:4,title:'Same day — Emotional/crying',do_:'Private post-class check-in. Then report to MGMT same day. Include what triggered it.'},
-      {n:5,title:'Same day — Parent contact',do_:'If parent messages or approaches you: DO NOT RESPOND. Forward to MGMT immediately.',warn:'⚠️ NEVER respond to parents directly'},
-      {n:6,title:'Pattern — 3+ forgotten books',do_:'Record dates in 遗忘记录. Once 3 occasions reached: report to MGMT → parent contact follows.'},
-      {n:7,title:'Pattern — Student not eating 3+ days',do_:'3 consecutive days without eating → ask about reason → report to MGMT → parent follow-up.'},
-      {n:8,title:'Pattern — Worksheet errors/printing',do_:'If worksheet has errors or wrong content: annotate, WhatsApp photo to MGMT immediately.'},
+      {n:1,title:'一律填 MiscGo — 不用 WhatsApp、不用口头',do_:'所有上报走同一个地方：MiscGo。选对分类，写发生了什么，不写猜测与评价。<b>一个地方、一套标准，才不会漏。</b>',warn:'⚡ 填完就结束 — 后续由 MGMT 处理，不要自己追'},
+      {n:2,title:'立刻 — 校车学生没到',do_:'点名发现没到 → 马上填 MiscGo，分类 <b>PICKUP</b>，写清楚是哪一位、哪一班校车。不要做完手上的事再填。',warn:'⚡ 立刻，不能等'},
+      {n:3,title:'立刻 — 学生不舒服',do_:'任何不舒服的迹象 → 不要自己判断严不严重 → 马上填 MiscGo，分类 <b>HEALTH</b>；有受伤用 <b>INJURED</b>。',warn:'⚡ 立刻'},
+      {n:4,title:'立刻 — 学生冲突',do_:'先分开，保持冷静，不单独审问任何一方。然后填 MiscGo，分类 <b>BEHAVIOUR_R</b>。',warn:'⚡ 立刻'},
+      {n:5,title:'立刻 — 家长当面找你或传讯息',do_:'只说一句：「这件事我会交给管理层，他们会联络您。」然后结束对话，马上填 MiscGo，分类 <b>COMPLAINT</b> 或 <b>REQUEST</b>。',warn:'⚠️ 绝对不准自己回应家长内容'},
+      {n:6,title:'当天 — 情绪 / 哭',do_:'课后私下关心一次。当天填 MiscGo，分类 <b>EMOTION</b>，写清楚是什么引起的。'},
+      {n:7,title:'累积 — 忘记带东西 3 次以上',do_:'日期记在遗忘记录。满 3 次填 MiscGo，分类 <b>FORGOT</b> → 由 MGMT 联络家长。'},
+      {n:8,title:'累积 — 连续 3 天不吃',do_:'连续 3 天没吃 → 先问原因 → 填 MiscGo，分类 <b>HEALTH</b> → 由 MGMT 跟进家长。'},
+      {n:9,title:'作业纸印错 / 内容错',do_:'标注出来，拍照填进 MiscGo，分类 <b>GENERAL</b>。'},
     ],
-    warns:['⚡ Bus student not in = call FIRST, ask questions later','⚠️ You are NOT expected to handle ANY escalation alone — report is the action','⚠️ Parent queries: forward to MGMT, never reply yourself'],
+    warns:['⚠️ 不准自己回应家长 — 只能说「我会交给管理层」','⚠️ 上报本身就是处理 — 报了就是做完了你该做的那一份','⚠️ 不确定要不要报 → 报。判断错不是错，不报才是','⚠️ 不会因为报太多被检讨'],
   },
+
 };
 
 // ══════════════════════════════════════════
@@ -1188,11 +1211,12 @@ function getStageForDay(d){return D.STAGES.find(s=>s.days.includes(d))||D.STAGES
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v26';
+const APP_VERSION='v27';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
   me:null, ready:false, err:null,
+  comp:[], compChecks:[], helps:[], noPractice:[], catchups:[], completions:[], miscCount:{}, miscCountOk:false,
   cohorts:[], passwords:[]};   // cohorts/passwords 保留空阵列，避免旧引用出错
 
 // 我看得到哪些部门 / 可以改哪些部门（来自平台权限）
@@ -1391,6 +1415,146 @@ async function setReleased(planUid,val,note){
   await reloadAll();
 }
 
+// ══════════════════════════════════════════════════════════════
+// v27 · 岗位清单 · 求助 · 没机会练 · 整理日任务 · 完成交代
+// ══════════════════════════════════════════════════════════════
+const LEVEL_LABEL={0:'还没开始',1:'知道',2:'会做但要人看着',3:'能独立做',4:'能教别人'};
+
+function compFor(dept){
+  const d=deptKey(dept);
+  return (S.comp||[]).filter(x=>x.dept===d).sort((a,b)=>(a.sort_no||0)-(b.sort_no||0));
+}
+function compCheck(planUid,compId){
+  return (S.compChecks||[]).find(x=>x.plan_uid===planUid&&x.competency_id===compId);
+}
+function compLevel(planUid,compId){
+  const x=compCheck(planUid,compId); return x?(x.level_now||0):0;
+}
+// 完成 ＝ 清单上每一项都到了要求的级数（架构正本 §4.1）。天数只是进度显示。
+function compDone(planUid,dept){
+  const list=compFor(dept);
+  if(!list.length)return{done:false,ok:0,total:0,missing:[]};
+  const missing=list.filter(it=>compLevel(planUid,it.id)<(it.level_required||3));
+  return{done:missing.length===0,ok:list.length-missing.length,total:list.length,missing:missing};
+}
+function planCompDone(p){
+  const ds=(p.depts||[]).map(x=>x.dept);
+  if(!ds.length)return{done:false,ok:0,total:0};
+  let ok=0,total=0,all=true;
+  ds.forEach(d=>{const r=compDone(p.uid,d);ok+=r.ok;total+=r.total;if(!r.done)all=false;});
+  return{done:all&&total>0,ok:ok,total:total};
+}
+
+async function loadMiscCount(){
+  S.miscCount={};S.miscCountOk=false;
+  if(!sb)return;
+  const codes=[...new Set(S.plans.map(p=>p.teacherCode).filter(Boolean))];
+  if(!codes.length)return;
+  try{
+    const {data,error}=await sb.rpc('traingo_miscgo_count',{p_codes:codes});
+    if(error)throw error;
+    (data||[]).forEach(r=>{S.miscCount[r.teacher_code]=Number(r.n)||0;});
+    S.miscCountOk=true;
+  }catch(e){ S.miscCountOk=false; }
+}
+function miscCountOf(code){
+  if(!S.miscCountOk)return null;
+  return S.miscCount[code]||0;
+}
+
+async function setCompLevel(planUid,compId,dept,level,second,note){
+  if(!sb)return false;
+  const cur=compCheck(planUid,compId);
+  const row={plan_uid:planUid,competency_id:compId,dept:deptKey(dept),level_now:level,
+             second_by_code:second||null,note:note||null};
+  let error;
+  if(cur){ ({error}=await sb.from('traingo_competency_check').update(row).eq('id',cur.id)); }
+  else   { row.client_uid=genId('cc'); ({error}=await sb.from('traingo_competency_check').insert(row)); }
+  if(error){ alert(compErrMsg(error.message)); return false; }
+  await reloadAll(); return true;
+}
+function compErrMsg(m){
+  m=String(m||'');
+  if(m.includes('L4_NEEDS_MGMT'))return'第 4 级要管理层签（MGMT / TOP_MGMT / ADMIN / OWNER）。';
+  if(m.includes('L23_NEEDS_MENTOR'))return'第 2、3 级要 Mentor 签。';
+  if(m.includes('L1_NOT_YOURS'))return'第 1 级只有她本人、她的 Mentor 或管理层能签。';
+  if(m.includes('SAFETY_NEEDS_SECOND'))return'这是安全类，到第 3 级要第二个人一起签。';
+  if(m.includes('SAFETY_SAME_SIGNER'))return'第二个签核人不能跟你是同一个人。';
+  return'存不进去：'+m;
+}
+
+// ── 求助 ──
+async function addHelp(planUid,dept,day,body,urgent){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_help_request')
+    .insert({client_uid:genId('hp'),plan_uid:planUid,dept:dept||null,day:day||null,
+             body:body,urgent:!!urgent,status:'pending'});
+  if(error){alert('送不出去：'+error.message);return false;}
+  await reloadAll();return true;
+}
+async function answerHelp(id,answer){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_help_request')
+    .update({answer:answer,answered_by_code:(S.me&&S.me.code)||null,
+             answered_at:new Date().toISOString(),status:'completed'}).eq('id',id);
+  if(error){alert('回不进去：'+error.message);return false;}
+  await reloadAll();return true;
+}
+function helpsOf(planUid){return (S.helps||[]).filter(x=>x.plan_uid===planUid);}
+function openHelps(planUid){return helpsOf(planUid).filter(x=>x.status==='pending');}
+
+// ── 今天没机会练 ──
+async function addNoPractice(planUid,dept,day,sopKey,label,reason){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_no_practice')
+    .insert({client_uid:genId('np'),plan_uid:planUid,dept:deptKey(dept),day:day||null,
+             sop_key:sopKey||null,item_label:label||null,reason:reason});
+  if(error){alert('记不进去：'+error.message);return false;}
+  await reloadAll();return true;
+}
+function noPracticeOf(planUid,dept){
+  return (S.noPractice||[]).filter(x=>x.plan_uid===planUid&&(!dept||x.dept===deptKey(dept)));
+}
+
+// ── 整理日任务 ──
+async function addCatchup(planUid,dept,onDate,title,body){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_catchup_task')
+    .insert({client_uid:genId('ct'),plan_uid:planUid,dept:dept||null,on_date:onDate,
+             title:title,body:body||null,status:'pending'});
+  if(error){alert('派不出去：'+error.message);return false;}
+  await reloadAll();return true;
+}
+async function setCatchupDone(id,done){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_catchup_task')
+    .update({status:done?'completed':'pending',done_at:done?new Date().toISOString():null}).eq('id',id);
+  if(error){alert('改不了：'+error.message);return false;}
+  await reloadAll();return true;
+}
+function catchupsOf(planUid,onDate){
+  return (S.catchups||[]).filter(x=>x.plan_uid===planUid&&(!onDate||String(x.on_date).slice(0,10)===onDate));
+}
+
+// ── 完成交代 ──
+async function saveCompletion(planUid,summary,strengths,watch){
+  if(!sb)return false;
+  const cur=(S.completions||[]).find(x=>x.plan_uid===planUid);
+  const row={plan_uid:planUid,summary:summary,strengths:strengths,watch:watch};
+  let error;
+  if(cur){({error}=await sb.from('traingo_completion').update(row).eq('id',cur.id));}
+  else{row.client_uid=genId('cp');({error}=await sb.from('traingo_completion').insert(row));}
+  if(error){alert('存不进去：'+error.message);return false;}
+  await reloadAll();return true;
+}
+async function ackCompletion(id){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_completion').update({acknowledged_at:new Date().toISOString()}).eq('id',id);
+  if(error){alert('签不了：'+error.message);return false;}
+  await reloadAll();return true;
+}
+function completionOf(planUid){return (S.completions||[]).find(x=>x.plan_uid===planUid);}
+
 // ── 读取 ─────────────────────────────────────────────────────
 function getPlan(uid){return S.plans.find(p=>p.uid===(uid||S.planUid));}
 function myPlan(){return S.plans.find(p=>p.teacherCode===(S.me&&S.me.code));}
@@ -1400,7 +1564,7 @@ async function reloadAll(){
   if(!sb)return;
   setSyncStatus('…');
   try{
-    const [t,p,pd,mh,dx,r,k,tt,cal,rel]=await Promise.all([
+    const [t,p,pd,mh,dx,r,k,tt,cal,rel,cmp,cchk,hlp,nop,cat,cpl]=await Promise.all([
       sb.from('teachers').select('id,name,status,resigned').order('id'),
       sb.from('traingo_plan').select('*'),
       sb.from('traingo_plan_dept').select('*'),
@@ -1411,8 +1575,17 @@ async function reloadAll(){
       sb.from('classgo_timetable').select('dept,day,session,teacher,subj,class_id'),
       sb.from('calendar_events').select('type,name,start_date,end_date,depts'),
       sb.from('traingo_releaser').select('teacher_code,active'),
+      sb.from('traingo_competency').select('*').eq('active',true).order('sort_no'),
+      sb.from('traingo_competency_check').select('*'),
+      sb.from('traingo_help_request').select('*').order('created_at',{ascending:false}),
+      sb.from('traingo_no_practice').select('*').order('on_date',{ascending:false}),
+      sb.from('traingo_catchup_task').select('*').order('on_date',{ascending:false}),
+      sb.from('traingo_completion').select('*'),
     ]);
-    for(const x of [t,p,pd,mh,dx,r,k,tt,cal,rel]) if(x.error) throw x.error;
+    for(const x of [t,p,pd,mh,dx,r,k,tt,cal,rel,cmp,cchk,hlp,nop,cat,cpl]) if(x.error) throw x.error;
+    S.comp=cmp.data||[]; S.compChecks=cchk.data||[];
+    S.helps=hlp.data||[]; S.noPractice=nop.data||[];
+    S.catchups=cat.data||[]; S.completions=cpl.data||[];
     S.teachers=(t.data||[]).filter(x=>!x.resigned);
     S.timetable=tt.data||[];
     S.holidays=cal.data||[];
@@ -1442,6 +1615,7 @@ async function reloadAll(){
     const cur=getPlan();
     if(cur&&!S.dept)S.dept=(cur.depts[0]||{}).dept||'SRK';
     if(S.dept)setRD(S.dept);
+    await loadMiscCount();
     S.ready=true;S.err=null;setSyncStatus('✅');
   }catch(e){
     S.ready=false;S.err=e.message||String(e);setSyncStatus('⚠️');
@@ -1554,7 +1728,7 @@ function logout(){ location.href='../index.html'; }   // 登出在平台层，�
 // ══════════════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════════════
-const PAGE_MAP={dashboard:0,tasks:1,report:2,progress:3,sop:4,handbook:5,mgmt:6};
+const PAGE_MAP={dashboard:0,tasks:1,report:2,progress:3,comp:4,sop:5,handbook:6,mgmt:7};
 function goPage(p){
   // Access control — only MGMT can access Admin page
   if(p==='mgmt'&&S.role!=='mgmt'){goPage('dashboard');return;}
@@ -1567,6 +1741,7 @@ function goPage(p){
   if(p==='tasks')renderTasks();
   if(p==='report')renderReport();
   if(p==='progress')renderProgress();
+  if(p==='comp')renderCompetency();
   if(p==='sop')renderSopLibrary();
   if(p==='handbook')renderHandbook();
   if(p==='mgmt')renderMgmt();
@@ -2049,12 +2224,52 @@ function renderMgmtDashboard(el){
       <div class="card-title" style="color:var(--red);margin-bottom:8px">⚠️ 要注意 (${alerts.length})</div>
       ${alerts.map(a=>`<div class="alert ${a.type==='skill'?'alert-red':a.type==='mgmt'?'alert-amb':'alert-amb'}" style="margin-bottom:5px">${a.msg}</div>`).join('')}
     </div>`:`<div class="alert alert-grn" style="margin-bottom:12px">✅ No alerts — all on track</div>`}
+    ${renderMgmtHelpInbox()}
+    ${renderMgmtCompBoard()}
     ${renderMgmtActionItems(active)}
     <div class="card">
       <div class="card-hdr"><span class="card-title">进行中的计划</span><button class="btn btn-pri btn-sm" onclick="goPage('mgmt')">+ 新增计划</button></div>
       ${active.length===0?`<div style="text-align:center;padding:20px;color:var(--mut)">没有进行中的计划，到「设定」页建一份。</div>`:active.map(c=>renderCohortRow(c)).join('')}
     </div>
     ${completed.length?`<div class="card"><div class="card-hdr"><span class="card-title">已完成 ✅</span></div>${completed.map(c=>renderCohortRow(c)).join('')}</div>`:''}`;
+}
+
+function renderMgmtHelpInbox(){
+  const ops=(S.helps||[]).filter(x=>x.status==='pending');
+  if(!ops.length)return'';
+  const rows=ops.map(x=>{
+    const p=getPlan(x.plan_uid);
+    return `<div style="padding:8px 0;border-bottom:.5px solid var(--bdr)">
+      <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">现在就要</span>':''}
+        <b>${esc(p?p.teacherName:(x.asked_by_code||'—'))}</b> · ${esc(x.body)}</div>
+      <div style="font-size:11px;color:var(--mut);margin-top:3px">${String(x.created_at).slice(0,16).replace('T',' ')}</div>
+      <div style="margin-top:5px"><button class="btn btn-sm" onclick="openAnswerHelp('${x.id}')">回覆</button></div>
+    </div>`;}).join('');
+  return `<div class="card" style="border-color:#F9CB42">
+    <div class="card-title" style="color:var(--amb);margin-bottom:8px">🙋 有人卡住了（${ops.length}）</div>${rows}</div>`;
+}
+
+function renderMgmtCompBoard(){
+  const act=S.plans.filter(p=>(p.depts||[]).some(d=>d.status!=='completed'));
+  if(!act.length)return'';
+  const today=getTodayISO();
+  const rows=act.map(p=>{
+    const cw=planCompDone(p);
+    if(!cw.total)return'';
+    const mc=miscCountOf(p.teacherCode);
+    return `<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:500">${esc(p.teacherName)}</div>
+        <div class="prog-bar" style="margin-top:5px"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
+        <div style="font-size:11px;color:var(--mut);margin-top:3px">${cw.ok}／${cw.total} 项达标${mc===null?'':' · MiscGo '+mc+' 笔'}</div>
+      </div>
+      <button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">清单</button>
+      <button class="btn btn-sm" onclick="openCatchupModal('${p.uid}','${today}')">派任务</button>
+    </div>`;}).join('');
+  return `<div class="card">
+    <div class="card-title" style="margin-bottom:6px">岗位清单进度</div>
+    <div style="font-size:11.5px;color:var(--mut);margin-bottom:6px">完成看的是这张清单，不是天数。「派任务」是整理日那天给她的功课。</div>
+    ${rows}</div>`;
 }
 
 function renderMgmtActionItems(active){
@@ -2729,11 +2944,23 @@ async function advanceDay(planUid,dept){
     await reloadAll();
     alert(`✅ ${dp} 前进到${dayLabel(pd.currentDay)}`);
   }else{
+    // 完成 ≠ 跑完 14 天。清单没齐就继续往下跑（架构正本 §4.1）
+    const r=compDone(p.uid,dp);
+    if(!r.done){
+      const nextDay=day+1;
+      pd.currentDay=nextDay;
+      await savePlanDept(p.uid,dp,nextDay,'active');
+      await reloadAll();
+      alert(`${dp} 的清单还差 ${r.total-r.ok} 项，所以不算完成，继续跑第 ${nextDay} 天。\n\n还差：\n`
+            +r.missing.slice(0,6).map(x=>'· '+x.name).join('\n')
+            +(r.missing.length>6?`\n…还有 ${r.missing.length-6} 项`:''));
+      return;
+    }
     pd.status='completed';
     await savePlanDept(p.uid,dp,day,'completed');
     await reloadAll();
     const allDone=(getPlan(p.uid).depts||[]).every(x=>x.status==='completed');
-    alert(allDone?'🎉 所有部门都跑完了。接下来由放行人决定能不能独立带班。':`✅ ${dp} 跑完了。其他部门还在进行。`);
+    alert(allDone?'🎉 所有部门的清单都齐了。接下来由放行人决定能不能独立带班。':`✅ ${dp} 的清单齐了。其他部门还在进行。`);
   }
 }
 
@@ -2745,9 +2972,11 @@ async function openAdvanceModal(planUid,dept){
   const idx=TRAIN_DAYS.indexOf(day);
   const next=TRAIN_DAYS[idx+1];
   const mr=getReport(p.uid,'mentor',day,dp), tr=getReport(p.uid,'mentee',day,dp);
+  const cr=compDone(p.uid,dp);
+  const compLine=`\n岗位清单：${cr.ok}／${cr.total} 项达标`+(cr.done?' ✅':' ⚠️ 还差 '+(cr.total-cr.ok)+' 项');
   const msg=next
-    ? `${p.teacherName} · ${dp}\n${dayLabel(day)} → ${dayLabel(next)}？\n\nMentor 日报：${mr?'✅ 已交':'⚠️ 还没交'}\n新老师日报：${tr?'✅ 已交':'⚠️ 还没交'}\n\n继续？`
-    : `${p.teacherName} · ${dp}\n这是最后一天。标记这个部门跑完？`;
+    ? `${p.teacherName} · ${dp}\n${dayLabel(day)} → ${dayLabel(next)}？\n\nMentor 日报：${mr?'✅ 已交':'⚠️ 还没交'}\n新老师日报：${tr?'✅ 已交':'⚠️ 还没交'}${compLine}\n\n继续？`
+    : `${p.teacherName} · ${dp}\n这是第 ${day} 天。${compLine}\n\n`+(cr.done?'清单齐了，标记这个部门跑完？':'清单还没齐 —— 按下去会继续跑下一天，不会标成完成。');
   if(confirm(msg)) await advanceDay(p.uid,dp);
 }
 
@@ -2901,6 +3130,369 @@ function renderTrainingChart(cohort){
 // ══════════════════════════════════════════════════════════════
 // SOP REFERENCE LIBRARY PAGE
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// v27 · 岗位清单页
+// ══════════════════════════════════════════════════════════════
+function compPickablePlans(){
+  if(S.role==='mgmt')return S.plans;
+  if(S.role==='mentor')return mentorPlans();
+  const m=myPlan();return m?[m]:[];
+}
+function compSetPlan(uid){S.planUid=uid;const p=getPlan(uid);if(p&&p.depts&&p.depts[0])S.dept=p.depts[0].dept;renderCompetency();}
+function compSetDept(d){S.dept=d;setRD(d);renderCompetency();}
+
+function levelPill(lv,req,safety){
+  const ok=lv>=req;
+  const cls=ok?'chip-grn':(lv>0?'chip-amb':'');
+  return `<span class="chip ${cls}" title="${esc(LEVEL_LABEL[lv]||'')}${safety?' · 安全类':''}">${lv}／${req}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// v27 · 求助 · 没机会练 · 整理日任务 · 完成交代（介面）
+// ══════════════════════════════════════════════════════════════
+function openHelpModal(){
+  const p=myPlan()||getPlan(); if(!p){alert('你还没有训练计划。');return;}
+  const iso=todayISO();
+  const blocks=todayDeptTasks(p).filter(b=>!b.rest);
+  const dept=(blocks[0]||{}).dept||S.dept||(p.depts[0]||{}).dept||'SRK';
+  const day=(blocks[0]||{}).day||null;
+  const ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hdr">
+      <span style="font-size:20px">🙋</span>
+      <div class="modal-hdr-title">我卡住了<br>
+        <span style="font-size:11px;font-weight:400;color:var(--mut)">${deptShort(dept)}${day?' · '+dayLabel(day):''}</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--mut);margin-bottom:8px">
+        写下你卡在哪。你的 Mentor 和管理层都看得到。<b>问不是丢脸，猜才是。</b></div>
+      <textarea id="hpBody" rows="4" placeholder="例：抄白板的时候有三个孩子一直离座，我不知道该先处理谁"
+        style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12.5px;cursor:pointer">
+        <input type="checkbox" id="hpUrgent" style="width:17px;height:17px"> 现在就需要人来（不是等下课）</label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
+      <button class="btn btn-pri" onclick="submitHelp('${p.uid}','${dept}',${day||'null'},this)">送出</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function submitHelp(uid,dept,day,btn){
+  const body=(document.getElementById('hpBody').value||'').trim();
+  if(!body){alert('写一句你卡在哪，Mentor 才知道怎么帮。');return;}
+  const urgent=document.getElementById('hpUrgent').checked;
+  btn.disabled=true;btn.textContent='送…';
+  const ok=await addHelp(uid,dept,day,body,urgent);
+  if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
+  else{btn.disabled=false;btn.textContent='送出';}
+}
+function openAnswerHelp(id){
+  const hp=(S.helps||[]).find(x=>x.id===id); if(!hp)return;
+  const ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hdr"><span style="font-size:20px">🙋</span>
+      <div class="modal-hdr-title">回覆求助<br><span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(hp.asked_by_code||'')} · ${String(hp.created_at).slice(0,10)}</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
+    <div class="modal-body">
+      <div class="card" style="background:var(--sur2);margin-bottom:12px">${esc(hp.body)}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">你的回覆</div>
+      <textarea id="hpAns" rows="4" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(hp.answer||'')}</textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
+      <button class="btn btn-pri" onclick="submitAnswerHelp('${id}',this)">回覆并结案</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function submitAnswerHelp(id,btn){
+  const a=(document.getElementById('hpAns').value||'').trim();
+  if(!a){alert('写一句回覆。');return;}
+  btn.disabled=true;btn.textContent='存…';
+  const ok=await answerHelp(id,a);
+  if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
+  else{btn.disabled=false;btn.textContent='回覆并结案';}
+}
+
+// ── 今天没机会练 ──
+function openNoPracticeModal(){
+  const p=myPlan()||getPlan(); if(!p){alert('你还没有训练计划。');return;}
+  const blocks=todayDeptTasks(p).filter(b=>!b.rest);
+  const dept=(blocks[0]||{}).dept||S.dept||(p.depts[0]||{}).dept||'SRK';
+  const day=(blocks[0]||{}).day||null;
+  setRD(dept);
+  const items=compFor(dept).filter(x=>x.grp==='A')
+    .map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  const ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hdr"><span style="font-size:20px">🕳️</span>
+      <div class="modal-hdr-title">今天没机会练<br>
+        <span style="font-size:11px;font-weight:400;color:var(--mut)">${deptShort(dept)}${day?' · '+dayLabel(day):''}</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--mut);margin-bottom:9px">
+        某一项今天根本没轮到，记一笔。<b>记了就不会被当成偷懒。</b></div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">哪一项</div>
+      <select id="npItem" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${items}</select>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">为什么没轮到</div>
+      <textarea id="npReason" rows="3" placeholder="例：今天没有听写，改成补上週的活动"
+        style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
+      <button class="btn btn-pri" onclick="submitNoPractice('${p.uid}','${dept}',${day||'null'},this)">记一笔</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function submitNoPractice(uid,dept,day,btn){
+  const id=document.getElementById('npItem').value;
+  const it=(S.comp||[]).find(x=>x.id===id);
+  const reason=(document.getElementById('npReason').value||'').trim();
+  if(!it){alert('先选一项。');return;}
+  if(!reason){alert('写一句为什么没轮到。');return;}
+  btn.disabled=true;btn.textContent='记…';
+  const ok=await addNoPractice(uid,dept,day,it.sop_key,it.name,reason);
+  if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
+  else{btn.disabled=false;btn.textContent='记一笔';}
+}
+
+// ── 整理日任务（管理层派）──
+function openCatchupModal(planUid,onDate){
+  const p=getPlan(planUid); if(!p)return;
+  const ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hdr"><span style="font-size:20px">🗂️</span>
+      <div class="modal-hdr-title">派一件整理日任务<br>
+        <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)} · ${onDate}</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">任务</div>
+      <input id="ctTitle" placeholder="例：把这一週的 Flash Card 再练三轮"
+        style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">说明（选填）</div>
+      <textarea id="ctBody" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
+      <button class="btn btn-pri" onclick="submitCatchup('${p.uid}','${onDate}',this)">派出去</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function submitCatchup(uid,onDate,btn){
+  const t=(document.getElementById('ctTitle').value||'').trim();
+  if(!t){alert('写一句任务。');return;}
+  const b=(document.getElementById('ctBody').value||'').trim();
+  btn.disabled=true;btn.textContent='派…';
+  const ok=await addCatchup(uid,null,onDate,t,b);
+  if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
+  else{btn.disabled=false;btn.textContent='派出去';}
+}
+async function toggleCatchup(id,done){ await setCatchupDone(id,done); refreshCurrentPage(); }
+
+// ── 完成交代 ──
+function openCompletionModal(planUid){
+  const p=getPlan(planUid); if(!p)return;
+  const cur=completionOf(p.uid)||{};
+  const ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hdr"><span style="font-size:20px">🎓</span>
+      <div class="modal-hdr-title">完成交代<br>
+        <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)}</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">
+        她跑完了，总要有人跟她讲一句。这一段她看得到。</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">这一轮她走过什么</div>
+      <textarea id="cpSum" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.summary||'')}</textarea>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">她哪里做得好</div>
+      <textarea id="cpStr" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.strengths||'')}</textarea>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">上岗以后要自己盯着的地方</div>
+      <textarea id="cpWatch" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.watch||'')}</textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
+      <button class="btn btn-pri" onclick="submitCompletion('${p.uid}',this)">存起来</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function submitCompletion(uid,btn){
+  const s=(document.getElementById('cpSum').value||'').trim();
+  const g=(document.getElementById('cpStr').value||'').trim();
+  const w=(document.getElementById('cpWatch').value||'').trim();
+  if(!s&&!g&&!w){alert('至少写一段。');return;}
+  btn.disabled=true;btn.textContent='存…';
+  const ok=await saveCompletion(uid,s,g,w);
+  if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
+  else{btn.disabled=false;btn.textContent='存起来';}
+}
+async function doAckCompletion(id){ await ackCompletion(id); refreshCurrentPage(); }
+
+function renderCompetency(){
+  const el=document.getElementById('comp-content');
+  const plans=compPickablePlans();
+  if(!plans.length){
+    el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
+      <div style="font-size:30px;margin-bottom:10px">✅</div>
+      <div style="font-weight:600;margin-bottom:5px">还没有可以看的岗位清单</div>
+      <div style="color:var(--mut);font-size:12px">要先有训练计划，清单才挂得上去。</div></div>`;return;}
+  let p=getPlan(); if(!p||!plans.some(x=>x.uid===p.uid)){p=plans[0];S.planUid=p.uid;}
+  const depts=(p.depts||[]).map(x=>x.dept);
+  if(!depts.includes(S.dept))S.dept=depts[0]||'SRK';
+  setRD(S.dept);
+
+  let h='';
+  if(plans.length>1){
+    h+=`<div class="filter"><span style="font-size:11px;color:var(--mut);margin-right:6px">学员</span>`;
+    plans.forEach(x=>{h+=`<button class="itab ${x.uid===p.uid?'on':''}" onclick="compSetPlan('${x.uid}')">${esc(x.teacherName)}</button>`;});
+    h+=`</div>`;
+  }
+  if(depts.length>1){
+    h+=`<div class="filter"><span style="font-size:11px;color:var(--mut);margin-right:6px">部门</span>`;
+    depts.forEach(d=>{h+=`<button class="itab ${d===S.dept?'on':''}" onclick="compSetDept('${d}')">${deptShort(d)}</button>`;});
+    h+=`</div>`;
+  }
+
+  const list=compFor(S.dept);
+  const r=compDone(p.uid,S.dept);
+  const whole=planCompDone(p);
+  const pct=r.total?Math.round(r.ok/r.total*100):0;
+
+  h+=`<div class="card">
+    <div class="card-title">${esc(p.teacherName)} · ${deptShort(S.dept)} 岗位清单</div>
+    <div style="font-size:12px;color:var(--mut);margin:4px 0 10px">
+      完成 ＝ 这张清单每一项都到了要求的级数。天数只是进度显示，不是完成条件。</div>
+    <div class="prog-bar"><div class="prog-fill ${r.done?'grn':''}" style="width:${pct}%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
+      <span>${r.ok}／${r.total} 项达标</span>
+      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ 这个部门的清单齐了':'还差 '+(r.total-r.ok)+' 项'}</span>
+    </div>
+    ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">整份计划：${whole.ok}／${whole.total} 项${whole.done?' · 全部齐了':''}</div>`:''}
+  </div>`;
+
+  const misc=miscCountOf(p.teacherCode);
+  h+=`<div class="card" style="background:var(--sur2)">
+    <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">客观证据</div>
+    <div style="font-size:13px;margin-top:5px">
+      她本人填过的 MiscGo 上报：<b>${misc===null?'读不到':misc+' 笔'}</b>
+    </div>
+    <div style="font-size:11.5px;color:var(--mut);margin-top:4px">
+      ${misc===null?'你的帐号没有 MiscGo 权限，所以这里读不到。这不代表她没填过。'
+                  :'只给 Mentor 参考，不挡签核。'}
+    </div>
+  </div>`;
+
+  ['A','B'].forEach(g=>{
+    const items=list.filter(x=>x.grp===g);
+    if(!items.length)return;
+    h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">
+      ${g==='A'?'A 组 · 来自 SOP':'B 组 · 没有独立 SOP'}
+      <span style="font-weight:400;font-size:11px;color:var(--mut)">（${items.length} 项）</span></div>`;
+    items.forEach(it=>{
+      const lv=compLevel(p.uid,it.id);
+      const ck=compCheck(p.uid,it.id);
+      const ok=lv>=(it.level_required||3);
+      h+=`<div style="display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:${ok?'400':'500'};line-height:1.35">${esc(it.name)}
+            ${it.is_safety?'<span class="chip chip-red" style="margin-left:5px">安全类</span>':''}</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:3px">
+            ${esc(LEVEL_LABEL[lv]||'')}${ck&&ck.signed_by_code?' · '+esc(ck.signed_by_code)+' 签':''}${ck&&ck.second_by_code?' ＋ '+esc(ck.second_by_code):''}
+          </div>
+        </div>
+        ${levelPill(lv,it.level_required||3,it.is_safety)}
+        ${it.sop_key&&D.SOP[it.sop_key]?`<button class="btn btn-sm" onclick="openSopModal('${it.sop_key}')">SOP</button>`:''}
+        <button class="btn btn-sm" onclick="openCompModal('${it.id}')">改</button>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+
+  const np=noPracticeOf(p.uid,S.dept);
+  if(np.length){
+    h+=`<div class="card"><div class="card-title" style="margin-bottom:6px">今天没机会练的纪录（${np.length}）</div>`;
+    np.slice(0,8).forEach(x=>{
+      h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr);font-size:12px">
+        <b>${esc(x.item_label||x.sop_key||'—')}</b>
+        <span style="color:var(--mut)"> · ${String(x.on_date).slice(0,10)}</span>
+        <div style="color:var(--mut);margin-top:2px">${esc(x.reason||'')}</div></div>`;
+    });
+    h+=`<div style="font-size:11px;color:var(--mut);margin-top:8px">这些不是偷懒 —— 是那天真的没轮到。</div></div>`;
+  }
+  el.innerHTML=h;
+}
+
+function openCompModal(compId){
+  const p=getPlan(); if(!p)return;
+  const it=(S.comp||[]).find(x=>x.id===compId); if(!it)return;
+  const lv=compLevel(p.uid,it.id);
+  const ck=compCheck(p.uid,it.id);
+  const req=it.level_required||3;
+  const opts=[0,1,2,3,4].map(n=>`<option value="${n}" ${n===lv?'selected':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← 要求':''}</option>`).join('');
+  const people=(S.teachers||[]).filter(t=>t.id!==(S.me&&S.me.code))
+    .map(t=>`<option value="${esc(t.id)}" ${ck&&ck.second_by_code===t.id?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
+  const ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-hdr-title">${esc(it.name)}<br>
+        <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)} · ${deptShort(it.dept)} · 要求第 ${req} 级${it.is_safety?' · 安全类':''}</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">她现在到第几级</div>
+      <select id="cmLevel" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${opts}</select>
+      <div style="font-size:11px;color:var(--mut);margin-top:6px">
+        1 知道 · 2 会做但要人看着 · 3 能独立做 · 4 能教别人（＝可以当这一项的 Mentor）<br>
+        第 1 级她自己签 · 第 2、3 级 Mentor 签 · 第 4 级管理层签
+      </div>
+      ${it.is_safety?`<div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">安全类 · 到第 3 级要第二个人一起签</div>
+        <select id="cmSecond" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
+          <option value="">— 选第二位签核人 —</option>${people}</select>
+      </div>`:''}
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">备注（选填）</div>
+        <textarea id="cmNote" rows="2" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(ck&&ck.note||'')}</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
+      <button class="btn btn-pri" onclick="submitCompLevel('${it.id}',this)">存起来</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+
+async function submitCompLevel(compId,btn){
+  const p=getPlan(); if(!p)return;
+  const it=(S.comp||[]).find(x=>x.id===compId); if(!it)return;
+  const lv=parseInt(document.getElementById('cmLevel').value,10);
+  const secEl=document.getElementById('cmSecond');
+  const sec=secEl?secEl.value:'';
+  const note=(document.getElementById('cmNote')||{}).value||'';
+  if(it.is_safety&&lv>=3&&!sec){alert('这是安全类，到第 3 级要选第二位签核人。');return;}
+  btn.disabled=true;btn.textContent='存…';
+  const ok=await setCompLevel(p.uid,compId,it.dept,lv,sec,note);
+  if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();renderCompetency();}
+  else{btn.disabled=false;btn.textContent='存起来';}
+}
+
 function renderSopLibrary(){
   const el=document.getElementById('sop-content');
 
@@ -3144,10 +3736,40 @@ function renderMentorHome(){
       </div>`;
     });
 
+    // 岗位清单进度 ＋ 客观证据
+    const cw=planCompDone(p);
+    if(cw.total){
+      const mc=miscCountOf(p.teacherCode);
+      h+=`<div style="margin-top:10px;padding-top:9px;border-top:.5px solid var(--bdr)">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+          <span style="font-weight:500">岗位清单</span>
+          <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} 项达标</span></div>
+        <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
+        <div style="font-size:11px;color:var(--mut);margin-top:5px">
+          她填过的 MiscGo 上报：${mc===null?'读不到（你没有 MiscGo 权限）':'<b>'+mc+'</b> 笔 · 只供参考，不挡签核'}</div>
+        <div style="margin-top:8px"><button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">签清单 ›</button></div>
+      </div>`;
+    }
+    // 她的求助
+    const ops=openHelps(p.uid);
+    if(ops.length){
+      h+=`<div style="margin-top:10px;padding-top:9px;border-top:.5px solid var(--bdr)">
+        <div style="font-size:12px;font-weight:600;color:var(--amb);margin-bottom:6px">🙋 她在等你回覆（${ops.length}）</div>`;
+      ops.slice(0,3).forEach(x=>{
+        h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr)">
+          <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">现在就要</span>':''}${esc(x.body)}</div>
+          <div style="margin-top:5px"><button class="btn btn-sm" onclick="event.stopPropagation();openAnswerHelp('${x.id}')">回覆</button></div>
+        </div>`;
+      });
+      h+=`</div>`;
+    }
     if(allDone){
       h+= p.released
         ? `<div class="alert alert-grn" style="margin-top:10px">🎉 她已经被放行了。</div>`
         : `<div class="alert alert-amb" style="margin-top:10px">她训练跑完了，等管理层放行。</div>`;
+      const cp=completionOf(p.uid);
+      h+=`<div style="margin-top:8px"><button class="btn btn-sm" onclick="openCompletionModal('${p.uid}')">${cp?'改完成交代':'✍️ 写完成交代'}</button>
+        ${cp&&cp.acknowledged_at?'<span style="font-size:11px;color:var(--grn);margin-left:7px">她看过了</span>':(cp?'<span style="font-size:11px;color:var(--mut);margin-left:7px">她还没看</span>':'')}</div>`;
     }
     h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">看她的整份计划 ›</button></div>
     </div>`;
@@ -3160,6 +3782,11 @@ function renderMentorHome(){
 function openMentorPlan(uid,dept,page){
   S.planUid=uid; S.dept=dept; setRD(dept);
   goPage(page||'tasks');
+}
+function openMentorComp(uid){
+  const p=getPlan(uid); if(!p)return;
+  S.planUid=uid; S.dept=(p.depts[0]||{}).dept||'SRK'; setRD(S.dept);
+  goPage('comp');
 }
 
 function renderMenteeHome(){
@@ -3185,11 +3812,32 @@ function renderMenteeHome(){
 
   let h='';
   if(restToday){
+    const ct=catchupsOf(p.uid,iso);
+    const weak=(()=>{const m=[];(p.depts||[]).forEach(d=>{compDone(p.uid,d.dept).missing.forEach(x=>m.push(x));});return m;})();
     h+=`<div class="card" style="border:2px solid var(--gold)">
       <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">今天是整理日</div>
       <div style="font-size:19px;font-weight:700;margin:8px 0 4px">整理自己，补弱的地方</div>
-      <div style="font-size:12px;color:var(--mut)">把这一週学的东西过一遍。管理层可能会派任务给你。</div>
+      <div style="font-size:12px;color:var(--mut)">今天不出训练任务，也不算训练日。</div>
     </div>`;
+    h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">管理层派给你的（${ct.length}）</div>`;
+    if(!ct.length){h+=`<div style="font-size:12px;color:var(--mut)">今天没有派任务给你。</div>`;}
+    ct.forEach(x=>{
+      const done=x.status==='completed';
+      h+=`<div style="display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:.5px solid var(--bdr)">
+        <input type="checkbox" ${done?'checked':''} onchange="toggleCatchup('${x.id}',this.checked)" style="width:18px;height:18px;margin-top:2px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;${done?'opacity:.55;text-decoration:line-through':''}">${esc(x.title)}</div>
+          ${x.body?`<div style="font-size:11.5px;color:var(--mut);margin-top:3px">${esc(x.body)}</div>`:''}
+        </div></div>`;
+    });
+    h+=`</div>`;
+    if(weak.length){
+      h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">你自己该补的（清单还差 ${weak.length} 项）</div>`;
+      weak.slice(0,6).forEach(x=>{h+=`<div style="font-size:12.5px;padding:6px 0;border-bottom:.5px solid var(--bdr)">${esc(x.name)}
+        <span class="chip" style="margin-left:5px">要到第 ${x.level_required} 级</span></div>`;});
+      if(weak.length>6)h+=`<div style="font-size:11.5px;color:var(--mut);margin-top:7px">…还有 ${weak.length-6} 项，去清单页看。</div>`;
+      h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">看整张清单 ›</button></div></div>`;
+    }
   }else if(first){
     h+=`<div class="card" style="border:2px solid var(--acc)">
       <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">今天做这一步</div>
@@ -3238,12 +3886,60 @@ function renderMenteeHome(){
   });
   h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('progress')">我的整份计划 ›</button></div></div>`;
 
+  // ── 清单进度 ──
+  const cw=planCompDone(p);
+  if(cw.total){
+    h+=`<div class="card">
+      <div class="card-title" style="margin-bottom:6px">岗位清单</div>
+      <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
+        <span>${cw.ok}／${cw.total} 项达标</span>
+        <span style="color:var(--mut)">${cw.done?'全部齐了':'完成看的是这张清单，不是天数'}</span></div>
+      <div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">看清单 ›</button></div>
+    </div>`;
+  }
+
+  // ── 卡住了 / 没机会练 ──
+  h+=`<div class="card">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-pri" onclick="openHelpModal()">🙋 我卡住了</button>
+      <button class="btn" onclick="openNoPracticeModal()">🕳️ 今天没机会练</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--mut);margin-top:8px">问不是丢脸，猜才是。没轮到就记一笔，不会被当成偷懒。</div>`;
+  const myHelps=helpsOf(p.uid).slice(0,4);
+  if(myHelps.length){
+    h+=`<div style="margin-top:12px;border-top:.5px solid var(--bdr);padding-top:9px">`;
+    myHelps.forEach(x=>{
+      h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr)">
+        <div style="font-size:12.5px">${esc(x.body)}</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:3px">
+          ${x.status==='completed'?'<span style="color:var(--grn)">已回覆</span> · '+esc(x.answered_by_code||''):'<span style="color:var(--amb)">等回覆</span>'}
+        </div>
+        ${x.answer?`<div style="font-size:12px;background:var(--sur2);padding:7px 9px;border-radius:6px;margin-top:5px">${esc(x.answer)}</div>`:''}
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+
   // ── 放行状态（完成之后才出现）──
   const allDone=(p.depts||[]).length&&(p.depts||[]).every(x=>x.status==='completed');
   if(allDone){
     h+=p.released
       ? `<div class="alert alert-grn">🎉 你已经被放行，可以自己带班了。</div>`
       : `<div class="alert alert-amb">训练都跑完了，等管理层放行。</div>`;
+    const cp=completionOf(p.uid);
+    if(cp){
+      h+=`<div class="card" style="border:2px solid var(--grn)">
+        <div class="card-title" style="margin-bottom:8px">🎓 给你的交代</div>
+        ${cp.summary?`<div style="font-size:11px;font-weight:600;color:var(--mut)">这一轮你走过什么</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.summary)}</div>`:''}
+        ${cp.strengths?`<div style="font-size:11px;font-weight:600;color:var(--mut)">你哪里做得好</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.strengths)}</div>`:''}
+        ${cp.watch?`<div style="font-size:11px;font-weight:600;color:var(--mut)">上岗以后要自己盯着的</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.watch)}</div>`:''}
+        <div style="font-size:11px;color:var(--mut)">${esc(cp.issued_by_code||'')} 写于 ${String(cp.issued_at).slice(0,10)}</div>
+        ${cp.acknowledged_at?`<div style="font-size:11.5px;color:var(--grn);margin-top:8px">✅ 你已经看过了</div>`
+          :`<div style="margin-top:10px"><button class="btn btn-pri btn-sm" onclick="doAckCompletion('${cp.id}')">我看过了</button></div>`}
+      </div>`;
+    }
   }
   el.innerHTML=h;
 }
