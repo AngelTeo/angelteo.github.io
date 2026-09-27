@@ -240,7 +240,7 @@ const SRK_SOP_DATA= {
       {n:2,do_:'Students submit books. Walk around to check, sort by subject, stack neatly.'},
       {n:3,do_:'Check subject by subject: "English book!" Count each. Compare with attendance number.'},
       {n:4,warn:'⚠️ Number wrong',do_:'"Everyone stand up!" → Call names one by one → Check bags → Check cupboard → Sit when confirmed.'},
-      {n:5,warn:'Report: Unfound Book',do_:'Write student name on board (top right) → Photo → file it in <b>MiscGo</b> (report type <b>UNFOUND_BOOKS</b>). Press both buttons: Save to System, then Send to WhatsApp.'},
+      {n:5,warn:'Report: Unfound Book',do_:'Write student name on board (top right) → Photo → file it in <b>MiscGo</b> (report type <b>UNFOUND_BOOKS</b>), then press Send to WhatsApp so MGMT sees it.'},
       {n:6,do_:'Keep books in cupboard by subject. Continue to next activity.'},
     ],
     age:{
@@ -440,7 +440,7 @@ const SRK_SOP_DATA= {
   escalation:{id:'escalation',n:14,name:'Escalation & Parent Contact',nameZh:'Reporting & Parent Boundary',icon:'🚨',when:'AS TRIGGERED',cat:'end',
     steps:[
       {n:1,title:'Everything starts in MiscGo — nothing else',do_:'One entry point, one standard, so nothing gets missed. Do not open WhatsApp yourself, do not report verbally, do not ask someone else to pass it on. Pick the right report type, write what actually happened — not your guess, not your opinion.',warn:'⚡ File it, then stop. MGMT handles the rest — do not chase it yourself'},
-      {n:2,title:'Two buttons on the preview screen — press both',do_:'MiscGo shows a preview after you fill the form. <b>① "💾 Save to System"</b> stores the record so it can be looked up later. <b>② "Send to WhatsApp"</b> opens WhatsApp with the message ready — pick the group and send, so MGMT sees it now.<br>Saved but not sent → nobody knows. Sent but not saved → no record later.',warn:'⚠️ Pressing only one of them means you are not done'},
+      {n:2,title:'Press "Generate + Save", then "Send to WhatsApp"',do_:'The moment you press <b>Generate + Save</b> the record is already stored — you do not need to save it again. A preview appears: check it, then press <b>Send to WhatsApp</b> and pick the group, so MGMT actually sees it.<br>If you try to leave without sending, the system stops you once. That is a reminder, not an obstacle.',warn:'⚠️ Stored in the system is NOT the same as management knowing. It has to be sent'},
       {n:3,title:'Never respond to a parent',do_:'If a parent messages you, calls you, or stops you at the door — you say one line and nothing else: <b>"I will pass this to management and they will contact you."</b> Then end the conversation and file it in MiscGo.',warn:'⚠️ Never say "OK", "no problem", "I will sort it out" or "that should be fine" — to a parent that is a promise'},
       {n:4,title:'What you must never discuss with a parent',do_:'Other children · other teachers · fees · staffing or scheduling · discipline decisions. However friendly or however angry the parent is, the rule does not change.',warn:'⚠️ A parent\'s mood is not an exception'},
       {n:5,title:'Immediately — child not accounted for',do_:'A child who should be here and is not → file MiscGo at once, report type <b>PICKUP</b>. Say which child and which pickup or bus. Do not finish what you are doing first.',warn:'⚡ Immediately'},
@@ -454,7 +454,7 @@ const SRK_SOP_DATA= {
       in_:{tips:['Same rule at every age'],goal:'Files every incident in MiscGo; never answers a parent directly'},
       sr:{tips:['Same rule at every age'],goal:'Files every incident in MiscGo; never answers a parent directly'},
     },
-    warns:['⚠️ Save to System AND Send to WhatsApp — both buttons, every time','⚠️ You are NOT expected to handle any of this alone — filing it IS the action','⚠️ Not sure whether to report? Report. Getting the call wrong is not a mistake; staying quiet is','⚠️ Nobody is ever criticised for filing too much','⚠️ A parent question is never yours to answer — one line, then MiscGo'],
+    warns:['⚠️ Stored is not sent — always press Send to WhatsApp','⚠️ You are NOT expected to handle any of this alone — filing it IS the action','⚠️ Not sure whether to report? Report. Getting the call wrong is not a mistake; staying quiet is','⚠️ Nobody is ever criticised for filing too much','⚠️ A parent question is never yours to answer — one line, then MiscGo'],
   },
 
   morning:{id:"morning",n:0,name:"Before Class: Morning Routine",nameZh:"Ready Class & Morning Duty",icon:"🌅",when:"EVERY DAY",cat:"morning",
@@ -926,7 +926,7 @@ const ATC_SOP_DATA={
   escalation:{id:'escalation',n:12,icon:'🚨',name:'Escalation Protocol',nameZh:'上报触发机制',when:'AS TRIGGERED',cat:'alert',
     steps:[
       {n:1,title:'一律从 MiscGo 进去 — 不要自己开 WhatsApp、不要口头',do_:'所有上报走同一个地方：MiscGo。选对分类，写发生了什么，不写猜测与评价。<b>一个入口、一套标准，才不会漏。</b>',warn:'⚡ 填完就结束 — 后续由 MGMT 处理，不要自己追'},
-      {n:2,title:'预览页两颗按钮，两颗都要按',do_:'MiscGo 填完会跳预览。<b>①「💾 Save to System」</b>把纪录存起来，以后查得到。<b>②「Send to WhatsApp」</b>开 WhatsApp 带好讯息，选群组送出，MGMT 马上看到。<br>存了没送 → 没人知道。送了没存 → 以后查不到。',warn:'⚠️ 只按一颗＝没做完'},
+      {n:2,title:'填完按「Generate + Save」，再按「Send to WhatsApp」',do_:'按下 <b>Generate + Save</b> 那一刻纪录就已经存进系统了，不用另外存。接着跳出预览页，检查一下内容，按 <b>Send to WhatsApp</b> 选群组送出，MGMT 才看得到。<br>没送出就想离开，系统会拦你一次 —— 那是提醒，不是刁难。',warn:'⚠️ 存进系统 ≠ 主管知道了。要送出去才算'},
       {n:3,title:'立刻 — 校车学生没到',do_:'点名发现没到 → 马上填 MiscGo，分类 <b>PICKUP</b>，写清楚是哪一位、哪一班校车。不要做完手上的事再填。',warn:'⚡ 立刻，不能等'},
       {n:4,title:'立刻 — 学生不舒服',do_:'任何不舒服的迹象 → 不要自己判断严不严重 → 马上填 MiscGo，分类 <b>HEALTH</b>；有受伤用 <b>INJURED</b>。',warn:'⚡ 立刻'},
       {n:5,title:'立刻 — 学生冲突',do_:'先分开，保持冷静，不单独审问任何一方。然后填 MiscGo，分类 <b>BEHAVIOUR_R</b>。',warn:'⚡ 立刻'},
@@ -936,7 +936,7 @@ const ATC_SOP_DATA={
       {n:9,title:'累积 — 连续 3 天不吃',do_:'连续 3 天没吃 → 先问原因 → 填 MiscGo，分类 <b>HEALTH</b> → 由 MGMT 跟进家长。'},
       {n:10,title:'作业纸印错 / 内容错',do_:'标注出来，拍照填进 MiscGo，分类 <b>GENERAL</b>。'},
     ],
-    warns:['⚠️ 存系统 ＋ 送 WhatsApp，两颗按钮都要按','⚠️ 不准自己回应家长 — 只能说「我会交给管理层」','⚠️ 上报本身就是处理 — 报了就是做完了你该做的那一份','⚠️ 不确定要不要报 → 报。判断错不是错，不报才是','⚠️ 不会因为报太多被检讨'],
+    warns:['⚠️ 存进系统 ≠ 主管知道了 — 一定要按 Send to WhatsApp 送出去','⚠️ 不准自己回应家长 — 只能说「我会交给管理层」','⚠️ 上报本身就是处理 — 报了就是做完了你该做的那一份','⚠️ 不确定要不要报 → 报。判断错不是错，不报才是','⚠️ 不会因为报太多被检讨'],
   },
 
 };
@@ -1213,7 +1213,7 @@ function getStageForDay(d){return D.STAGES.find(s=>s.days.includes(d))||D.STAGES
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v28';
+const APP_VERSION='v29';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
