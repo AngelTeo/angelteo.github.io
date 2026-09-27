@@ -1207,13 +1207,18 @@ const D={
   get STAGE_SOPS(){return DEPT_CFG[_RD].STAGE_SOPS;},
   get SUCCESS_CRITERIA(){return DEPT_CFG[_RD].SUCCESS_CRITERIA;},
 };
-function getStageForDay(d){return D.STAGES.find(s=>s.days.includes(d))||D.STAGES[0];}
+// v32：第 14 天清单没齐会继续往下推到 15、16…（架构正本 §4.1）。以前这些天找不到阶段，
+// 退回 STAGES[0] ——「Stage 1 Establishing Basics」，看起来像重新开始。延长天沿用最後一个阶段。
+function getStageForDay(d){
+  if(isExtraDay(d))return D.STAGES[D.STAGES.length-1];
+  return D.STAGES.find(s=>s.days.includes(d))||D.STAGES[0];
+}
 
 
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v31';
+const APP_VERSION='v32';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1286,8 +1291,11 @@ function exceptionReason(plan,dept,iso){
 // ── 排程：第 N 天是哪一天（週一到週五，跳假期与例外）────────────
 // 训练日编号 = TRAIN_DAYS 的顺位（1,2,3,4,6,7,8,9,11,12,13,14 是任务表的键）
 // 画面上一律写「第 N 个训练日」，N = 顺位，所以永远照时间排，不会跳号
-function dayNo(d){const i=TRAIN_DAYS.indexOf(d);return i<0?1:i+1;}
-function dayLabel(d){return 'Day '+dayNo(d);}
+function isExtraDay(d){return d>TRAIN_DAYS[TRAIN_DAYS.length-1];}
+function extraNo(d){return d-TRAIN_DAYS[TRAIN_DAYS.length-1];}
+// v32：以前 dayNo(15) 找不到 → 回 1 → 延长天全都显示成「Day 1」
+function dayNo(d){if(isExtraDay(d))return TRAIN_DAYS.length+extraNo(d);const i=TRAIN_DAYS.indexOf(d);return i<0?1:i+1;}
+function dayLabel(d){return isExtraDay(d)?'Extra day '+extraNo(d):'Day '+dayNo(d);}
 
 // 週一到週四 = 训练日；週五 = 整理日。碰到假期或例外整天跳过。
 // 週一到週五都是训练日。碰到假期、被标「跳过」、或被标「整理日」的那天，不给训练日编号。
@@ -1384,8 +1392,17 @@ async function saveReport(rpt,state){
              state:state||rpt.state||'draft', payload:rpt};
   if(row.state==='submitted')row.submitted_at=new Date().toISOString();
   const {error}=await sb.from('traingo_report').upsert(row,{onConflict:'plan_uid,dept,role,day'});
-  if(error){setSyncStatus('⚠️');console.warn(error);return;}
+  // v32：以前错误被吞掉只改同步小图示，於是「交日报」就算被资料库拒收，
+  // 画面照样跳「✅ submitted and saved to cloud!」。现在把错误交回给呼叫的人。
+  if(error){setSyncStatus('⚠️');console.warn(error);return {error};}
   setSyncStatus('✅');
+  return {error:null};
+}
+function reportErrMsg(e){
+  const m=String((e&&e.message)||e||'');
+  if(/row-level security/i.test(m))
+    return 'The database would not accept this report. Most likely this day is not yours to report on — for example the Mentor was changed and this day now belongs to someone else. Ask management to check.';
+  return 'Could not save to the cloud. Nothing was saved — check your internet and try again.';
 }
 async function saveTaskCheck(key,val){
   if(!sb)return;
@@ -1481,6 +1498,9 @@ function compErrMsg(m){
   if(m.includes('L23_NEEDS_MENTOR'))return'Levels 2 and 3 have to be signed by the Mentor.';
   if(m.includes('L1_NOT_YOURS'))return'Level 1 can only be signed by the new teacher, their Mentor, or management.';
   if(m.includes('SAFETY_NEEDS_SECOND'))return'This is safety-critical — reaching Level 3 needs a second signer.';
+  if(m.includes('LOWER_NEEDS_MENTOR'))return'Only the Mentor or management can lower a level that has been signed.';
+  if(m.includes('SAFETY_SECOND_IS_TRAINEE'))return'The second signer cannot be the person being assessed.';
+  if(m.includes('SAFETY_SECOND_UNKNOWN'))return'That second signer is not on the active staff list.';
   if(m.includes('SAFETY_SAME_SIGNER'))return'The second signer cannot be the same person as you.';
   return'Could not save: '+m;
 }
@@ -1637,7 +1657,7 @@ function cohortOf(p,dept){
   const d=dept||S.dept||((p.depts[0]||{}).dept)||'SRK';
   const pd=(p.depts||[]).find(x=>x.dept===d)||{dept:d,currentDay:1,status:'active'};
   return {id:p.uid, dept:d, menteeName:p.teacherName, menteeCode:p.teacherCode,
-          mentorName:mentorOnDay(p,pd.currentDay), mentorCode:p.mentorCode,
+          mentorName:mentorOnDay(p,pd.currentDay,d), mentorCode:p.mentorCode,
           startDate:p.startDate, currentDay:pd.currentDay, status:pd.status,
           ageGroup:'', notes:p.note, _plan:p, _pd:pd};
 }
@@ -1647,11 +1667,19 @@ function getCohort(uid){
   setRD(S.dept||((p.depts[0]||{}).dept)||'SRK');
   return cohortOf(p);
 }
-function mentorOnDay(plan,day){
-  const h=(plan.mentorHistory||[]).filter(e=>(e.from_day||0)<=day).sort((a,b)=>(b.from_day||0)-(a.from_day||0))[0];
-  return h?teacherName(h.mentor_code):(plan.mentorName||'—');
+// 那一天是谁带的 —— 跟资料库 private.traingo_mentor_on_day() 同一套算法（部门相符或 dept 为空、from_day ≤ 那一天、取最新）
+function mentorCodeOnDay(plan,day,dept){
+  const d=dept||S.dept;
+  const h=(plan.mentorHistory||[])
+    .filter(e=>(e.dept==null||e.dept===d)&&(e.from_day||1)<=day)
+    .sort((a,b)=>((b.from_day||1)-(a.from_day||1))||String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+  return h?h.mentor_code:plan.mentorCode;
 }
-function getMentorForDay(cohort,day){return cohort&&cohort._plan?mentorOnDay(cohort._plan,day):'—';}
+function mentorOnDay(plan,day,dept){
+  const c=mentorCodeOnDay(plan,day,dept);
+  return c?teacherName(c):(plan.mentorName||'—');
+}
+function getMentorForDay(cohort,day){return cohort&&cohort._plan?mentorOnDay(cohort._plan,day,cohort.dept):'—';}
 function canRelease(){
   if(!S.me)return false;
   return ['OWNER','TOP_MGMT'].includes(S.me.role)||(S.releasers||[]).includes(S.me.code);
@@ -1798,9 +1826,9 @@ function reportSubmitted(uid,role,day,dept){
 }
 // 新老师首页专用：不管 ClassGo 今天有没有排她的课，都把当天的任务拿出来，
 // 只是多带一个 offDuty 旗标。todayDeptTasks 保持原样，别动到 Mentor 那几页。
-function menteeDayBlocks(plan){
+function roleDayBlocks(plan,role){
   const iso=todayISO();
-  const onDuty=deptsOnDay(plan.teacherCode,iso);
+  const onDuty=deptsOnDay(plan.teacherCode,iso);   // 依学员的课表，Mentor 陪的是她的课
   const out=[];
   const ordered=[...(plan.depts||[])].sort((a,b)=>
     deptFirstSession(plan.teacherCode,iso,a.dept).localeCompare(
@@ -1810,11 +1838,12 @@ function menteeDayBlocks(plan){
     const day=pd.currentDay||1;
     if(isRestDate(plan,pd.dept,iso)){out.push({dept:pd.dept,day,rest:true,offDuty:false,tasks:[]});return;}
     setRD(pd.dept);
-    const mine=(D.TASKS.mentee||{})[day]||[];
+    const mine=(D.TASKS[role==='mentor'?'mentor':'mentee']||{})[day]||[];
     out.push({dept:pd.dept,day,rest:false,offDuty:!onDuty.includes(pd.dept),tasks:mine});
   });
   return out;
 }
+function menteeDayBlocks(plan){return roleDayBlocks(plan,'mentee');}
 // 没课那天也能先做掉的：CRITICAL 与 RECORD。OBSERVE / TEACH 要有课才算数。
 function doableOffDuty(tasks){return (tasks||[]).filter(t=>t.tag==='must'||t.tag==='doc');}
 function getReport(uid,role,day,dept){
@@ -1823,7 +1852,7 @@ function getReport(uid,role,day,dept){
 }
 // v31：以前这里自己写死一套 D1..D14，跟 dayLabel() 的「第 N 个训练日」对不上 ——
 // 同一天在首页叫 Day 5，在天数条却叫 D6。一律以 dayNo() 为准。
-function getDayLabel(d){return 'D'+dayNo(d);}
+function getDayLabel(d){return isExtraDay(d)?'E'+extraNo(d):'D'+dayNo(d);}
 function stageProgress(cohort){
   if(!cohort)return{stage:1,pct:0};
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
@@ -1839,6 +1868,17 @@ function taskLinks(t){
     bits.push(`<button class="btn btn-sm" style="padding:3px 9px;font-size:11px" onclick="event.preventDefault();openSopModal('${k}')">📖 ${esc(sop.name)}</button>`);});
   if(!bits.length)return'';
   return`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${bits.join('')}</div>`;
+}
+function extraDayCard(cohort,role){
+  const r=compDone(cohort.id,cohort.dept);
+  return`<div class="card" style="border:2px solid var(--gold)">
+    <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">${dayLabel(cohort.currentDay)} · after the 12 training days</div>
+    <div style="font-size:17px;font-weight:700;margin:8px 0 4px">${role==='mentor'?'Help '+esc(cohort.menteeName)+' close the checklist':'Close the gaps on your checklist'}</div>
+    <div style="font-size:12.5px;color:var(--mut);line-height:1.6">The 12 training days are done, but the Job Checklist still has <b>${r.total-r.ok}</b> item(s) short.
+      There are no new tasks on extra days. Training finishes when every checklist item is signed — not when the days run out.</div>
+    ${r.missing.length?`<div style="margin-top:8px;font-size:12px">${r.missing.slice(0,5).map(x=>'· '+esc(x.name)).join('<br>')}${r.missing.length>5?'<br>…and '+(r.missing.length-5)+' more':''}</div>`:''}
+    <div style="margin-top:11px"><button class="btn btn-pri btn-sm" onclick="goPage('comp')">Open the Job Checklist ›</button></div>
+  </div>`;
 }
 function tagBadge(tag){
   const m={must:'tag-must',doc:'tag-doc',obs:'tag-obs',teach:'tag-teach'};
@@ -2076,7 +2116,7 @@ function renderDashboard(){
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
         <div style="font-size:15px;font-weight:700">Good morning, ${name||'Teacher'} 👋</div>
-        <div style="font-size:11px;color:var(--mut)">${getTodayISO()} · Day ${day} · Stage ${stage.id} ${stage.nameZh}</div>
+        <div style="font-size:11px;color:var(--mut)">${getTodayISO()} · ${dayLabel(day)} · Stage ${stage.id} ${stage.nameZh}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:10px;color:var(--mut)">Plan</div>
@@ -2110,7 +2150,7 @@ function renderDashboard(){
       </div>
       <div class="card">
         <div class="card-hdr"><span class="card-title">📊 Status</span></div>
-        ${reportDone?`<div class="alert alert-grn">✅ Your Day ${day} report submitted</div>`:`<div class="alert alert-amb">⏳ Day ${day} report not yet submitted</div>`}
+        ${reportDone?`<div class="alert alert-grn">✅ Your ${dayLabel(day)} report submitted</div>`:`<div class="alert alert-amb">⏳ ${dayLabel(day)} report not yet submitted</div>`}
         ${role==='mentor'?(partnerReport?`<div class="alert alert-grn">✅ New Teacher's report submitted</div>`:`<div class="alert alert-amb">⏳ New Teacher's report pending</div>`):''}
         <div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px;font-size:11px;line-height:1.6;color:var(--txt)">${D.SUCCESS_CRITERIA[stage.id][role]}</div>
         <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="goPage('report')">📝 Submit today's day report</button>
@@ -2268,8 +2308,8 @@ function renderMgmtDashboard(el){
   active.forEach(c=>{
     const d=c.currentDay||1;
     const mr=getReport(c.id,'mentor',d);const tr=getReport(c.id,'mentee',d);
-    if(!mr)alerts.push({type:'report',msg:`${c.menteeName}: Mentor has NOT submitted Day ${d} report`});
-    if(!tr)alerts.push({type:'report',msg:`${c.menteeName}: New Teacher has NOT submitted Day ${d} report`});
+    if(!mr)alerts.push({type:'report',msg:`${c.menteeName}: Mentor has NOT submitted ${dayLabel(d)} report`});
+    if(!tr)alerts.push({type:'report',msg:`${c.menteeName}: New Teacher has NOT submitted ${dayLabel(d)} report`});
     // Skill intervention alerts
     const{skillFlags,mentorFlags}=getMgmtInterventions(c);
     skillFlags.forEach(f=>alerts.push({type:'skill',msg:`${c.menteeName}: ⚠️ ${f.icon} ${f.name} — uncleared for 2 consecutive days. MGMT may need to intervene.`,cohort:c}));
@@ -2324,7 +2364,7 @@ function renderMgmtCompBoard(){
       <div style="flex:1;min-width:0">
         <div style="font-size:12.5px;font-weight:500">${esc(p.teacherName)}</div>
         <div class="prog-bar" style="margin-top:5px"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
-        <div style="font-size:11px;color:var(--mut);margin-top:3px">${cw.ok}／${cw.total} at required level${mc===null?'':' · MiscGo '+mc+' filed'}</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:3px">${cw.ok}／${cw.total} signed off${mc===null?'':' · MiscGo '+mc+' filed'}</div>
       </div>
       <button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">Checklist</button>
       <button class="btn btn-sm" onclick="openCatchupModal('${p.uid}','${today}')">Assign task</button>
@@ -2353,7 +2393,7 @@ function renderMgmtActionItems(active){
       if(pv==='poor'||pv==='major')items.push({icon:'🔴',type:'SOP needs re-demo',cohort:c.menteeName,note:`${sop.icon} ${sop.name} — Mentor flagged for re-demo`,urgent:true,action:null});
     });
     // Missing reports
-    if(!mr&&!tr)items.push({icon:'📋',type:'No reports submitted today',cohort:c.menteeName,note:`Day ${d} — neither Mentor nor New Teacher has submitted.`,urgent:false,action:null});
+    if(!mr&&!tr)items.push({icon:'📋',type:'No reports submitted today',cohort:c.menteeName,note:`${dayLabel(d)} — neither Mentor nor New Teacher has submitted.`,urgent:false,action:null});
   });
   if(!active.length||!items.length)return'';
   const urgent=items.filter(i=>i.urgent);const normal=items.filter(i=>!i.urgent);
@@ -2375,7 +2415,7 @@ function renderCohortRow(c){
   return`<div class="cohort-card" onclick="selectCohortAndView('${c.id}')">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><span class="chip chip-blue" style="margin-right:6px">${deptShort(c.dept)}</span><span style="font-weight:600">${c.menteeName}</span><span style="color:var(--mut);font-size:11px;margin-left:7px">Mentor: ${getMentorForDay(c,c.currentDay||1)}</span>${c.ageGroup?`<span style="color:var(--mut);font-size:10px;margin-left:5px">· ${c.ageGroup}</span>`:''}</div>
-      <div style="display:flex;gap:5px"><span class="chip chip-blue">Day ${day}</span><span class="chip ${stage.id===5?'chip-grn':'chip-amb'}">S${stage.id}</span>${c.status==='completed'?'<span class="chip chip-grn">✅</span>':''}</div>
+      <div style="display:flex;gap:5px"><span class="chip chip-blue">${dayLabel(day)}</span><span class="chip ${stage.id===5?'chip-grn':'chip-amb'}">S${stage.id}</span>${c.status==='completed'?'<span class="chip chip-grn">✅</span>':''}</div>
     </div>
     <div class="cohort-meta">Started: ${fmtDate(c.startDate)} · ${pct}% complete</div>
     <div class="prog-bar" style="margin-top:5px"><div class="prog-fill ${pct===100?'grn':''}" style="width:${pct}%"></div></div>
@@ -2466,15 +2506,16 @@ function renderTasks(){
   const el=document.getElementById('tasks-content');
   const role=S.role;
   if(role==='mgmt'){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">Pick a plan on the Day Report page first — tasks show up after that.</div>`;return;}
+  const _bar=contextBar('tasks');
   const cohort=getCohort();
   if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet. Please speak to management.</div>`;return;}
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const tasks=(D.TASKS[role]||{})[day]||[];const checked=countChecked(cohort.id,role,day);
 
-  el.innerHTML=`
+  el.innerHTML=_bar+(isExtraDay(day)?extraDayCard(cohort,role):'')+`
     <div class="card">
       <div class="card-hdr">
-        <div><div class="card-title">Day ${day} — ${role==='mentor'?'Mentor':'New Teacher'}</div>
+        <div><div class="card-title">${dayLabel(day)} — ${role==='mentor'?'Mentor · with '+esc(cohort.menteeName):'New Teacher'}</div>
         <div style="font-size:11px;color:var(--mut)">Stage ${stage.id} ${stage.nameZh} · ${stage.theme}</div></div>
         <div style="text-align:right"><div style="font-size:18px;font-weight:700;color:${checked===tasks.length&&tasks.length>0?'var(--grn)':'var(--acc)'}">${checked}/${tasks.length}</div><div style="font-size:9px;color:var(--mut)">done</div></div>
       </div>
@@ -2558,7 +2599,9 @@ function renderSkillConfirm(cohort,role,day,stage,existing){
     </div>
     ${meta.risk?`<div style="font-size:10px;color:var(--mut);margin-bottom:6px;font-style:italic">Risk this stage: ${meta.risk}</div>`:''}
     <div style="background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:10px">
-      This is your own read of today, and your Mentor reads it. It does <b>not</b> sign anything off — the Job Checklist only moves when your Mentor signs it there.</div>`;
+      ${role==='mentor'
+        ? 'This is your read of how they did today. It does <b>not</b> sign anything off — go to the <b>Job Checklist</b> page to actually sign an item.'
+        : 'This is your own read of today, and your Mentor reads it. It does <b>not</b> sign anything off — the Job Checklist only moves when your Mentor signs it there.'}</div>`;
 
   sops.forEach(sopId=>{
     const sop=D.SOP[sopId];if(!sop)return;
@@ -2660,17 +2703,18 @@ function renderReport(){
   const el=document.getElementById('report-content');
   const role=S.role;
   if(role==='mgmt'){renderMgmtReportView(el);return;}
+  const _bar=contextBar('report');
   const cohort=getCohort();
   if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet.</div>`;return;}
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const tasks=(D.TASKS[role]||{})[day]||[];const checked=countChecked(cohort.id,role,day);
   const existing=getReport(cohort.id,role,day);
 
-  el.innerHTML=`
+  el.innerHTML=_bar+`
     <div class="card">
       <div class="card-hdr">
-        <div><div class="card-title">📝 Day Report — Day ${day}</div>
-        <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'New Teacher'} · Stage ${stage.id} ${stage.nameZh}</div></div>
+        <div><div class="card-title">📝 Day Report — ${dayLabel(day)}${role==='mentor'?' · about '+esc(cohort.menteeName):''}</div>
+        <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'New Teacher'} · ${deptShort(cohort.dept)} · Stage ${stage.id} ${stage.nameZh}</div></div>
         ${existing&&existing.state==='submitted'?`<span class="chip chip-grn">✅ Submitted ${existing.submitTime||''}</span>`:(existing?`<span class="chip chip-amb">📝 Draft saved — not submitted yet</span>`:`<span class="chip chip-amb">⏳ Not submitted</span>`)}
       </div>
 
@@ -2715,7 +2759,7 @@ function renderReport(){
       </div>
 
       <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
-        ${existing?`<button class="btn btn-sm" onclick="deleteReport('${cohort.id}','${role}',${day})">Delete and redo</button>`:''}
+        ${existing&&existing.state==='submitted'?`<button class="btn btn-sm" onclick="deleteReport('${cohort.id}','${role}',${day})">Withdraw and edit</button>`:''}
         <button class="btn btn-pri" onclick="submitReport('${cohort.id}','${role}',${day})">${existing?'🔄 Update':'📤 Submit'} Report</button>
       </div>
     </div>
@@ -2729,6 +2773,7 @@ function renderPartnerSkillSummary(cohort,myRole,day,stage){
   // Mentor sees Mentee's report only
   const pr=getReport(cohort.id,'mentee',day);
   if(!pr)return`<div class="card"><div class="card-title" style="margin-bottom:5px">🎓 New Teacher report</div><div style="color:var(--mut);font-size:12px">Not submitted yet.</div></div>`;
+  const prIn=pr.state==='submitted';
 
   const sops=D.STAGE_SOPS[stage.id]||[];
   const stageCfg=D.SKILL_STAGES[stage.id]?.mentee;
@@ -2761,7 +2806,7 @@ function renderPartnerSkillSummary(cohort,myRole,day,stage){
   }
 
   return`<div class="card">
-    <div class="card-hdr"><span class="card-title">🎓 New Teacher report — Day ${day}</span><span class="chip chip-grn">✅ ${pr.submitTime}</span></div>
+    <div class="card-hdr"><span class="card-title">🎓 New Teacher report — ${dayLabel(day)}</span>${prIn?`<span class="chip chip-grn">✅ ${pr.submitTime||''}</span>`:'<span class="chip chip-amb">📝 Draft — not submitted yet</span>'}</div>
     <div style="font-size:12px;line-height:1.7">
       ${pr.good?`<div><strong>✅</strong> ${pr.good}</div>`:''}
       ${pr.improve?`<div style="margin-top:3px"><strong>🔧</strong> ${pr.improve}</div>`:''}
@@ -2781,10 +2826,15 @@ function scheduleDraft(uid,role,day,dept){
 async function saveDraft(uid,role,day,dept){
   const rpt=collectReport(uid,role,day,dept);
   if(!rpt)return;
-  rpt.state='draft';
-  await saveReport(rpt,'draft');
+  // v32：已经交出去的那一笔，不可以被自动存档降回草稿。
+  // （以前 submit 根本不会写 'submitted'，所以看不出来；修好 submit 之後就会：
+  //  交完再打一个字 → 自动存档 → 状态被改回 draft → Mentor 那边又变成「没交」。）
+  const was=getReport(uid,role,day,dept);
+  const keep=(was&&was.state==='submitted')?'submitted':'draft';
+  rpt.state=keep;
+  await saveReport(rpt,keep);
   const f=document.getElementById('savedFlash');
-  if(f){f.textContent='Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(f){f.textContent=(keep==='submitted'?'Edit saved ':'Draft saved ')+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
         f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1600);}
 }
 function collectReport(uid,role,day,dept){
@@ -2810,7 +2860,7 @@ async function submitReport(cid,role,day){
   // Collect skill confirmations + probes + notes
   const{skills,probes,notes}=collectSkillData(cid,role,day);
 
-  const rpt={id:genId('rpt'),cohortId:cid,role,day,good,skills,probes,notes,
+  const rpt={id:genId('rpt'),planUid:cid,dept:S.dept,state:'submitted',role,day,good,skills,probes,notes,
     improve:document.getElementById('rpt_improve')?.value.trim()||'',
     misc:document.getElementById('rpt_misc')?.value.trim()||'',
     submitTime:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
@@ -2823,26 +2873,33 @@ async function submitReport(cid,role,day){
   }else{
     rpt.questions=document.getElementById('rpt_questions')?.value.trim()||'';
   }
-  // Save to Firebase first — must succeed before we show success
-  try{
-    const old=S.reports.find(r=>r.planUid===cid&&r.role===role&&r.day===day);
-    if(old)await deleteReportFb(old.id).catch(()=>{});
-    await saveReport(rpt);
-  }catch(e){
-    alert('⚠️ Failed to save to cloud. Check your internet and try again.\n\n'+e.message);
+  // v32：以前这里呼叫 deleteReportFb()，那个函式根本不存在 —— 只要云上已经有草稿
+  // （打过字就会有）就丢 ReferenceError，被下面 catch 住，跳「Failed to save to cloud」。
+  // 不需要先删：saveReport 走 upsert，onConflict 是 plan_uid,dept,role,day，本来就会覆盖同一笔。
+  let res;
+  try{ res=await saveReport(rpt,'submitted'); }catch(e){ res={error:e}; }
+  if(res&&res.error){
+    alert('⚠️ Your report was NOT submitted.\n\n'+reportErrMsg(res.error)+'\n\n('+(res.error.message||res.error)+')');
     return;
   }
   // Update local state after confirmed Firebase save
-  S.reports=S.reports.filter(r=>!(r.planUid===cid&&r.role===role&&r.day===day));
+  S.reports=S.reports.filter(r=>!(r.planUid===cid&&r.role===role&&r.day===day&&r.dept===S.dept));
   S.reports.push(rpt);
   renderReport();
-  alert(`✅ Day ${day} report submitted and saved to cloud!`);
+  alert(`✅ ${dayLabel(day)} report submitted and saved to cloud!`);
 }
 
+// v32：以前呼叫 deleteReportFb()，那个函式从来不存在 —— 按下去只会丢 ReferenceError。
+// 资料库也没有给一般老师删日报的权限（这是对的：交过的纪录不该消失）。
+// 改成「撤回」：状态退回草稿、内容留着，改完再交一次。Mentor 那边会看到它回到「草稿」。
 async function deleteReport(cid,role,day){
-  if(!confirm('Delete this day report and start again?'))return;
-  const rpt=S.reports.find(r=>r.planUid===cid&&r.role===role&&r.day===day);
-  if(rpt)await deleteReportFb(rpt.id);
+  const rpt=S.reports.find(r=>r.planUid===cid&&r.role===role&&r.day===day&&r.dept===S.dept);
+  if(!rpt)return;
+  if(!confirm('Withdraw this report?\n\nIt goes back to a draft — nothing you wrote is lost. Edit it, then submit again.'))return;
+  const back=Object.assign({},rpt,{state:'draft'});
+  const res=await saveReport(back,'draft');
+  if(res&&res.error){alert('⚠️ Could not withdraw.\n\n'+reportErrMsg(res.error));return;}
+  rpt.state='draft';
   renderReport();
 }
 
@@ -2870,7 +2927,7 @@ function renderCohortRptDetail(cohort){
     html+=`<button class="itab ${d===day?'on':''}" onclick="viewRptDay('${cohort.id}',${d})">${getDayLabel(d)} ${both?'✅':mr2||tr2?'⏳':'⬜'}</button>`;
   });
   html+=`</div>`;
-  html+=`<div style="font-size:11px;color:var(--mut);margin-bottom:10px">Day ${day} · Stage ${stage.id} ${stage.nameZh} · ${cohort.menteeName}</div>`;
+  html+=`<div style="font-size:11px;color:var(--mut);margin-bottom:10px">${dayLabel(day)} · Stage ${stage.id} ${stage.nameZh} · ${cohort.menteeName}</div>`;
 
   // ── SKILL CONFIRMATION MATRIX ──
   const sops=D.STAGE_SOPS[stage.id]||[];
@@ -2954,15 +3011,17 @@ function renderCohortRptDetail(cohort){
 
   // ── SIDE BY SIDE REPORTS ──
   html+=`<div class="grid2">`;
-  html+=`<div class="card"><div class="card-hdr"><span class="card-title">👨‍🏫 Mentor</span>${mr?`<span class="chip chip-grn">✅ ${mr.submitTime}</span>`:'<span class="chip chip-red">Not submitted</span>'}</div>`;
+  html+=`<div class="card"><div class="card-hdr"><span class="card-title">👨‍🏫 Mentor</span>${mr&&mr.state==='submitted'?`<span class="chip chip-grn">✅ ${mr.submitTime||''}</span>`:(mr?'<span class="chip chip-amb">📝 Draft only</span>':'<span class="chip chip-red">Not submitted</span>')}</div>`;
   if(mr){html+=renderRptBody(mr,'mentor');if(mr.advanceReady){const cls=mr.advanceReady==='yes'?'alert-grn':mr.advanceReady==='no'?'alert-red':'alert-amb';const lbl=mr.advanceReady==='yes'?'✅ Ready to advance':mr.advanceReady==='no'?'❌ Not ready':'⏳ Needs more time';html+=`<div class="alert ${cls}" style="margin-top:8px">${lbl}</div>`;}}
   else{html+=`<div style="color:var(--mut);font-size:12px;padding:10px 0">Not submitted yet</div>`;}
   html+=`</div>`;
-  html+=`<div class="card"><div class="card-hdr"><span class="card-title">🎓 New Teacher</span>${tr?`<span class="chip chip-grn">✅ ${tr.submitTime}</span>`:'<span class="chip chip-red">Not submitted</span>'}</div>`;
+  html+=`<div class="card"><div class="card-hdr"><span class="card-title">🎓 New Teacher</span>${tr&&tr.state==='submitted'?`<span class="chip chip-grn">✅ ${tr.submitTime||''}</span>`:(tr?'<span class="chip chip-amb">📝 Draft only</span>':'<span class="chip chip-red">Not submitted</span>')}</div>`;
   if(tr)html+=renderRptBody(tr,'mentee');else html+=`<div style="color:var(--mut);font-size:12px;padding:10px 0">Not submitted yet</div>`;
   html+=`</div></div>`;
 
-  const canAdvance=mr?.advanceReady==='yes'&&tr&&day<14;
+  // v32：以前只看 tr 存不存在，草稿也算数 —— 等於学员打了一行字就能被推进下一天。
+  const trIn=reportSubmitted(cohort.id,'mentee',day);
+  const canAdvance=mr?.advanceReady==='yes'&&trIn&&day<14;
   const nextDay=ALL_DAYS[ALL_DAYS.indexOf(day)+1];
   if(canAdvance&&nextDay){
     // Check if any skills are not cleared
@@ -2972,9 +3031,9 @@ function renderCohortRptDetail(cohort){
       return!(mskP.every(v=>v)&&tskP.every(v=>v));
     });
     html+=`<div class="card" style="border-color:var(--grn);background:#E1F5EE">
-      <div class="card-title" style="color:var(--grn);margin-bottom:6px">⭐ Mentor suggests moving on to Day ${nextDay}</div>
+      <div class="card-title" style="color:var(--grn);margin-bottom:6px">⭐ Mentor suggests moving on to ${dayLabel(nextDay)}</div>
       ${unclearedSops.length?`<div class="alert alert-amb" style="margin-bottom:8px">⚠️ ${unclearedSops.length} skill(s) not fully confirmed: ${unclearedSops.map(id=>D.SOP[id]?.name||id).join(', ')}</div>`:'<div style="font-size:11px;margin-bottom:8px">✅ All skills confirmed by both parties.</div>'}
-      <button class="btn btn-grn" onclick="advanceDay('${cohort.id}')">✅ Confirm — Advance to Day ${nextDay}</button>
+      <button class="btn btn-grn" onclick="advanceDay('${cohort.id}')">✅ Confirm — Advance to ${dayLabel(nextDay)}</button>
     </div>`;
   }
   el.innerHTML=html;
@@ -3021,7 +3080,7 @@ async function advanceDay(planUid,dept){
       pd.currentDay=nextDay;
       await savePlanDept(p.uid,dp,nextDay,'active');
       await reloadAll();
-      alert(`${dp}: the checklist is still ${r.total-r.ok} item(s) short, so this is not complete. Moving on to day ${nextDay}.\n\nStill missing:\n`
+      alert(`${dp}: the checklist is still ${r.total-r.ok} item(s) short, so this is not complete. Moving on to ${dayLabel(nextDay)}.\n\nStill missing:\n`
             +r.missing.slice(0,6).map(x=>'· '+x.name).join('\n')
             +(r.missing.length>6?`\n…and ${r.missing.length-6} more`:''));
       return;
@@ -3043,10 +3102,10 @@ async function openAdvanceModal(planUid,dept){
   const next=TRAIN_DAYS[idx+1];
   const mr=getReport(p.uid,'mentor',day,dp), tr=getReport(p.uid,'mentee',day,dp);
   const cr=compDone(p.uid,dp);
-  const compLine=`\nJob checklist: ${cr.ok}／${cr.total} at required level`+(cr.done?' ✅':' ⚠️ '+(cr.total-cr.ok)+' still short');
+  const compLine=`\nJob checklist: ${cr.ok}／${cr.total} signed off`+(cr.done?' ✅':' ⚠️ '+(cr.total-cr.ok)+' still short');
   const msg=next
     ? `${p.teacherName} · ${dp}\n${dayLabel(day)} → ${dayLabel(next)}?\n\nMentor report: ${mr?'✅ submitted':'⚠️ not yet'}\nNew teacher report: ${tr?'✅ submitted':'⚠️ not yet'}${compLine}\n\nContinue?`
-    : `${p.teacherName} · ${dp}\nThis is day ${day}. ${compLine}\n\n`+(cr.done?'Checklist complete — mark this department as finished?':'Checklist is not complete — this will move on to the next day, not mark it finished.');
+    : `${p.teacherName} · ${dp}\nThis is ${dayLabel(day)}. ${compLine}\n\n`+(cr.done?'Checklist complete — mark this department as finished?':'Checklist is not complete — this will move on to the next day, not mark it finished.');
   if(confirm(msg)) await advanceDay(p.uid,dp);
 }
 
@@ -3060,9 +3119,10 @@ function renderProgress(){
       (S.cohorts.length===0?`<div class="card" style="text-align:center;padding:28px;color:var(--mut)">No plans yet.</div>`:S.cohorts.map(c=>renderFullProgress(c)).join(''));
     return;
   }
+  const _bar=contextBar('progress');
   const cohort=getCohort();
   if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet.</div>`;return;}
-  el.innerHTML=renderFullProgress(cohort,S.role);
+  el.innerHTML=_bar+renderFullProgress(cohort,S.role);
 }
 
 function renderFullProgress(cohort,role){
@@ -3203,6 +3263,33 @@ function renderTrainingChart(cohort){
 // ══════════════════════════════════════════════════════════════
 // v27 · 岗位清单页
 // ══════════════════════════════════════════════════════════════
+// v32：Today / Day Report / Progress 三页以前完全靠看不见的 S.planUid + S.dept，
+// 画面上也不写是谁。带两个学员的 Mentor 刚在清单页看过 Rina，回到日报页就是 Rina 的 ——
+// 要写 Nadia 的观察会写进 Rina 那份。同时在两个部门受训的新老师也一样只看得到其中一个。
+// 这里列出「我可以看的 学员×部门」，超过一个就给切换钮，而且永远把名字写出来。
+function contextChoices(){
+  let plans=[];
+  if(S.role==='mentor')plans=mentorPlans();
+  else if(S.role==='mentee'){const m=myPlan();plans=m?[m]:[];}
+  const out=[];
+  plans.forEach(p=>(p.depts||[]).forEach(d=>{if(d.status==='active')out.push({uid:p.uid,dept:d.dept,name:p.teacherName,day:d.currentDay||1});}));
+  return out;
+}
+function contextBar(page){
+  if(S.role==='mgmt')return'';
+  const ch=contextChoices(); if(!ch.length)return'';
+  const cur=ch.find(c=>c.uid===S.planUid&&c.dept===S.dept)||ch[0];
+  if(cur.uid!==S.planUid||cur.dept!==S.dept){S.planUid=cur.uid;S.dept=cur.dept;setRD(cur.dept);}
+  const who=S.role==='mentor'?esc(cur.name):'You';
+  const label=`<div style="font-size:12px;color:var(--mut)">${S.role==='mentor'?'Mentoring':'Training'}: <b style="color:var(--txt)">${who}</b> · ${deptShort(cur.dept)} · ${dayLabel(cur.day)}</div>`;
+  if(ch.length<2)return`<div style="margin:0 0 10px">${label}</div>`;
+  return`<div class="filter" style="margin-bottom:10px;align-items:center;flex-wrap:wrap;gap:6px">
+    <span style="font-size:11px;color:var(--mut);margin-right:4px">${S.role==='mentor'?'Whose':'Which department'}</span>
+    ${ch.map(c=>`<button class="itab ${c.uid===cur.uid&&c.dept===cur.dept?'on':''}" onclick="switchContext('${c.uid}','${c.dept}','${page}')">${S.role==='mentor'?esc(c.name)+' · ':''}${deptShort(c.dept)} <span style="opacity:.6">${dayLabel(c.day)}</span></button>`).join('')}
+  </div>`;
+}
+function switchContext(uid,dept,page){S.planUid=uid;S.dept=dept;setRD(dept);goPage(page);}
+
 function compPickablePlans(){
   if(S.role==='mgmt')return S.plans;
   if(S.role==='mentor')return mentorPlans();
@@ -3455,7 +3542,9 @@ function renderCompetency(){
     ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">Whole plan: ${whole.ok}／${whole.total}${whole.done?' · all complete':''}</div>`:''}
     <div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px 10px;font-size:11.5px;color:var(--txt);line-height:1.6">
       <b>Who signs what.</b> ${signerHint(p)}<br>
-      <b>Your day report does not move this list.</b> The ✅ you tick in the day report is your own read of how it went — useful, and your Mentor reads it. This list only moves when someone with the authority above signs the item here.
+      <b>The day report does not move this list.</b> ${isMine(p)
+        ? 'The ✅ you tick in the day report is your own read of how it went — useful, and your Mentor reads it. This list only moves when someone with the authority above signs the item here.'
+        : 'The ✅ ticked in the day report is their own read of how it went. Nothing is signed off until you sign it here.'}
     </div>
   </div>`;
 
@@ -3522,7 +3611,17 @@ function openCompModal(compId){
   const maxSign=maxSignableLevel(p);
   const opts=[0,1,2,3,4].filter(n=>n<=maxSign||n===lv)
     .map(n=>`<option value="${n}" ${n===lv?'selected':''} ${n>maxSign?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${n>maxSign?'　(not yours to sign)':''}</option>`).join('');
-  const people=(S.teachers||[]).filter(t=>t.id!==(S.me&&S.me.code))
+  // v32：以前只排除「我自己」，学员本人还留在选单里 ——
+  // 安全类项目让被评核的人替自己背书，等於没有第二签名。
+  // 现在也排除：被评核的学员，以及任何还在受训中的人。
+  const _stillTraining=new Set((S.plans||[])
+    .filter(x=>(x.depts||[]).some(d=>d.status==='active'))
+    .map(x=>x.teacherCode));
+  const people=(S.teachers||[]).filter(t=>
+        t.id!==(S.me&&S.me.code)
+     && t.id!==p.teacherCode
+     && !_stillTraining.has(t.id)
+     && !t.resigned)
     .map(t=>`<option value="${esc(t.id)}" ${ck&&ck.second_by_code===t.id?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
   const ov=document.createElement('div');
   ov.className='overlay';
@@ -3542,6 +3641,7 @@ function openCompModal(compId){
       <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p)}${maxSign<req?`<br><b>This item needs Level ${req}</b>, which is above what you can sign — someone else has to close it.`:''}</div>
       ${it.is_safety?`<div style="margin-top:14px">
         <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · reaching Level 3 needs a second signer</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:5px">Someone who watched them do it — not you, not ${esc(p.teacherName)}, and not another teacher still in training.</div>
         <select id="cmSecond" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
           <option value="">— Choose a second signer —</option>${people}</select>
       </div>`:''}
@@ -3570,6 +3670,7 @@ async function submitCompLevel(compId,btn){
   const sec=secEl?secEl.value:'';
   const note=(document.getElementById('cmNote')||{}).value||'';
   if(it.is_safety&&lv>=3&&!sec){alert('This is safety-critical — reaching Level 3 needs a second signer.');return;}
+  if(it.is_safety&&lv>=3&&sec===p.teacherCode){alert('The second signer cannot be the person being assessed.');return;}
   btn.disabled=true;btn.textContent='Saving…';
   const ok=await setCompLevel(p.uid,compId,it.dept,lv,sec,note);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();renderCompetency();}
@@ -3727,21 +3828,29 @@ function renderMentorHome(){
   // 先把每个学员今天该做的算出来，顺便记住第一件还没做的
   const cards=[];
   let first=null;
+  let offFirst=null;
   plans.forEach(p=>{
-    const blocks=todayDeptTasks(p);          // S.role 是 mentor，回传的就是 mentor 的任务
+    const blocks=roleDayBlocks(p,'mentor');   // v32：不再被学员课表整批挡掉
     const onDuty=deptsOnDay(p.teacherCode,iso);
     if(!first){
       for(const b of blocks){
-        if(b.rest)continue;
+        if(b.rest||b.offDuty)continue;
         const t=b.tasks.find(x=>!S.taskChecks[checkKey(p.uid,b.dept,'mentor',b.day,x.id)]);
         if(t){first={task:t,plan:p,dept:b.dept,day:b.day};break;}
+      }
+    }
+    if(!offFirst){
+      for(const b of blocks){
+        if(b.rest||!b.offDuty)continue;
+        const t=doableOffDuty(b.tasks).find(x=>!S.taskChecks[checkKey(p.uid,b.dept,'mentor',b.day,x.id)]);
+        if(t){offFirst={task:t,plan:p,dept:b.dept,day:b.day};break;}
       }
     }
     cards.push({plan:p,blocks,onDuty});
   });
 
-  const anyDuty=cards.some(c=>c.blocks.length);
-  const restAll=anyDuty&&cards.every(c=>!c.blocks.length||c.blocks.every(b=>b.rest));
+  const anyDuty=cards.some(c=>c.blocks.some(b=>!b.rest&&!b.offDuty));
+  const restAll=cards.length&&cards.every(c=>c.blocks.length&&c.blocks.every(b=>b.rest));
 
   let h='';
 
@@ -3768,10 +3877,19 @@ function renderMentorHome(){
       <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">Everything for today is done</div>
       <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Just the day report left</div>
     </div>`;
+  }else if(offFirst){
+    h+=`<div class="card" style="border:2px solid var(--acc)">
+      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">No class with them today — but this one you can still do</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px;line-height:1.35">${esc(offFirst.task.text)}</div>
+      <div style="font-size:12px;color:var(--mut)">With ${esc(offFirst.plan.teacherName)} · ${deptShort(offFirst.dept)} · ${dayLabel(offFirst.day)} · ${tagBadge(offFirst.task.tag)}</div>
+      <div style="margin-top:13px"><button class="btn btn-pri" onclick="openMentorPlan('${offFirst.plan.uid}','${offFirst.dept}','tasks')">Open the tasks</button></div>
+      <div style="font-size:11.5px;color:var(--mut);margin-top:10px;line-height:1.55">
+        The DEMO and SUPERVISE items need a real class — they wait until your trainee is next on the timetable. Their day number does not move today.</div>
+    </div>`;
   }else{
     h+=`<div class="card">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">Nothing to mentor today</div>
-      <div style="font-size:12px;color:var(--mut)">None of the departments still in training appear on your trainees' timetables today.</div>
+      <div style="font-size:12px;color:var(--mut)">Your trainees are not on the timetable today, and everything for their current day that can be done without a class is already ticked.</div>
     </div>`;
   }
 
@@ -3796,13 +3914,15 @@ function renderMentorHome(){
       const dots=tasks.map((t,i)=>`<i style="display:inline-block;width:15px;height:6px;border-radius:3px;margin-right:4px;background:${i<done?'var(--grn)':(i===done?'var(--acc)':'var(--bdr)')}"></i>`).join('');
 
       // 她的日报交了没
-      const hers=getReport(p.uid,'mentee',day,pd.dept);
-      const mine=getReport(p.uid,'mentor',day,pd.dept);
+      const theirsIn=reportSubmitted(p.uid,'mentee',day,pd.dept);
+      const theirsDraft=!theirsIn&&!!getReport(p.uid,'mentee',day,pd.dept);
+      const mineIn=reportSubmitted(p.uid,'mentor',day,pd.dept);
       let rpt='';
       if(active&&duty&&!rest){
-        rpt = hers ? '<span class="chip chip-grn" style="font-size:9px">Hers is in</span>'
-                   : '<span class="chip chip-amb" style="font-size:9px">Hers not in</span>';
-        if(!mine) rpt += ' <span class="chip chip-red" style="font-size:9px">Yours not in</span>';
+        rpt = theirsIn   ? '<span class="chip chip-grn" style="font-size:9px">Theirs is in</span>'
+            : theirsDraft? '<span class="chip chip-amb" style="font-size:9px">Theirs is a draft</span>'
+                         : '<span class="chip chip-amb" style="font-size:9px">Theirs not in</span>';
+        if(!mineIn) rpt += ' <span class="chip chip-red" style="font-size:9px">Yours not in</span>';
       }
 
       h+=`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr);cursor:pointer"
@@ -3826,7 +3946,7 @@ function renderMentorHome(){
       h+=`<div style="margin-top:10px;padding-top:9px;border-top:.5px solid var(--bdr)">
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
           <span style="font-weight:500">Job checklist</span>
-          <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} at required level</span></div>
+          <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} signed off</span></div>
         <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
         <div style="font-size:11px;color:var(--mut);margin-top:5px">
           MiscGo reports they filed: ${mc===null?'cannot read (you have no MiscGo access)':'<b>'+mc+'</b> · reference only, does not block signing'}</div>
@@ -3837,7 +3957,7 @@ function renderMentorHome(){
     const ops=openHelps(p.uid);
     if(ops.length){
       h+=`<div style="margin-top:10px;padding-top:9px;border-top:.5px solid var(--bdr)">
-        <div style="font-size:12px;font-weight:600;color:var(--amb);margin-bottom:6px">🙋 She is waiting for your reply (${ops.length})</div>`;
+        <div style="font-size:12px;font-weight:600;color:var(--amb);margin-bottom:6px">🙋 Waiting for your reply (${ops.length})</div>`;
       ops.slice(0,3).forEach(x=>{
         h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr)">
           <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">Needs help now</span>':''}${esc(x.body)}</div>
@@ -3848,11 +3968,11 @@ function renderMentorHome(){
     }
     if(allDone){
       h+= p.released
-        ? `<div class="alert alert-grn" style="margin-top:10px">🎉 She has been released.</div>`
+        ? `<div class="alert alert-grn" style="margin-top:10px">🎉 They have been released.</div>`
         : `<div class="alert alert-amb" style="margin-top:10px">Training is finished — waiting for management to release them.</div>`;
       const cp=completionOf(p.uid);
       h+=`<div style="margin-top:8px"><button class="btn btn-sm" onclick="openCompletionModal('${p.uid}')">${cp?'Edit completion note':'✍️ Write completion note'}</button>
-        ${cp&&cp.acknowledged_at?'<span style="font-size:11px;color:var(--grn);margin-left:7px">She has read it</span>':(cp?'<span style="font-size:11px;color:var(--mut);margin-left:7px">She has not read it yet</span>':'')}</div>`;
+        ${cp&&cp.acknowledged_at?'<span style="font-size:11px;color:var(--grn);margin-left:7px">They have read it</span>':(cp?'<span style="font-size:11px;color:var(--mut);margin-left:7px">Not read yet</span>':'')}</div>`;
     }
     h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">See their whole plan ›</button></div>
     </div>`;
@@ -3912,7 +4032,7 @@ function renderMenteeHome(){
       <span class="chip chip-blue">Start here</span>
     </summary>
     <div style="font-size:12.5px;line-height:1.75;margin-top:10px">
-      <b>${esc(p.teacherName)}</b> — welcome. Your Mentor is <b>${esc(mentorOnDay(p,(active[0]||{}).day||1)||p.mentorName||'—')}</b>. Ask them anything; asking is never the problem.
+      <b>${esc(p.teacherName)}</b> — welcome. Your Mentor is <b>${esc(mentorOnDay(p,(active[0]||{}).day||1,(active[0]||{}).dept)||p.mentorName||'—')}</b>. Ask them anything; asking is never the problem.
       <div style="margin-top:9px"><b>How long.</b> 12 training days${p.targetDate?`, target <b>${fmtDate(p.targetDate)}</b>`:''}. Catch-up days sit in between and are not numbered. Your day number only moves when your Mentor confirms it — not automatically at midnight.</div>
       <div style="margin-top:9px"><b>What finishes it.</b> Not the day count — the <b>Job Checklist</b>. Training is done when every item on it has been signed at its required level, and then management releases you to take a class on your own.</div>
       <div style="margin-top:9px"><b>Your day.</b> Home shows the one next thing → <b>Today</b> has the full list and the SOP for each → teach → <b>Day Report</b> before you go home. That is the whole loop.</div>
@@ -4300,7 +4420,25 @@ async function addExceptionFromForm(uid){
 }
 async function savePlanEdit(uid){
   const p=getPlan(uid); if(!p)return;
-  p.mentorCode=document.getElementById('pe_mentor')?.value||p.mentorCode;
+  const oldMentor=p.mentorCode;
+  const newMentor=document.getElementById('pe_mentor')?.value||p.mentorCode;
+  // v32：以前换 Mentor 只改计划上的名字，traingo_mentor_history 从来没有人写 ——
+  // Progress 会把前几天也显示成新 Mentor 带的，而且新 Mentor 可以改写前一位写的日报。
+  // 现在先把「谁从哪一天开始带」写进 history（每个部门一笔），再改计划。
+  if(newMentor&&newMentor!==oldMentor){
+    const firstTime=!(p.mentorHistory||[]).length;
+    const rows=[];
+    (p.depts||[]).forEach(d=>{
+      if(firstTime&&oldMentor)rows.push({plan_uid:p.uid,dept:d.dept,mentor_code:oldMentor,from_day:1,reason:'original Mentor'});
+      rows.push({plan_uid:p.uid,dept:d.dept,mentor_code:newMentor,from_day:d.currentDay||1,
+                 from_date:todayISO(),reason:'Mentor changed on Settings'});
+    });
+    if(rows.length&&sb){
+      const {error}=await sb.from('traingo_mentor_history').insert(rows);
+      if(error){alert('Could not record the Mentor change, so nothing was changed.\n\n'+error.message);return;}
+    }
+  }
+  p.mentorCode=newMentor;
   p.startDate=document.getElementById('pe_start')?.value||p.startDate;
   p.note=document.getElementById('pe_note')?.value||'';
   p.targetDate=targetDateOf(p)||null;
