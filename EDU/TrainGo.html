@@ -217,7 +217,9 @@ try{ sb=window.supabase.createClient(SB_URL,SB_ANON); }catch(e){ console.warn('s
     // 包一层，不改原物件（原物件可能被重复使用，改了会让退出预览後也写不进去）
     return new Proxy(q,{get:(o,k)=>['insert','upsert','update','delete'].includes(k)?dead:(typeof o[k]==='function'?o[k].bind(o):o[k])});};
   const rpc=sb.rpc.bind(sb);
-  sb.rpc=function(n,a){ if(typeof S!=='undefined'&&S.preview&&n!=='traingo_content_get')return dead(); return rpc(n,a); };
+  // 只读的查询预览时照常放行（资料库确认过没有写入）；其余一律挡
+  const PV_READ_RPC=['traingo_content_get','traingo_me','traingo_miscgo_count'];
+  sb.rpc=function(n,a){ if(typeof S!=='undefined'&&S.preview&&!PV_READ_RPC.includes(n))return dead(); return rpc(n,a); };
 })();
 
 function setSyncStatus(icon){const el=document.getElementById('syncStatus');if(el)el.textContent=icon;}
@@ -317,7 +319,8 @@ Object.values(DEPT_CFG).forEach(c=>{c.SOP_LIST=Object.values(c.SOP);});
 const DEPT_ALIAS={GAK:'SRK'};
 const DEPT_OPTIONS=[
   {code:'SRK',label:'SRK — Smart Reader Kids · age 3–6',ready:true},
-  {code:'GAK',label:'GAK — Genius Academic Kids · age 3–6',ready:true,note:'Shares SRK content'},
+  // v39（Owner 裁示）：GAK 先藏。每日任务借用 SRK，但岗位清单 0 项 → 训练永远结束不了。有自己的清单再打开
+  {code:'GAK',label:'GAK — Genius Academic Kids · age 3–6',ready:false,note:'Shares SRK content · no job checklist yet'},
   {code:'ATC',label:'ATC — After-School Care · age 7–12',ready:true},
   {code:'SRT',label:'SRT — English Specialist · age 5–15',ready:false,note:'Not configured yet'},
 ];
@@ -349,7 +352,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v38';
+const APP_VERSION='v39';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -740,6 +743,7 @@ async function reloadAll(){
     S.helps=hlp.data||[]; S.noPractice=nop.data||[];
     S.catchups=cat.data||[]; S.completions=cpl.data||[];
     S.teachers=(t.data||[]).filter(x=>!x.resigned);
+    showWatermark();   // v39：名册到了才有全名，重画一次
     S.timetable=tt.data||[];
     S.holidays=cal.data||[];
     S.releasers=(rel.data||[]).filter(x=>x.active).map(x=>x.teacher_code);
@@ -927,8 +931,10 @@ function logOpen(key){try{if(sb)sb.rpc('traingo_content_open',{p_key:key}).then(
 // 浮水印：整个画面淡淡铺满「看的人 · 代号 · 日期时间」。截图、拍照都带着名字。
 function showWatermark(){
   const old=document.getElementById('tgWatermark'); if(old)old.remove();
-  const m=S.me||{}; const d=new Date();
-  const stamp=(m.name||m.code||'')+' · '+(m.code||'')+' · '+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  // v39：放全名（老师名册），不放缩写；预览时仍是本人
+  const m=S.realMe||S.me||{}; const d=new Date();
+  const full=(((S.teachers||[]).find(t=>t.id===m.code)||{}).name)||m.name||m.code||'';
+  const stamp=full+' · '+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   const txt=(stamp+' · Academee confidential').replace(/[<&>"]/g,'');
   const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='620' height='300'><text x='310' y='155' text-anchor='middle' transform='rotate(-24 310 150)' font-family='Arial,sans-serif' font-weight='600' font-size='17' fill='rgba(20,30,50,0.18)'>${txt}</text></svg>`;
   const w=document.createElement('div'); w.id='tgWatermark';
@@ -3686,7 +3692,7 @@ async function doRelease(uid){
 function openNewPlan(){
   if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
   const tOpts=S.teachers.map(t=>`<option value="${esc(t.id)}">${esc(t.name||t.id)} (${esc(t.id)})</option>`).join('');
-  const dChips=DEPT_OPTIONS.map(o=>`<span class="cb${o.code==='SRK'?' on':''}" data-d="${o.code}" onclick="npToggle(this)">
+  const dChips=DEPT_OPTIONS.filter(o=>o.ready).map(o=>`<span class="cb${o.code==='SRK'?' on':''}" data-d="${o.code}" onclick="npToggle(this)">
       <span>${o.code==='SRK'?'✓':'＋'}</span> ${o.code}</span>`).join('');
   const ov=document.createElement('div');ov.className='overlay';
   ov.innerHTML=`<div class="modal" style="max-width:460px">
@@ -3699,6 +3705,7 @@ function openNewPlan(){
       <select id="np_mentor"><option value="">— Choose —</option>${tOpts}</select>
       <label class="lbl">Which departments they train in * (choose one or more)</label>
       <div class="chk" id="np_depts">${dChips}</div>
+      <div style="font-size:11px;color:var(--mut);margin-top:4px">GAK and SRT are not offered yet — they will appear here once their training content and job checklist are ready.</div>
       <label class="lbl" style="margin-top:10px">Start date *</label>
       <input type="date" id="np_start" value="${getTodayISO()}" onchange="npPreview()">
       <div id="np_preview" style="font-size:11px;color:var(--mut);margin-top:6px;line-height:1.7"></div>
