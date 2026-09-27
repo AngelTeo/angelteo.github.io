@@ -23,6 +23,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--sur2);color:var(--
 .ntab-gear{font-size:15px;padding:10px 8px;margin-left:4px}
 .subnav{display:flex;gap:6px;max-width:1100px;margin:14px auto 0;padding:0 16px}
 .subnav:empty{display:none}
+#previewBar{position:sticky;top:46px;z-index:99;background:#EFE7FB;border-bottom:1px solid #C9B6EE;color:#3E2A6B;font-size:12.5px;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+#previewBar button{border:1px solid #5B4B8A;background:#5B4B8A;color:#fff;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+body.tg-preview .page input:disabled,body.tg-preview .page textarea:disabled,body.tg-preview .page select:disabled{cursor:not-allowed}
 .subnav button{border:1px solid var(--bdr);background:var(--sur,#fff);border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--mut)}
 .subnav button.on{background:#1B3A5C;border-color:#1B3A5C;color:#fff;font-weight:600}
 .role-badge{margin-left:auto;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;border:1px solid;flex-shrink:0;}
@@ -177,6 +180,7 @@ label.lbl:first-child{margin-top:0;}
     <span class="topbar-ver" id="topbarVer"></span>
     <span id="syncStatus" style="font-size:10px;margin-left:2px;opacity:.7" title="Cloud sync status"></span>
     <span id="navTabs" style="display:contents"></span>
+    <button class="ntab" id="tab-preview" style="display:none;margin-left:auto" title="See exactly what a new teacher or a Mentor sees (view only)" onclick="openPreviewPicker()">👁 Preview as…</button>
     <span id="roleBadgeTop" class="role-badge" style="margin-left:auto"></span>
     <button class="ntab ntab-gear" data-pg="settings" id="tab-settings" style="display:none" title="Releasers and sign-in" onclick="goPage('settings')">⚙️</button>
 
@@ -202,6 +206,19 @@ const SB_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 let sb=null;
 try{ sb=window.supabase.createClient(SB_URL,SB_ANON); }catch(e){ console.warn('supabase init',e); }
+// v37：OWNER 预览时，任何写入在最底层就被挡掉（按钮、输入框另外有挡，这里是最後一道保险）
+(function(){ if(!sb)return;
+  const PV_ERR={data:null,error:{message:'PREVIEW_READ_ONLY'}};
+  const dead=()=>{previewBlocked();const p=Promise.resolve(PV_ERR);
+    const c=new Proxy(function(){},{get:(o,k)=>k==='then'?p.then.bind(p):k==='catch'?p.catch.bind(p):k==='finally'?p.finally.bind(p):()=>c,apply:()=>c});return c;};
+  const from=sb.from.bind(sb);
+  sb.from=function(t){const q=from(t);
+    if(typeof S==='undefined'||!S.preview)return q;
+    // 包一层，不改原物件（原物件可能被重复使用，改了会让退出预览後也写不进去）
+    return new Proxy(q,{get:(o,k)=>['insert','upsert','update','delete'].includes(k)?dead:(typeof o[k]==='function'?o[k].bind(o):o[k])});};
+  const rpc=sb.rpc.bind(sb);
+  sb.rpc=function(n,a){ if(typeof S!=='undefined'&&S.preview&&n!=='traingo_content_get')return dead(); return rpc(n,a); };
+})();
 
 function setSyncStatus(icon){const el=document.getElementById('syncStatus');if(el)el.textContent=icon;}
 function refreshCurrentPage(){
@@ -332,7 +349,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v36';
+const APP_VERSION='v37';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -945,12 +962,15 @@ function applyRole(){
   if(b){b.textContent=(labels[S.role]||'')+' · '+(m.name||m.code);b.className='role-badge '+(cls[S.role]||'');}
   renderNavTabs();
   const g=document.getElementById('tab-settings'); if(g)g.style.display=(S.role==='mgmt')?'':'none';
+  const pvb=document.getElementById('tab-preview'); if(pvb)pvb.style.display=canPreview()?'':'none';
+  const rb=document.getElementById('roleBadgeTop'); if(rb)rb.style.marginLeft=canPreview()?'8px':'auto';
   // v33：Export／Import 按钮已拿掉（Owner 指示）。资料的正本在资料库，不需要从画面汇出汇入。
   const vEl=document.getElementById('topbarVer'); if(vEl)vEl.textContent=APP_VERSION;
 }
 
 // 梯队读回来后，如果她是某个梯队的 Mentor，就升成 Mentor 身份
 function settleRole(){
+  if(S.preview)return;          // v37：预览中身份由 OWNER 选定，不重算
   if(S.role==='mgmt')return;
   if(!S.me)return;
   const my=S.me.code;
@@ -962,6 +982,84 @@ function settleRole(){
 }
 
 function logout(){ location.href='../index.html'; }   // 登出在平台层，这里只送回首页
+
+// ══════════════════════════════════════════════════════════════
+// v37：OWNER 预览视角 —— 看新老师／Mentor 实际看到的画面，只能看，不写入
+//   三道挡：① 会写资料的按钮在点下去前就被拦 ② 输入框、勾选框全部停用
+//           ③ 资料库写入在 sb 最底层回传 PREVIEW_READ_ONLY
+//   浮水印仍是 OWNER 本人（开机时就画好，不重画）
+// ══════════════════════════════════════════════════════════════
+function canPreview(){const m=S.realMe||S.me;return !!(m&&m.role==='OWNER');}
+let _pvFlashT=null;
+function previewBlocked(){
+  const f=document.getElementById('savedFlash'); if(!f)return;
+  f.textContent='👁 Preview — view only, nothing is saved.';f.style.background='#5B4B8A';f.style.opacity='1';
+  clearTimeout(_pvFlashT);_pvFlashT=setTimeout(()=>{f.style.opacity='0';},2200);
+}
+const PV_WRITE_RE=/\b(submit\w*|save\w*|create\w*|delete\w*|doRelease|doAckCompletion|advanceDay|addExceptionFromForm|toggle\w*|onProbeChange|onSkillCheck|scheduleDraft)\s*\(/;
+document.addEventListener('click',e=>{
+  if(!S.preview)return;
+  const b=e.target.closest&&e.target.closest('[onclick]'); if(!b)return;
+  if(PV_WRITE_RE.test(b.getAttribute('onclick')||'')){e.preventDefault();e.stopPropagation();previewBlocked();}
+},true);
+let _pvObs=null;
+function pvLockForms(root){
+  (root||document).querySelectorAll('#mainApp input, #mainApp textarea, #mainApp select, .overlay input, .overlay textarea, .overlay select').forEach(el=>{
+    if(!el.disabled){el.disabled=true;el.dataset.pvLocked='1';}
+  });
+}
+function openPreviewPicker(){
+  if(!canPreview())return;
+  const rows=(S.plans||[]).map(p=>{
+    const d=(p.depts||[]).map(x=>x.dept).join(' · ')||'—';
+    const done=p.status==='completed'||((p.depts||[]).length&&(p.depts||[]).every(x=>x.status==='completed'));
+    return `<div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-weight:600;font-size:13px">${esc(p.teacherName)} <span style="font-weight:400;color:var(--mut);font-size:11.5px">· ${d}${done?' · completed':''}</span></div>
+      <div style="font-size:11.5px;color:var(--mut);margin:2px 0 8px">Mentor: ${esc(p.mentorName||'—')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-pri" onclick="startPreview('${p.uid}','mentee')">🎓 See it as ${esc(p.teacherName)}</button>
+        ${p.mentorCode&&p.mentorCode!==p.teacherCode?`<button class="btn btn-sm" onclick="startPreview('${p.uid}','mentor')">👨‍🏫 See it as the Mentor (${esc(p.mentorName)})</button>`:''}
+      </div></div>`;}).join('');
+  const ov=document.createElement('div'); ov.className='overlay';
+  ov.innerHTML=`<div class="modal"><div class="modal-hdr"><div class="modal-hdr-title">👁 Preview as…<br>
+      <span style="font-size:11px;font-weight:400;color:var(--mut)">See exactly what a new teacher or a Mentor sees. View only — nothing you do is saved.</span></div>
+      <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
+    <div class="modal-body">${rows||'<div style="text-align:center;color:var(--mut);padding:18px">No training plans yet. Create one on <b>Plans</b> first — then you can preview it.</div>'}</div>
+    <div class="modal-foot">${S.preview?'<button class="btn" onclick="this.closest(\'.overlay\').remove();exitPreview()">Exit preview</button>':''}<button class="btn" onclick="this.closest('.overlay').remove()">Close</button></div></div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+function startPreview(uid,as){
+  const p=getPlan(uid); if(!p||!canPreview())return;
+  document.querySelectorAll('.overlay').forEach(o=>o.remove());
+  flushDraft(); clearTimeout(_draftT); _draftT=null; _draftDirty=false;
+  const code=as==='mentor'?p.mentorCode:p.teacherCode;
+  if(!S.realMe){S.realMe=S.me;S.realRole=S.role;}
+  S.preview={uid,as,code,name:teacherName(code)};
+  const _rm=S.realMe||{};
+  S.me={code,name:teacherName(code),role:'TEACHER',isAdmin:false,
+        see:Object.assign({},_rm.see||{}),edit:{SRK:false,GAK:false,ATC:false,SRT:false}};
+  S.role=as; S.planUid=uid; S.dept=((p.depts||[])[0]||{}).dept||S.dept; setRD(S.dept);
+  document.body.classList.add('tg-preview');
+  if(!_pvObs){_pvObs=new MutationObserver(()=>{if(S.preview)pvLockForms();});}
+  _pvObs.observe(document.body,{childList:true,subtree:true});
+  applyRole(); renderPreviewBar(); goPage('dashboard'); pvLockForms();
+}
+function exitPreview(){
+  if(!S.preview)return;
+  if(_pvObs)_pvObs.disconnect();
+  S.me=S.realMe; S.role=S.realRole||'mgmt'; S.preview=null; S.realMe=null; S.realRole=null;
+  document.body.classList.remove('tg-preview');
+  document.querySelectorAll('[data-pv-locked]').forEach(el=>{el.disabled=false;delete el.dataset.pvLocked;});
+  applyRole(); renderPreviewBar(); goPage('dashboard');
+}
+function renderPreviewBar(){
+  let b=document.getElementById('previewBar');
+  if(!S.preview){if(b)b.remove();return;}
+  if(!b){b=document.createElement('div');b.id='previewBar';const tb=document.querySelector('#mainApp .topbar');if(tb)tb.after(b);else document.body.prepend(b);}
+  b.innerHTML=`👁 <span>Preview — you are seeing what <b>${esc(S.preview.name)}</b> sees as ${S.preview.as==='mentor'?'the <b>Mentor</b>':'the <b>new teacher</b>'}. View only: nothing you type or tick is saved.</span>
+    <button onclick="openPreviewPicker()">Switch</button><button onclick="exitPreview()">Exit preview</button>`;
+}
 
 // ══════════════════════════════════════════════════════════════
 // NAVIGATION
@@ -2075,6 +2173,7 @@ function renderPartnerSkillSummary(cohort,myRole,day,stage){
 let _draftT=null, _draftCtx=null, _draftDirty=false, _draftRetry=null;
 function draftLocalKey(c){return 'tg_draft_'+c.join('_');}
 function scheduleDraft(uid,role,day,dept){
+  if(S.preview){previewBlocked();return;}
   _draftCtx=[uid,role,day,dept||S.dept]; _draftDirty=true;
   // 先留一份在这台机器上：手机锁屏、分页被系统关掉、断线重开都还救得回来
   try{const r=collectReport(uid,role,day,dept);if(r)localStorage.setItem(draftLocalKey(_draftCtx),JSON.stringify(r));}catch(e){}
@@ -2098,6 +2197,7 @@ function showDraftState(st,keep){
 window.addEventListener('online',()=>{if(_draftDirty&&_draftCtx)saveDraft(..._draftCtx);});
 window.addEventListener('beforeunload',e=>{if(_draftDirty){flushDraft();e.preventDefault();e.returnValue='';}});
 async function saveDraft(uid,role,day,dept){
+  if(S.preview)return;
   clearTimeout(_draftRetry);
   const rpt=collectReport(uid,role,day,dept);
   if(!rpt)return;
