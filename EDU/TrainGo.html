@@ -135,6 +135,9 @@ label.lbl:first-child{margin-top:0;}
 .itab-row{display:flex;gap:0;border-bottom:.5px solid var(--bdr);margin-bottom:12px;overflow-x:auto;}
 .itab{padding:7px 12px;font-size:11px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;white-space:nowrap;}
 .itab.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600;}
+.tg-protect,.overlay .modal-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tg-protect textarea,.tg-protect input,.overlay .modal-body textarea,.overlay .modal-body input,.overlay .modal-body select{-webkit-user-select:text;user-select:text}
+@media print{body>*{display:none!important}body::after{content:'Printing TrainGo is disabled. Training content is confidential to Academee.';display:block;padding:40px;font:16px Arial}}
 .saved-flash{position:fixed;bottom:18px;right:18px;background:var(--grn);color:#fff;padding:7px 14px;border-radius:20px;font-size:11px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
 /* LOGIN */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sur2);}
@@ -184,8 +187,8 @@ label.lbl:first-child{margin-top:0;}
   <div class="page" id="page-report"><div id="report-content"></div></div>
   <div class="page" id="page-progress"><div id="progress-content"></div></div>
   <div class="page" id="page-comp"><div id="comp-content"></div></div>
-  <div class="page" id="page-sop"><div id="sop-content"></div></div>
-  <div class="page" id="page-handbook"><div id="handbook-content"></div></div>
+  <div class="page" id="page-sop"><div id="sop-content" class="tg-protect"></div></div>
+  <div class="page" id="page-handbook"><div id="handbook-content" class="tg-protect"></div></div>
   <div class="page" id="page-mgmt"><div id="mgmt-content"></div></div>
 </div>
 
@@ -212,326 +215,7 @@ function refreshCurrentPage(){
 // ══════════════════════════════════════════════════════════════
 // 部门配置 · DEPARTMENT CONFIG  (v21 · 各部门各自保留阶段切法)
 // ══════════════════════════════════════════════════════════════
-const SRK_SOP_DATA= {
-  hygiene:{id:'hygiene',n:1,name:'Hygiene Checking',nameZh:'Head-to-Toe Check',icon:'👀',when:'MONDAY ONLY',cat:'monday',
-    steps:[
-      {n:1,title:'Hair',warn:'⚠️ Lice / Nits',do_:'Check hair & scalp carefully'},
-      {n:2,title:'Forehead',warn:'⚠️ Fever',do_:'Touch forehead to check temperature'},
-      {n:3,title:'Eyes',warn:'⚠️ Eye Infection',do_:'"Open eyes big big. Look up, look down, look left, look right."'},
-      {n:4,title:'Face & Mouth',warn:'⚠️ HFMD · Mouth sores · Ulcers · Flu',do_:'Use torch: "Say AHHH! Show me your tongue." Ask: "Throat pain? Mouth pain?" Model cough/sneeze sounds.'},
-      {n:5,title:'Body & Skin',warn:'⚠️ HFMD · Chickenpox — red spots, blisters',do_:'"Turn around!" Check skin for red spots or blisters.'},
-      {n:6,title:'Hands & Fingers',warn:'⚠️ HFMD · Chickenpox · Nail length (must be short)',do_:'"Show me your hands! Turn behind! Hands on the table!" Check palms, back of hands, and fingernails.'},
-      {n:7,title:'Feet',warn:'⚠️ HFMD — red spots / blisters',do_:'"Feet up! Flamingo!" — check both feet.'},
-      {n:8,title:'Uniform & Cleanliness',warn:'',do_:'Encourage: brush teeth, wash face, tuck in shirt. Come to school in neat uniform daily.'},
-    ],
-    age:{
-      jr:{tips:['DEMONSTRATE entire flow WITH student','CHECK each part together step by step','GUIDE every action slowly','HELP student with actions','MODEL funny sounds (cough/sneeze!) — make it fun','ENCOURAGE participation — never scare them'],goal:'Stands still, follows simple instructions, not scared, cooperates, laughs at funny parts'},
-      in_:{tips:['DEMONSTRATE entire flow','GUIDE student through steps','ENCOURAGE independent actions','MONITOR understanding','MODEL clear voice & actions'],goal:'Follows sequence, does actions independently, responds to questions, more confident'},
-      sr:{tips:['BRIEF reminder only','GUIDE through quickly','MONITOR compliance','Quick efficient check'],goal:'Knows entire routine, follows independently, quick cooperation, no anxiety, efficient'},
-    },
-    warns:['🚨 INFECTIOUS DISEASE SIGNS → bring to MGMT IMMEDIATELY','⚠️ Same hygiene issue 3 weeks in a row → Report to MGMT','⚠️ Student reports mouth pain multiple times → Track','⚠️ Frequent "not feeling well" → Inform parents','📝 Normal concerns: record in Hygiene Checklist weekly'],
-  },
-
-  bookcollect:{id:'bookcollect',n:2,name:'Collection of Books',nameZh:'Collect by Subject',icon:'📚',when:'MONDAY ONLY',cat:'monday',
-    steps:[
-      {n:1,do_:'Announce: "Take out ALL your books. Submit by subject." Give time to prepare.'},
-      {n:2,do_:'Students submit books. Walk around to check, sort by subject, stack neatly.'},
-      {n:3,do_:'Check subject by subject: "English book!" Count each. Compare with attendance number.'},
-      {n:4,warn:'⚠️ Number wrong',do_:'"Everyone stand up!" → Call names one by one → Check bags → Check cupboard → Sit when confirmed.'},
-      {n:5,warn:'Report: Unfound Book',do_:'Write student name on board (top right) → Photo → file it in <b>MiscGo</b> (report type <b>UNFOUND_BOOKS</b>), then press Send to WhatsApp so MGMT sees it.'},
-      {n:6,do_:'Keep books in cupboard by subject. Continue to next activity.'},
-    ],
-    age:{
-      jr:{tips:['DEMONSTRATE how to take out & submit','HELP sort books FOR them','Name each subject clearly','Show WHERE in cupboard to keep books'],goal:'Can take out books with help, learning to submit, follows teacher guidance'},
-      in_:{tips:['GUIDE sorting: "Find your English book"','Help if stuck','Check organization','Encourage neatness'],goal:'Can sort with guidance, knows most subjects, improving organization'},
-      sr:{tips:['BRIEF instruction only','MONITOR independently','Should be efficient — quick process'],goal:'Sorts independently, neat organization, all subjects correct, no prompting needed'},
-    },
-    warns:['⚠️ 3 weeks consecutive missing same book → file it in MiscGo. MGMT contacts the parent, never you','📝 Photo + MiscGo entry when names are written on the board'],
-  },
-
-  attendance:{id:'attendance',n:3,name:'Take Attendance',nameZh:'Roll Call',icon:'✋',when:'EVERY DAY',cat:'daily',
-    steps:[
-      {n:1,do_:'Lead the morning chant:<br>Teacher: "Clap clap — good morning children!"<br>Students: "Clap clap — good morning Teacher!"<br><br>Wait for full quiet. "Sit properly. Listen for your name."'},
-      {n:2,do_:'Call each name CLEARLY and LOUDLY. Wait for response. Make eye contact. Verify it\'s the right student.'},
-      {n:3,warn:'⚠️ Too quiet / shy',do_:'"Louder please! Show me your STRONG voice!" Praise loud responses. Make it FUN — different voices, raise hand HIGH!'},
-      {n:4,do_:'Tick (✓) attendance sheet immediately and accurately. Record on correct line.'},
-      {n:5,warn:'⚠️ Absent (3+ times → MGMT)',do_:'Note absent student clearly in book. Inform MGMT for 3 or more absences.'},
-      {n:6,warn:'⚠️ Late (3+ times/week → MGMT)',do_:'Note exact time of arrival. Record in attendance book. 3+ times per week → Weekly report → Inform MGMT.'},
-      {n:7,do_:'Close attendance book. "Let\'s start our lesson!" Transition smoothly to next activity.'},
-    ],
-    age:{
-      jr:{tips:['GUIDE to sit: help them settle, very patient','CALL with warm tone: "Say Yes Teacher!"','ENCOURAGE with actions: "Raise your hand HIGH!"','PRAISE any response — build confidence gradually'],goal:'Responds to own name, any sound is good, learning to respond, not scared'},
-      in_:{tips:['CALL clearly, expect response','Encourage louder voice: "I know you can!"','Fun actions to keep energy up','Praise improvement in volume'],goal:'Responds clearly "Yes Teacher!", appropriate volume, knows routine, consistent'},
-      sr:{tips:['CALL name — expect immediate loud response','Brief fun encouragement only','MONITOR — should be automatic'],goal:'Immediate response, "Yes Teacher!" loudly, proper voice, no prompting needed'},
-    },
-    warns:['⚠️ Absent 3+ times → Inform MGMT immediately','⚠️ Late 3+ times per week → Weekly report to MGMT','💡 Make it FUN — variety keeps students alert and responsive'],
-  },
-
-  washroom:{id:'washroom',n:4,name:'Washroom + Water Break',nameZh:'Restroom & Hydration',icon:'🚿',when:'EVERY DAY',cat:'daily',
-    stepGroups:[
-      {groupTitle:"🚿 Washroom",color:"#185FA5",bg:"#EEF5FF",border:"#AABDD4",steps:[
-        {n:1,title:"Form the Queue",do_:'"Boys 1 line, girls 1 line." Boys left, girls right. No pushing.'},
-        {n:2,title:"Walk to Washroom",do_:'Lead students: "Walk SLOWLY and QUIETLY." Keep group together. No running.'},
-        {n:3,title:"Enter One by One",do_:'Enter one by one. Wait outside door. Monitor time. Knock if taking too long.'},
-        {n:4,title:"Hand Washing",do_:'Supervise hand washing: "Use SOAP! Scrub 20 seconds!" Check ALL students washed properly.'},
-        {n:5,title:"Return to Class",do_:'"Walk back quietly." Count students before leaving. Keep group together.'},
-      ]},
-      {groupTitle:"💧 Water Break",color:"#0F6E56",bg:"#E8F7F2",border:"#9FE1CB",steps:[
-        {n:1,title:"Distribute Water",do_:'"Water time! Take out water bottles." Check who has water. Note who forgot.'},
-        {n:2,title:"Monitor Drinking",do_:'Monitor drinking: "Drink slowly. 50% now, 50% later." Watch pace. No rushing.'},
-        {n:3,title:"Close Bottles",do_:'"Close your bottle tightly." Check all caps closed. Wipe any spills immediately.'},
-        {n:4,title:"Put Away & Continue",do_:'"Put bottles away." Check desks are clear. Continue lesson.'},
-      ]},
-    ],
-    steps:[],
-    age:{
-      jr:{tips:['JR queue: "Hands on friend\'s shoulder — DuDu Train! Du Du Du!"','LEAD closely — walk WITH them','HELP wash hands: turn tap, put soap on hands, count 20 TOGETHER','OPEN bottle cap FOR them / HELP close tightly','Be very patient throughout'],goal:'Queues with help, washes with full support, drinks some water, no spills'},
-      in_:{tips:['GUIDE clearly: "Boys left, girls right"','SUPERVISE washing: check soap used, scrub properly','GUIDE closing bottle: "Twist tight!"','MONITOR drinking amount: not too fast, save some'],goal:'Queues correctly, washes independently, manages bottle, drinks right amount'},
-      sr:{tips:['BRIEF instruction — should know routine','MONITOR only: spot checks','EXPECT automatic behaviour'],goal:'Perfect routine, self-managed, efficient, 50% water management, no supervision needed'},
-    },
-    warns:['⏰ Washroom total: 10–15 minutes','⏰ Water break: 2–3 minutes only','⚠️ Count students BEFORE leaving classroom and AFTER returning','💡 JR DuDu Train makes queuing fun and orderly'],
-  },
-
-  recess:{id:'recess',n:5,name:'Recess / Mealtime',nameZh:'Eating & Hygiene',icon:'🍱',when:'EVERY DAY',cat:'daily',
-    steps:[
-      {n:1,do_:'Announce food time. Check who has food & milk. Help open containers. Note who has none — pass school food.'},
-      {n:2,do_:'Queue → Washroom → Wash hands with SOAP before eating. (Follow Washroom procedure.)'},
-      {n:3,do_:'All students seated. Food ready. Lead slogan: "Teachers and friends, let\'s eat together!" THEN eat.'},
-      {n:4,warn:'⚠️ Monitor throughout',do_:'Watch: pace (not too fast), amount, sharing (STOP!), spoiled food (don\'t eat!). 3 days not eating → contact parents.'},
-      {n:5,do_:'"Clean your table. Wipe with tissue. Pick up any spills." Check all tables clean before leaving.'},
-      {n:6,do_:'Wash hands AGAIN with SOAP after eating. Check all students washed.'},
-    ],
-    age:{
-      jr:{tips:['OPEN ALL containers and milk FOR them','KK helps make milk powder (leave on table at corner)','Pass school food to students with none','HELP eat if needed — patient, never force','WIPE table FOR them after eating'],goal:'Food & milk ready (teacher prepared), eats some food, proper pace, table cleaned with help'},
-      in_:{tips:['HELP open hard containers only','GUIDE eating pace: "Not too fast"','MONITOR table manners','GUIDE cleaning: "Wipe your table"'],goal:'Prepares mostly alone, eats independently, better manners, can clean table'},
-      sr:{tips:['MONITOR only — spot checks','EXPECT good table manners','Quick check on table cleanliness'],goal:'Fully independent prep, excellent table manners, self-regulated, cleans table alone'},
-    },
-    warns:['⏰ Total mealtime: 20–30 minutes','⚠️ 3 consecutive days not eating → Inform parents immediately','⚠️ Sharing food → STOP immediately (hygiene + fairness)','⚠️ Suspicious/spoiled food → Don\'t eat, inform MGMT'],
-  },
-
-  flash:{id:'flash',n:6,name:'Group Reading A: Flash Card',nameZh:'Spell-Read Technique',icon:'🃏',when:'TEACHING',cat:'teaching',
-    steps:[
-      {n:1,do_:'Check body position: "Turn your body & Fold your arms."'},
-      {n:2,do_:'Teach the reading technique:<br>JR & IN: "Spell and Read" — Mouth Spell, Mouth Read<br>IN & SR: "Read and Spell" — Heart Spell, Mouth Read<br><br>Demonstrate clearly. Repeat 3 times together.'},
-      {n:3,do_:'Monitor focus: Is every mouth reading? Concentrating? Following along? Walk around and check each student.'},
-      {n:4,do_:'Random spot checks — call specific individual students to read aloud. Vary who you call.'},
-      {n:5,do_:'Correct answer → Sticker + specific praise.<br>Incorrect → encourage, guide gently, praise the attempt.'},
-    ],
-    age:{
-      jr:{tips:['DEMONSTRATE body position AND HELP each student physically','Point at each card, read SLOWLY','Random checks: HELP if stuck — no pressure','PRAISE EVERYTHING: "You tried so hard!"','Instruct: "Do this at home with parents!"'],goal:'Tries to follow, learning the concept, mouth must be reading, not scared, building confidence'},
-      in_:{tips:['DEMONSTRATE technique clearly: spell in heart, read with mouth','PRACTICE together, repeat 3 times minimum','Encourage and help as needed','Random checks: encourage confidence'],goal:'Can spell in heart, reads out loud, follows routine, responding to checks, growing confidence'},
-      sr:{tips:['BRIEF demonstration: "Read then spell" (standard for SR)','EXPECT accuracy from random checks','Quick corrections only','High praise standard'],goal:'Independent practice, good technique, clear pronunciation, meets accuracy standard'},
-    },
-    warns:['🚫 NO SHOUTING — use clear, firm voice only','💡 Build Star Students — consistent praise creates self-motivated learners','⚠️ Every mouth must be reading — check ALL students, not just the front row','💡 Instruct to practice at home with parents'],
-  },
-
-  book:{id:'book',n:7,name:'Group Reading B: Reading Book',nameZh:'Guided Group Reading',icon:'📖',when:'TEACHING',cat:'teaching',
-    steps:[
-      {n:1,do_:'Write page number on whiteboard CLEARLY. "Open your Reading Book to Page XX."'},
-      {n:2,do_:'"Fold your book." Demonstrate the folding technique. All students fold before reading.'},
-      {n:3,do_:'"Show and point with your finger." Model correct finger-pointing technique.'},
-      {n:4,do_:'TEACHER READS FIRST — clear, loud, slow. Model the correct reading. Then: "Read together!" × 3 times.'},
-      {n:5,do_:'Correct intonation and pace immediately when needed. Adjust to students\' reading speed.'},
-      {n:6,do_:'Good effort → Sticker + praise. Build positive association with reading.'},
-    ],
-    age:{
-      jr:{tips:['HELP find page and fold book','Point at EACH WORD, read VERY slowly','Exaggerate pronunciation for clarity','Repeat 3+ times','PRAISE everything: "You tried so hard!"'],goal:'Tries to read along, points at words, makes sounds, building confidence'},
-      in_:{tips:['GUIDE to find page and fold book','READ clearly at good pace, 3 times','ENCOURAGE reading along loudly','Support attempts, help with hard words'],goal:'Reads along loudly, points at words, most words correct, growing confidence'},
-      sr:{tips:['BRIEF: "Open page XX"','READ with expression — good model','EXPECT fluent reading and accurate pronunciation'],goal:'Reads fluently together, accurate pronunciation, confident voice, good habit'},
-    },
-    warns:['💡 Fold book → easier to hold and read','💡 Finger pointing → builds text tracking habit, prevents guessing','⚠️ Teacher ALWAYS reads first — model before expecting students to read'],
-  },
-
-  spelling:{id:'spelling',n:8,name:'Spelling',nameZh:'Spelling Test',icon:'✏️',when:'TEACHING',cat:'teaching',
-    steps:[
-      {n:1,do_:'Write ALL words on whiteboard — CLEAR, LARGE letters. Underline key sounds/patterns.'},
-      {n:2,do_:'Revise together: "Read with me!" 3 times minimum. All students join. Clear pronunciation.'},
-      {n:3,do_:'Optional: Turn-and-test with partner or fill-in-blank activity.'},
-      {n:4,do_:'Distribute pencils/spelling books. Check everyone has materials. Open to correct page.'},
-      {n:5,do_:'Students copy INFO from board:<br>TITLE (Spelling) + DATE (top right)<br>+ NUMBERING (1, 2, 3...)<br>+ NAME at the end.<br><br>MUST CHECK!'},
-      {n:6,do_:'ERASE whiteboard completely.<br>Announce: "Spelling starts now!"<br>Remind: "Handwriting must be NEAT!"<br><br>*JR exception: fill-in-blank activities.'},
-      {n:7,do_:'Read Q1 (in random order, not sequential).<br>Walk around and mark IMMEDIATELY.<br>Continue with Q2, Q3......<br><br>Marking system: 1st error ( ) · 2nd ( ).. · 3rd ( )... · 4th+ = X & One Correction'},
-      {n:8,do_:'Last word: students queue at teacher\'s desk. Mark in front of student. Count errors together.'},
-      {n:9,warn:'⚠️ Very weak 3 weeks in a row → Inform MGMT',do_:'Record results in teacher book: score, common errors, progress, improvement.'},
-      {n:10,do_:'Return books. "Practice at home!" Praise effort, improvement, and any milestone reached.'},
-    ],
-    age:{
-      jr:{tips:['Write VERY BIG on board','Read SLOWLY, point at each letter','JR method: FILL IN THE BLANK (not full erase)','HELP write title + date + name','CHECK copying step by step','PRAISE: "Beautiful writing! You tried so hard!"'],goal:'Understands concept, copies letters with support, good effort, positive experience'},
-      in_:{tips:['GUIDE closely during copying: check title + date + numbering','Erase ONE BY ONE','Walk around and mark immediately','Encourage 80%+ score','Explain mistakes kindly'],goal:'Understands spelling, 80%+ correct, good handwriting, learns from corrections'},
-      sr:{tips:['BRIEF reminder on format standards','ERASE ALL at once — full test mode','MONITOR quality, strict standards','EXPECT 100% effort and neat handwriting'],goal:'Independent spelling, 100% effort, neat handwriting, self-motivated to improve'},
-    },
-    warns:['⚠️ ERASE board completely before test (EXCEPT JR — fill-in-blank method)','📝 Marking system: 1st error ( ) · 2nd ( ).. · 3rd ( )... · 4th+ = X & One Correction','💡 Walk around and mark IMMEDIATELY — never wait till the end','⚠️ Very weak 2 weeks in a row → Inform MGMT (learning difficulty concern)'],
-  },
-
-  copyboard:{id:'copyboard',n:9,name:'Copy Whiteboard',nameZh:'Silent Copy Exercise',icon:'📝',when:'TEACHING',cat:'teaching',
-    steps:[
-      {n:1,do_:'Write on board CLEARLY: large neat handwriting, good spacing, organised layout.<br>Explain the copying rules & skills.'},
-      {n:2,do_:'Explain format: Title at top / Date (top right) / draw lines / spacing......'},
-      {n:3,do_:'SILENT copying time.<br>Remind: "Handwriting must be NEAT!"<br>No talking. Sit properly. Focus on work.'},
-      {n:4,do_:'Walk around constantly.<br>Mark errors ( ).<br>Found same error in more than 2 students → explain on whiteboard immediately → guide correction.'},
-    ],
-    age:{
-      jr:{tips:['WRITE VERY BIG with extra spacing on board','DEMONSTRATE writing "on air" — very detailed','FIX pencil grip CONSTANTLY — this is a priority','Watch for mirroring: b/d confusion, p/q (letter reversal)','HELP correct together: guide their hand','Very patient — any completion is success'],goal:'Copies 2–3 words (slowly is OK!), improving pencil grip, any completion = success, not frustrated'},
-      in_:{tips:['WRITE clearly with 1–2 sample answers on board','SUPERVISE closely: pencil grip, letter formation, mirroring','Help when stuck, remind format standards','GUIDE corrections: show the mistake, student corrects it'],goal:'Can copy independently, better pencil control, improving accuracy, understands format'},
-      sr:{tips:['WRITE standard format with sample answers','MONITOR quality: check grip occasionally','EXPECT self-correction: point out error, student fixes alone','High handwriting standards'],goal:'Perfect copying, VERY neat handwriting, completes all tasks, independent self-correction'},
-    },
-    warns:['⚠️ Watch for: pencil grip problems, skipping letters/words, mirroring (letter reversal — b/d, p/q), very slow pace','⚠️ "Handwriting must be NEAT!" — say this before AND during copying time','💡 Walk AROUND CONSTANTLY — never sit at teacher\'s desk during copy time'],
-  },
-
-  indread:{id:'indread',n:10,name:'Individual Reading',nameZh:'1-on-1 Reading Assessment',icon:'🧒',when:'TEACHING',cat:'teaching',
-    steps:[
-      {n:1,do_:'Write on board: "Individual Reading — Reading Book Page XX." All students take out correct book and open to page.'},
-      {n:2,do_:'Call 2 students at a time: always 1 STRONG + 1 WEAK pairing. This is intentional peer learning.'},
-      {n:3,do_:'Instruct pair: "[Strong name] read LOUDLY, [Weak name] follow SOFTLY."'},
-      {n:4,do_:'Strong student reads aloud clearly. Weak student follows. Then weak student tries to read alone.'},
-      {n:5,do_:'Mark in reading book immediately: UNDERLINE _ = can\'t read · CIRCLE ○ = totally unable to read.'},
-      {n:6,do_:'Record progress in teacher\'s tracking book using shortcut key system.'},
-      {n:7,do_:'"Good job! You\'re improving!" Encourage student to read at home. Big genuine praise.'},
-    ],
-    age:{
-      jr:{tips:['DEMONSTRATE how to read WITH the student first','READ together, point at each word','Help weak student extensively — may need to read for them first','PRAISE HEAVILY for any attempt — make them love reading'],goal:'Not scared to come to teacher, comes willingly, listens and learns, willing to try'},
-      in_:{tips:['MONITOR both students in the pair','Help weak student track with finger','Encourage strong student to read clearly','Explain marking symbols after session'],goal:'Reads along, learns from strong peer, growing confidence, understands feedback'},
-      sr:{tips:['BRIEF instruction — should know the routine','LISTEN for fluency accuracy','Note error patterns in tracking book','Efficient pair process'],goal:'Fluent and confident reading, effective peer learning, accepts feedback constructively'},
-    },
-    warns:['💡 Always pair STRONG + WEAK — peer learning is more powerful than solo reading','⚠️ Mark in reading book IMMEDIATELY — never rely on memory','📝 Record in tracking book EVERY session — patterns reveal learning difficulties'],
-  },
-
-  activity:{id:'activity',n:11,name:'Activity / Grammar / Worksheet',nameZh:'Activities / Grammar / Worksheet',icon:'🎨',when:'TEACHING',cat:'teaching',
-    steps:[
-      {n:1,title:'OPTION A: Grammar / Worksheet',do_:'Write page on board. Show SAMPLE ANSWERS (correct ✓ vs wrong ✗). Explain the rule in simple words.'},
-      {n:2,do_:'Do Q1–Q2 TOGETHER on board. Call one student to try Q3. Then release: "Now you try on your own!"'},
-      {n:3,do_:'Walk around and check as students work. Mark mid-way, not only at the end.'},
-      {n:4,do_:'Review answers together at end. Students correct their own errors. Discuss common mistakes.'},
-      {n:5,title:'OPTION B: Activities',do_:'Choose one: Songs with actions / Educational games / Story time / Revision activities / Quick Fire Quiz'},
-    ],
-    age:{
-      jr:{tips:['JR = ACTIVITIES ONLY — NO grammar papers for JR','Songs with movements, colouring, story time, play-based learning','DEMONSTRATE all actions with energy','LEAD activities and participate with them'],goal:'Fun learning, active participation, enjoying class, developing motor skills'},
-      in_:{tips:['SIMPLE grammar only: very basic paper, lots of pictures, circle/colour tasks','HELP constantly during worksheet work','BALANCED approach: educational games + some basic grammar'],goal:'Can try simple tasks, learning grammar basics, needs support, positive attitude toward learning'},
-      sr:{tips:['REGULAR grammar: age-appropriate exercises','Demo Q1–Q2, students work independently after','DISCUSS errors at end — teach from mistakes','MONITOR and assess progress'],goal:'Completes independently, understands grammar rules, good accuracy, developing critical thinking'},
-    },
-    warns:['⚠️ JR = ACTIVITIES ONLY — never give grammar papers to JR students','💡 ALWAYS demo before releasing students to work independently','⚠️ Walk around WHILE students work — never sit at desk during this activity'],
-  },
-
-  summary:{id:'summary',n:12,name:'Summary & SEEDS Encouragement',nameZh:'Closing & Encouragement',icon:'🌱',when:'CLOSING',cat:'closing',
-    stepGroups:[
-      {groupTitle:"📋 Summary",color:"#0F6E56",bg:"#E8F7F2",border:"#9FE1CB",steps:[
-        {n:1,title:"Summary",do_:'SUMMARY: "Today we learned..." — briefly recap the 2-3 main things learned in class.'},
-        {n:2,title:"Encouragement",do_:'ENCOURAGEMENT: "You all did so well today!" — give specific, genuine praise for real effort or achievement.'},
-      ]},
-      {groupTitle:"🌱 SEEDS Encouragement",color:"#5B35C4",bg:"#F4F0FF",border:"#C5B3F5",steps:[
-        {n:1,title:"🌟 Build Star",do_:'Give special recognition or a task to a star student. Tell the whole class specifically WHY they earned it.'},
-        {n:2,title:"👀 See and Say",do_:'Point to something visible in the room or outside. "What is this? Say it LOUDLY!" Real-life vocabulary connection.'},
-        {n:3,title:"👨‍👩‍👧 Teach Parents",do_:'"Today teach your parents this song / phrase / word at home!" Makes parents partners in learning.'},
-        {n:4,title:"🏠 Do at Home",do_:'"Tonight, please do this at home..." Give ONE specific, simple task. Visible learning beyond school.'},
-        {n:5,title:"🎉 Tomorrow Preview",do_:'"Tomorrow we will..." — build excitement and anticipation. Do not be late — amazing things are coming!'},
-      ]},
-    ],
-    steps:[],
-    age:{
-      jr:{tips:['Keep summary VERY short and simple: 1–2 sentences','BIG celebration praise: clap together, high five','SEEDS: keep it simple and fun','MODEL the action for See and Say','Make Tomorrow Preview exciting: "SO fun tomorrow!"'],goal:'Feels proud and happy, excited to come back tomorrow, positive memory of today'},
-      in_:{tips:['Summary: 2–3 key learning points','Specific named praise: "Lim XX read all words correctly!"','SEEDS: explain clearly what to do at home','Connect Do at Home to parents'],goal:'Remembers what was learned, proud of achievement, motivated for next class'},
-      sr:{tips:['Summary: what we learned + why it matters','Praise specific achievement and improvement','SEEDS: expect independence in follow-through'],goal:'Can articulate what was learned, self-motivated, takes ownership of homework task'},
-    },
-    warns:['💡 SEEDS: do 1–2 per class. Cover ALL 5 within one month.','💡 "Write as you teach" — record SEEDS done in Day Report immediately after class','⚠️ Specific praise is always more powerful than general praise: name + what they did well'],
-  },
-
-  escalation:{id:'escalation',n:14,name:'Escalation & Parent Contact',nameZh:'Reporting & Parent Boundary',icon:'🚨',when:'AS TRIGGERED',cat:'end',
-    steps:[
-      {n:1,title:'Everything starts in MiscGo — nothing else',do_:'One entry point, one standard, so nothing gets missed. Do not open WhatsApp yourself, do not report verbally, do not ask someone else to pass it on. Pick the right report type, write what actually happened — not your guess, not your opinion.',warn:'⚡ File it, then stop. MGMT handles the rest — do not chase it yourself'},
-      {n:2,title:'Press "Generate + Save", then "Send to WhatsApp"',do_:'The moment you press <b>Generate + Save</b> the record is already stored — you do not need to save it again. A preview appears: check it, then press <b>Send to WhatsApp</b> and pick the group, so MGMT actually sees it.<br>If you try to leave without sending, the system stops you once. That is a reminder, not an obstacle.',warn:'⚠️ Stored in the system is NOT the same as management knowing. It has to be sent'},
-      {n:3,title:'Never respond to a parent',do_:'If a parent messages you, calls you, or stops you at the door — you say one line and nothing else: <b>"I will pass this to management and they will contact you."</b> Then end the conversation and file it in MiscGo.',warn:'⚠️ Never say "OK", "no problem", "I will sort it out" or "that should be fine" — to a parent that is a promise'},
-      {n:4,title:'What you must never discuss with a parent',do_:'Other children · other teachers · fees · staffing or scheduling · discipline decisions. However friendly or however angry the parent is, the rule does not change.',warn:'⚠️ A parent\'s mood is not an exception'},
-      {n:5,title:'Immediately — child not accounted for',do_:'A child who should be here and is not → file MiscGo at once, report type <b>PICKUP</b>. Say which child and which pickup or bus. Do not finish what you are doing first.',warn:'⚡ Immediately'},
-      {n:6,title:'Immediately — child unwell or injured',do_:'Any sign of illness → <b>HEALTH</b>. Any injury, however small → <b>INJURED</b>. Do not decide for yourself whether it is serious enough.',warn:'⚡ Immediately'},
-      {n:7,title:'Immediately — conflict between children',do_:'Separate them. Stay calm. Do not question anyone alone. Then file MiscGo, report type <b>BEHAVIOUR_R</b>.',warn:'⚡ Immediately'},
-      {n:8,title:'Same day — upset or crying',do_:'A private check-in after class, then file MiscGo, report type <b>EMOTION</b>. Write what set it off.'},
-      {n:9,title:'Pick the right report type',do_:'Complaint → <b>COMPLAINT</b> · Request (time change, leave, special arrangement) → <b>REQUEST</b> · Pickup → <b>PICKUP</b> · Unwell → <b>HEALTH</b> · Injury → <b>INJURED</b> · Medicine → <b>MEDICINE</b> · Behaviour → <b>BEHAVIOUR_R</b> · Upset → <b>EMOTION</b> · Forgot something → <b>FORGOT</b> · Lost or found → <b>LOST</b> / <b>FOUND</b> · None of these → <b>GENERAL</b>.'},
-    ],
-    age:{
-      jr:{tips:['Same rule at every age — the child being 4 changes nothing'],goal:'Files every incident in MiscGo; never answers a parent directly'},
-      in_:{tips:['Same rule at every age'],goal:'Files every incident in MiscGo; never answers a parent directly'},
-      sr:{tips:['Same rule at every age'],goal:'Files every incident in MiscGo; never answers a parent directly'},
-    },
-    warns:['⚠️ Stored is not sent — always press Send to WhatsApp','⚠️ You are NOT expected to handle any of this alone — filing it IS the action','⚠️ Not sure whether to report? Report. Getting the call wrong is not a mistake; staying quiet is','⚠️ Nobody is ever criticised for filing too much','⚠️ A parent question is never yours to answer — one line, then MiscGo'],
-  },
-
-  morning:{id:"morning",n:0,name:"Before Class: Morning Routine",nameZh:"Ready Class & Morning Duty",icon:"🌅",when:"EVERY DAY",cat:"morning",
-    timeline:[
-      {
-        time:"7:45am",label:"Ready Class",color:"#0F6E56",bg:"#E8F7F2",border:"#9FE1CB",
-        items:[
-          {icon:"🖊️",title:"Ready Whiteboard",body:"RIGHT side: Date / Abs / Book (Unfound) / Special MISC (e.g. Puasa). LEFT side: Day / Follow Up. OTHER: Copy exercises with 2 colours. Copy Spelling / Ejaan."},
-          {icon:"📋",title:"Ready Attendance Book",body:"Open to today and place on desk before first student arrives."},
-          {icon:"🎒",title:"Ready Teaching Materials",body:"Matching Board · Counting Toys · Flash Cards · lesson-specific materials."},
-          {icon:"⭐",title:"Ready Rewards",body:"Stickers, stamps. Replenish if running low."},
-        ]
-      },
-      {
-        time:"8:00am",label:"Duty Starts",color:"#185FA5",bg:"#EEF5FF",border:"#AABDD4",
-        note:"Move to your assigned station promptly. Know your station before Day 1 — ask Mentor if unsure.",
-        items:[
-          {icon:"🚪",title:"Corridor Downstairs",warn:"Stay Alert for Cars",body:"Welcome students with HUHAHUHA energy. Alert for MISC & crying kids. Check temperature. Pass messages to MGMT."},
-          {icon:"👟",title:"Shoes Area",warn:"SEND CRYING KIDS FIRST · X-Ray Students",body:"Welcome students. Remember their shoes. Remind SR/IN/JR shoe arrangements."},
-          {icon:"🚗",title:"Auto Gate",warn:"Press doorbell IMMEDIATELY for visitors",body:"Greet warmly. Sanitise hands. Send crying kids first."},
-          {icon:"↩️",title:"U-Turn Platform",warn:"X-Ray Students",body:"Control prefects. Send crying kids first."},
-          {icon:"📞",title:"Reception",warn:"Alert for Visitors",body:"Ready for emergency cases and MISC handling. Walk around to observe — check if anyone needs help or if any situation requires attention."},
-          {icon:"🎬",title:"Hall Teacher",warn:"Set Up Projector",body:"Welcome students. Instruct to gather at hall. Ready for assembly. No students in classrooms."},
-        ]
-      },
-      {
-        time:"8:10am",label:"Duty Active",color:"#854F0B",bg:"#FFF8E1",border:"#F9CB42",
-        note:"Stay alert. Do not leave station without replacement.",
-        items:[
-          {icon:"😢",title:"Crying Kids Protocol",warn:"TOP PRIORITY",body:"Send crying kids to class FIRST above all other duties. Never leave a crying child unattended."},
-          {icon:"⚠️",title:"MISC Alert",body:"Spot any sick, injured, or unusual students → Report to MGMT Central Control immediately."},
-          {icon:"👋",title:"Visitor Alert",body:"Any visitor at gate → Press doorbell IMMEDIATELY. Receive at reception only."},
-        ]
-      },
-      {
-        time:"8:40am",label:"Duty Ends · Class Starts",color:"#5B35C4",bg:"#F4F0FF",border:"#C5B3F5",
-        items:[
-          {icon:"🏫",title:"WITH scheduled class",body:"Return to classroom on time."},
-          {icon:"📋",title:"WITHOUT scheduled class",body:"Head to Reception and check in with MGMT — see if there's anything you can help with, and feel free to share anything you need support with too."},
-          {icon:"🚪",title:"Reception Duty",body:"Open gate. Record late comers. Welcome late students and parents."},
-        ]
-      },
-    ],
-    age:{
-      jr:{tips:["JR may cry - always send crying kids first","Hold their hand, walk to class with them","Extra warmth in the morning","Keep parent handover brief"],goal:"Students enter calmly, feel safe and welcomed"},
-      in_:{tips:["Guide to correct areas independently","Encourage greetings to teachers and friends","Quick bag/bottle/shoes check","Build morning habit"],goal:"Students follow routine independently, arrive cheerfully"},
-      sr:{tips:["Assign prefect duties clearly","Model good behaviour for JR and IN","Efficient movement to hall"],goal:"Prefect duties done well, sets positive tone for whole school"},
-    },
-    warns:["CRYING KIDS = TOP PRIORITY at every station","VISITOR = Press doorbell IMMEDIATELY","MISC students = Report to MGMT immediately","Ready Class must be done by 7:58am"],
-    steps:[],
-  },
-
-  dismissal:{id:'dismissal',n:13,name:'Changing of Slot & Dismissal',nameZh:'End of Class & Departure',icon:'🏡',when:'END OF DAY',cat:'end',
-    stepGroups:[
-      {groupTitle:"🔄 Changing of Slot",color:"#185FA5",bg:"#EEF5FF",border:"#AABDD4",steps:[
-        {n:1,title:"Tidy Up & Sit Properly",do_:'Ensure all students are seated properly. Desks cleared and ready for the next lesson.'},
-        {n:2,title:"Goodbye Chant",do_:'Lead the chant:<br>Teacher: "Clap clap — thank you children!"<br>Students: "Clap clap — thank you Teacher!"'},
-        {n:3,title:"Wait for Next Teacher",warn:"Junior classes — do NOT dismiss early",do_:'Do NOT dismiss students until the next teacher has entered the classroom — especially for younger classes.'},
-        {n:4,title:"Hand Over",do_:"Hand over to next teacher / dismiss to next activity."},
-      ]},
-      {groupTitle:"🏡 Dismissal",color:"#A32D2D",bg:"#FCEBEB",border:"#F09595",steps:[
-        {n:1,title:"10 Min Before — Washroom",do_:'START 10 minutes before dismissal time. Call for washroom.'},
-        {n:2,title:"Check Your Table",do_:'"Check your table! Check your water bottle? Check your food container? Anything left?"'},
-        {n:3,title:"Check Drying Area",do_:"Check drying area — handle any wet or dry uniform."},
-        {n:4,title:"School Bag",do_:'"Carry your school bag!"'},
-        {n:5,title:"Shoes",do_:'"Take your shoes. Hold in your hand!"'},
-        {n:6,title:"Line Up",do_:'"Line up please."<br>Half day — 1 line. Full day — separate lines.'},
-        {n:7,title:"Goodbye Chant",do_:'Lead the goodbye chant:<br>Teacher: "Thank you children! Goodbye children!"<br>Students: "Thank you Teacher! Goodbye Teacher!"<br>All: "See you tomorrow!"'},
-      ]},
-    ],
-    steps:[],
-    age:{
-      jr:{tips:['CHECK desk FOR them — point to each item individually','PUT school bag ON for them, adjust BOTH straps','GO to shoe area WITH them, find THEIR shoes, TIE laces FOR them','GUIDE to correct line — half/full day','Wave and smile warmly at every student'],goal:'Nothing left behind (teacher checked), bag properly worn, in correct line, happy farewell'},
-      in_:{tips:['GUIDE checking: "Look at your desk, what do you need to take?"','CHECK both straps on school bag','HELP tie laces if needed','GUIDE lining up clearly: half/full day, boys/girls'],goal:'Can check mostly alone, wears bag independently, knows correct line, polite goodbye'},
-      sr:{tips:['BRIEF reminder: "Check your desk" once only','Quick check on school bag — both straps','MONITOR — should be fully independent','EXPECT: help younger students as role model'],goal:'Complete self-check, never forgets items, efficient process, sets positive example for others'},
-    },
-    warns:['⏰ Start desk check 10 minutes before dismissal time','⚠️ Student frequently forgets items → Inform parents (pattern concern)','💡 Positive, warm farewell = students excited and happy to return next class'],
-  },
-};
+const SRK_SOP_DATA= {}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 const SRK_STAGES=[
   {id:1,name:'Stage 1',nameZh:'Establishing Basics',days:[1,2],theme:'Observe & Learn'},
   {id:2,name:'Stage 2',nameZh:'Co-Teaching',days:[3,4],theme:'Co-Teaching: Gradual Responsibility'},
@@ -539,135 +223,7 @@ const SRK_STAGES=[
   {id:4,name:'Stage 4',nameZh:'Independent Teaching',days:[8,9],theme:'Lesson Planning & Independence'},
   {id:5,name:'Stage 5',nameZh:'Full Independence',days:[11,12,13,14],theme:'Full Independence'},
 ];
-const SRK_TASKS={
-  mentor:{
-    1:[
-      {id:'m1_1',tag:'teach',text:'Demo effective teaching — show proper strategies & classroom management',sops:['flash','book','attendance']},
-      {id:'m1_2',tag:'teach',text:'Explain EVERY step — WHY you do each thing, reasoning behind methods',sops:[]},
-      {id:'m1_3',tag:'teach',text:'Show Gentle-but-Firm approach — model positive language and discipline',sops:[]},
-      {id:'m1_4',tag:'doc',text:'Check mentee\'s activity logs — review and give feedback daily',sops:[]},
-      {id:'m1_5',tag:'doc',text:'Report mentee progress to MGMT',sops:[]},
-    ],
-    2:[
-      {id:'m2_1',tag:'teach',text:'Continue demo teaching — 2nd day observation slot',sops:['flash','book','spelling']},
-      {id:'m2_2',tag:'teach',text:'Model how to handle individual student needs and behaviour',sops:['indread']},
-      {id:'m2_3',tag:'doc',text:'Review mentee\'s activity logs — provide written feedback',sops:[]},
-      {id:'m2_4',tag:'doc',text:'Report Stage 1 completion status to MGMT',sops:[]},
-    ],
-    3:[
-      {id:'m3_1',tag:'teach',text:'Demo teaching — gradually pass responsibility for routines to mentee',sops:['attendance','washroom','recess']},
-      {id:'m3_2',tag:'teach',text:'Provide IMMEDIATE feedback on mentee\'s routine management',sops:[]},
-      {id:'m3_3',tag:'teach',text:'Guide mentee on marking — show standards, demonstrate corrections',sops:['spelling','copyboard']},
-      {id:'m3_4',tag:'doc',text:'Double-check mentee\'s marking attempts',sops:[]},
-      {id:'m3_5',tag:'doc',text:'Document strengths & areas for growth — report to MGMT daily',sops:[]},
-    ],
-    4:[
-      {id:'m4_1',tag:'teach',text:'Continue demo + correct on the spot — re-demo if needed',sops:['flash','book']},
-      {id:'m4_2',tag:'teach',text:'Verify mentee independently handles all routines',sops:['attendance','washroom','recess']},
-      {id:'m4_3',tag:'teach',text:'Guide on marking standards — double-check all attempts',sops:['spelling','indread']},
-      {id:'m4_4',tag:'doc',text:'Record: routines handled independently vs needing help',sops:[]},
-    ],
-    6:[
-      {id:'m6_1',tag:'teach',text:'1st Slot DEMO: Teach normally. Explain MISC recording (whiteboard). Show incident reporting.',sops:['flash','book','spelling']},
-      {id:'m6_2',tag:'teach',text:'Emphasise individual student needs and discipline strategies',sops:['indread','activity']},
-      {id:'m6_3',tag:'teach',text:'2nd Slot SUPERVISE: Observe mentee mirror-teach — reduce intervention',sops:[]},
-      {id:'m6_4',tag:'must',text:'⚠️ ONLY step in if CRITICAL. Correct AFTER class, never during.',sops:[]},
-      {id:'m6_5',tag:'doc',text:'Record mirror teaching performance — constructive feedback daily',sops:[]},
-    ],
-    7:[
-      {id:'m7_1',tag:'teach',text:'1st Slot DEMO: Reinforce discipline strategies + MISC recording',sops:['summary','dismissal']},
-      {id:'m7_2',tag:'teach',text:'2nd Slot SUPERVISE: Mentee mirror-teaches full class independently',sops:[]},
-      {id:'m7_3',tag:'must',text:'⚠️ Confirm mentee\'s MISC whiteboard recording is correct',sops:[]},
-      {id:'m7_4',tag:'doc',text:'Report Stage 3 completion status to MGMT — ready to advance?',sops:[]},
-    ],
-    8:[
-      {id:'m8_1',tag:'teach',text:'1st Slot GUIDE: Demo teaching + teach Lesson Plan writing format',sops:['flash','book']},
-      {id:'m8_2',tag:'teach',text:'Teach Day Report writing — explain all 5 sections and format',sops:[]},
-      {id:'m8_3',tag:'teach',text:'2nd Slot OBSERVE: Reduce intervention — only assist if truly needed',sops:[]},
-      {id:'m8_4',tag:'doc',text:'Review mentee\'s first Lesson Plan draft — detailed feedback',sops:[]},
-      {id:'m8_5',tag:'doc',text:'Schedule reflection session — discuss successes and challenges',sops:[]},
-    ],
-    9:[
-      {id:'m9_1',tag:'teach',text:'1st Slot GUIDE: Check lesson plan, set growth goals',sops:[]},
-      {id:'m9_2',tag:'teach',text:'2nd Slot OBSERVE: Only assist if truly needed',sops:[]},
-      {id:'m9_3',tag:'doc',text:'Review Day Report quality — all 5 sections complete and correct?',sops:[]},
-      {id:'m9_4',tag:'doc',text:'Report Stage 4 completion status to MGMT — ready for full independence?',sops:[]},
-    ],
-    11:[
-      {id:'m11_1',tag:'obs',text:'Observe periodically — NOT constantly. Check lesson plan quality.',sops:[]},
-      {id:'m11_2',tag:'obs',text:'Review Day Reports — all sections complete and accurate?',sops:[]},
-      {id:'m11_3',tag:'doc',text:'Monitor student progress across both slots',sops:[]},
-      {id:'m11_4',tag:'doc',text:'Available for questions — be reachable and supportive, not hovering',sops:[]},
-    ],
-    12:[{id:'m12_1',tag:'obs',text:'Spot-check lesson plans and day reports for quality',sops:[]},{id:'m12_2',tag:'doc',text:'Provide constructive feedback — strengths + areas to improve',sops:[]},{id:'m12_3',tag:'doc',text:'Help with any difficult student situations if needed',sops:[]},],
-    13:[{id:'m13_1',tag:'obs',text:'Confirm mentee teaches BOTH slots at mentor-level quality',sops:[]},{id:'m13_2',tag:'doc',text:'Review documentation completeness and accuracy',sops:[]},{id:'m13_3',tag:'doc',text:'Report final assessment to MGMT — ready for official confirmation?',sops:[]},],
-    14:[{id:'m14_1',tag:'obs',text:'Final observation — confirm standards met consistently',sops:[]},{id:'m14_2',tag:'doc',text:'Complete final training evaluation report for MGMT',sops:[]},{id:'m14_3',tag:'must',text:'⭐ Formal handover — mentee officially takes on the role',sops:[]},],
-  },
-  mentee:{
-    1:[
-      {id:'t1_0',tag:'must',text:'READ Staff Handbook — About Us, Core Message, What Makes Us Special, Code of Conduct.',sops:[],go:'handbook',goLabel:'Open the Handbook'},
-      {id:'t1_1',tag:'obs',text:'OBSERVE mentor demo — both slots. Watch EVERY detail of teaching strategies and classroom management.',sops:['flash','book','attendance','washroom']},
-      {id:'t1_2',tag:'doc',text:'RECORD everything in Activity Log — all lesson steps, what mentor says/does, student reactions.',sops:[]},
-      {id:'t1_3',tag:'obs',text:'LEARN standard lesson plan structure — read SOP, study structure, ask about unclear parts.',sops:['flash','book','spelling']},
-      {id:'t1_4',tag:'teach',text:'ASSIST as academic assistant — help with Individual Reading, writing exercises, matching activities.',sops:['indread']},
-      {id:'t1_5',tag:'must',text:'⚠️ NO marking allowed at this stage — observation and assistance ONLY.',sops:[]},
-    ],
-    2:[
-      {id:'t2_1',tag:'obs',text:'OBSERVE mentor demo — both slots. Continue detailed observation.',sops:['spelling','copyboard','recess']},
-      {id:'t2_2',tag:'doc',text:'Complete Activity Log — more detail = better learning. Note all key strategies.',sops:[]},
-      {id:'t2_3',tag:'obs',text:'Identify and write: 3 things mentor does well that you want to copy.',sops:[]},
-      {id:'t2_4',tag:'obs',text:'Prepare questions for mentor — NEVER guess. Always ask!',sops:[]},
-    ],
-    3:[
-      {id:'t3_1',tag:'teach',text:'TAKE CHARGE of ALL routines: ✓ Attendance ✓ Water break ✓ Washroom supervision ✓ Recess',sops:['attendance','washroom','recess']},
-      {id:'t3_2',tag:'teach',text:'CO-TEACH Group Reading — lead the session, manage student participation.',sops:['flash','book']},
-      {id:'t3_3',tag:'doc',text:'Continue Activity Log — document own performance + mentor feedback received.',sops:[]},
-      {id:'t3_4',tag:'obs',text:'LEARN marking (guided) — observe mentor marking. Understand standards.',sops:['spelling']},
-      {id:'t3_5',tag:'must',text:'⚠️ Still NO independent marking — mentor guides, you observe only.',sops:[]},
-    ],
-    4:[
-      {id:'t4_1',tag:'teach',text:'Independently manage ALL routines without reminders — attendance, water, washroom, recess.',sops:['attendance','washroom','recess']},
-      {id:'t4_2',tag:'teach',text:'Lead Group Reading session confidently — same methods as mentor showed.',sops:['flash','book']},
-      {id:'t4_3',tag:'doc',text:'Activity Log: record what you managed independently vs needed help.',sops:[]},
-      {id:'t4_4',tag:'obs',text:'LEARN marking (guided) — mentor double-checks your attempts.',sops:['spelling','copyboard']},
-    ],
-    6:[
-      {id:'t6_1',tag:'obs',text:'1st Slot OBSERVE: Watch mentor demo carefully. Take detailed notes. Continue routine management.',sops:['flash','book','spelling']},
-      {id:'t6_2',tag:'teach',text:'2nd Slot MIRROR TEACH: FULL teaching responsibility — copy mentor EXACTLY (same words, tone, methods).',sops:['flash','book','copyboard','indread']},
-      {id:'t6_3',tag:'must',text:'⚠️ Mirror teaching = ABSOLUTE FIDELITY. No improvisation — not yet!',sops:[]},
-      {id:'t6_4',tag:'teach',text:'Try marking (ask if unsure — mentor double-checks everything).',sops:['spelling']},
-      {id:'t6_5',tag:'doc',text:'LEARN MISC whiteboard recording — every incident is filed in MiscGo, nothing else.',sops:['escalation']},
-    ],
-    7:[
-      {id:'t7_1',tag:'obs',text:'1st Slot OBSERVE: Watch mentor. Take notes. Continue routine management.',sops:[]},
-      {id:'t7_2',tag:'teach',text:'2nd Slot MIRROR TEACH: Full class independently — maintain classroom management.',sops:['activity','summary','dismissal']},
-      {id:'t7_3',tag:'doc',text:'Record MISC on whiteboard correctly — file any incident in MiscGo the same day.',sops:['escalation']},
-      {id:'t7_4',tag:'doc',text:'Activity Log: note own performance, what went well, areas to improve.',sops:[]},
-    ],
-    8:[
-      {id:'t8_1',tag:'obs',text:'1st Slot OBSERVE & LEARN: Watch demo. Learn Lesson Plan writing. Learn Day Report format.',sops:[]},
-      {id:'t8_2',tag:'teach',text:'2nd Slot MIRROR TEACH: Full responsibility — apply lesson planning knowledge.',sops:['flash','book','spelling','copyboard']},
-      {id:'t8_3',tag:'doc',text:'WRITE your first Lesson Plan (guided) — use mentor\'s structure and format.',sops:[]},
-      {id:'t8_4',tag:'doc',text:'WRITE your first Day Report (guided) — all 5 sections complete.',sops:[]},
-      {id:'t8_5',tag:'doc',text:'File MISC in MiscGo — pick the right report type, then Send to WhatsApp so MGMT sees it.',sops:['escalation']},
-    ],
-    9:[
-      {id:'t9_1',tag:'obs',text:'1st Slot OBSERVE: Watch mentor. Set personal growth goals for today.',sops:[]},
-      {id:'t9_2',tag:'teach',text:'2nd Slot MIRROR TEACH: Full responsibility. Apply lesson planning independently.',sops:['indread','activity','summary']},
-      {id:'t9_3',tag:'doc',text:'Submit Day Report — all 5 sections, on time, complete.',sops:[]},
-      {id:'t9_4',tag:'doc',text:'Reflect: what worked today? What needs improvement tomorrow?',sops:[]},
-    ],
-    11:[
-      {id:'t11_1',tag:'teach',text:'BOTH SLOTS: Full teaching responsibility — prepare lesson plans INDEPENDENTLY.',sops:['flash','book','spelling','copyboard','indread']},
-      {id:'t11_2',tag:'teach',text:'Manage ALL classroom activities. Mark student work properly.',sops:['activity','summary']},
-      {id:'t11_3',tag:'doc',text:'Write Day Report — all 5 sections. Submit on time.',sops:[]},
-      {id:'t11_4',tag:'doc',text:'Record MISC accurately — file every incident in MiscGo, never verbally or in a group chat.',sops:['escalation','dismissal']},
-    ],
-    12:[{id:'t12_1',tag:'teach',text:'BOTH SLOTS full responsibility — quality must match mentor level.',sops:[]},{id:'t12_2',tag:'teach',text:'Handle problems independently first — seek help only when truly needed.',sops:[]},{id:'t12_3',tag:'doc',text:'Complete lesson plan in advance. Submit Day Report on time.',sops:[]},],
-    13:[{id:'t13_1',tag:'teach',text:'BOTH SLOTS full responsibility — maintain all standards consistently.',sops:[]},{id:'t13_2',tag:'doc',text:'All documentation complete: lesson plans, day report, MISC recording.',sops:[]},{id:'t13_3',tag:'teach',text:'Build student relationships — students should recognise and respond to you as their teacher.',sops:[]},],
-    14:[{id:'t14_1',tag:'teach',text:'BOTH SLOTS: Final confirmation day — demonstrate full competency.',sops:[]},{id:'t14_2',tag:'doc',text:'All documentation complete and accurate.',sops:[]},{id:'t14_3',tag:'must',text:'⭐ Officially take on the role — this is YOUR classroom now!',sops:[]},],
-  },
-};
+const SRK_TASKS={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // ══════════════════════════════════════════════════════════════
 // SKILL CONFIRMATION — Rich 5-Stage Supervision Structure
@@ -675,119 +231,12 @@ const SRK_TASKS={
 // ══════════════════════════════════════════════════════════════
 
 // Stage labels and risk descriptions
-const SRK_STAGE_META={
-  1:{label:'Observe & Learn',risk:'Watching ≠ Understanding'},
-  2:{label:'Co-Teaching',risk:'Doing ≠ Doing Correctly'},
-  3:{label:'Mirror Teaching',risk:'Self-adapted ≠ Mirror'},
-  4:{label:'Lesson Planning',risk:'Planned ≠ Executed'},
-  5:{label:'Full Independence',risk:'Appeared Independent ≠ Truly Independent'},
-};
+const SRK_STAGE_META={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // Per-stage, per-role confirmation config
 // Each SOP block: { check, probe, probeOptions, flagOn }
 // probeOptions: array of {val, label, warn, requireNote}
-const SRK_SKILL_STAGES={
-  1:{
-    mentor:{
-      check:"I demonstrated this SOP clearly to Mentee today",
-      probe:"Mentee's understanding level after my demo:",
-      options:[
-        {val:'clear', label:"✅ Clearly understood — no follow-up needed"},
-        {val:'partial', label:"⚠️ Partially understood — I followed up", requireNote:true, notePlaceholder:"What was unclear? How did you follow up?"},
-        {val:'poor', label:"❌ Did not understand — needs re-demo tomorrow", requireNote:true, notePlaceholder:"Describe the gap. What will you re-demo?", warn:"MGMT alert will be triggered if this continues."},
-      ],
-    },
-    mentee:{
-      check:"I observed Mentor performing this step-by-step",
-      probe:"Can you describe the key steps in your own words?",
-      options:[
-        {val:'yes', label:"✅ Yes — I can explain it confidently"},
-        {val:'unsure', label:"⚠️ I watched but I'm not fully sure", warn:"Please speak to your Mentor before end of class today."},
-        {val:'questions', label:"❓ I have questions I need answered", requireNote:true, notePlaceholder:"Write your question here — Mentor will see this.", warn:"Good job asking! Your Mentor will receive this question."},
-      ],
-    },
-  },
-  2:{
-    mentor:{
-      check:"I handed over this routine for Mentee to manage",
-      probe:"Mentee's execution quality:",
-      options:[
-        {val:'correct', label:"✅ Correct — no intervention needed"},
-        {val:'minor', label:"⚠️ Minor errors — I corrected on the spot", requireNote:true, notePlaceholder:"What error? How did you correct it?"},
-        {val:'major', label:"❌ Major errors — needs re-demo", requireNote:true, notePlaceholder:"Describe the errors specifically.", warn:"MGMT alert will be triggered if major errors persist."},
-      ],
-    },
-    mentee:{
-      check:"I managed this routine independently today",
-      probe:"How did the execution go?",
-      options:[
-        {val:'smooth', label:"✅ Smooth — no issues"},
-        {val:'minor', label:'⚠️ Had minor issues, Mentor corrected me', requireNote:true, notePlaceholder:"What happened? What did you learn from it?"},
-        {val:'struggled', label:"❌ Struggled — I need more practice", requireNote:true, notePlaceholder:"What specifically was hard?", warn:"Flag sent to Mentor. More practice needed before advancing."},
-      ],
-    },
-  },
-  3:{
-    mentor:{
-      check:"Mentee used this in the 2nd slot today",
-      probe:'Mirror fidelity level:',
-      options:[
-        {val:'absolute', label:"✅ Absolute fidelity — same words, tone, sequence"},
-        {val:'minor', label:"⚠️ Minor deviation — acceptable at this stage", requireNote:true, notePlaceholder:"What was different? Was it intentional?"},
-        {val:'significant', label:"❌ Significant deviation — not acceptable", requireNote:true, notePlaceholder:"Describe the deviation clearly.", warn:"Mirror fidelity failure. MGMT will be alerted if this repeats."},
-      ],
-    },
-    mentee:{
-      check:"I used this step in the 2nd slot today",
-      probe:"Did you mirror exactly?",
-      options:[
-        {val:'exact', label:"✅ Yes — same words, tone, and sequence as Mentor"},
-        {val:'adapted', label:"⚠️ I adapted some parts", requireNote:true, notePlaceholder:"What did you change and why?", warn:"Note: At Stage 3, mirror = copy exactly. No improvisation yet."},
-        {val:'skipped', label:"❌ I skipped this step", requireNote:true, notePlaceholder:"Why was it skipped?", warn:"Skipping steps will be flagged to Mentor and MGMT."},
-      ],
-    },
-  },
-  4:{
-    mentor:{
-      check:"This step is in Mentee's lesson plan for today",
-      probe:"Did Mentee execute it in class as planned?",
-      options:[
-        {val:'executed', label:"✅ Executed as planned — good quality"},
-        {val:'partial', label:"⚠️ Executed but quality needs work", requireNote:true, notePlaceholder:'What needs improvement specifically?'},
-        {val:'notexecuted', label:"❌ Not executed or major gap from plan", requireNote:true, notePlaceholder:"What happened? Why was it not executed?", warn:"Plan-execution gap flagged. MGMT alert triggered."},
-      ],
-    },
-    mentee:{
-      check:"This step is in my lesson plan for today",
-      probe:"Did you actually execute it in class?",
-      options:[
-        {val:'yes', label:"✅ Yes — executed as planned"},
-        {val:'different', label:"⚠️ Executed but differently from plan", requireNote:true, notePlaceholder:"What was different from your plan?"},
-        {val:'no', label:"❌ Did not execute", requireNote:true, notePlaceholder:"Why was it not done? What will you do next class?", warn:"Not executing planned steps will be flagged to Mentor."},
-      ],
-    },
-  },
-  5:{
-    mentor:{
-      check:"I did NOT intervene during Mentee's teaching of this step",
-      probe:'True independence level:',
-      options:[
-        {val:'full', label:"✅ Fully independent — zero assistance from me"},
-        {val:'questions', label:"⚠️ Asked me 1–2 questions — acceptable at this stage", requireNote:true, notePlaceholder:"What did they ask? Is this a pattern?"},
-        {val:'dependent', label:"❌ Still dependent on my support", requireNote:true, notePlaceholder:"Describe the dependency.", warn:"⚠️ CRITICAL: Stage 5 dependency triggers immediate MGMT review."},
-      ],
-    },
-    mentee:{
-      check:"I taught this step independently — no assistance from Mentor",
-      probe:"Level of independence today:",
-      options:[
-        {val:'full', label:"✅ Fully independent — did not need Mentor at all"},
-        {val:'questions', label:"⚠️ Asked Mentor once — minor clarification only", requireNote:true, notePlaceholder:"What did you ask? How will you handle it alone next time?"},
-        {val:'help', label:"❌ Needed significant help from Mentor", requireNote:true, notePlaceholder:"What help did you need?", warn:"Significant dependency at Stage 5 will be escalated to MGMT."},
-      ],
-    },
-  },
-};
+const SRK_SKILL_STAGES={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // SOPs to master per stage — from Training Progress Chart
 const SRK_STAGE_SOPS={
@@ -797,147 +246,12 @@ const SRK_STAGE_SOPS={
   4:['summary','dismissal','copyboard','activity'],
   5:['hygiene','bookcollect','attendance','washroom','recess','flash','book','spelling','copyboard','indread','activity','summary','dismissal','escalation'],
 };
-const SRK_SUCCESS_CRITERIA={
-  1:{mentor:'Mentee completes detailed activity logs, understands lesson structure, asks relevant questions',mentee:'Complete all observation logs, understand lesson plan structure, identify key teaching steps'},
-  2:{mentor:'Mentee independently manages ALL routines, leads Group Reading effectively',mentee:'Independently manage all daily routines, lead Group Reading effectively'},
-  3:{mentor:'Mentee mirrors teaching with ABSOLUTE FIDELITY in 2nd slot, files MISC in MiscGo correctly',mentee:'Mirror teach with ABSOLUTE FIDELITY in 2nd slot, manage classroom independently'},
-  4:{mentor:'Mentee writes basic lesson plan & day report, teaches independently in 2nd slot',mentee:'Write basic lesson plan & day report, teach independently in 2nd slot'},
-  5:{mentor:'Both slots taught independently, lesson plans & day reports meet quality standards',mentee:'Teach both slots independently, meet quality standards, effective classroom management'},
-};
+const SRK_SUCCESS_CRITERIA={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const ATC_SOP_DATA={
-  roll_call:{id:'roll_call',n:1,icon:'✋',name:'Roll Call & Attendance',nameZh:'点名 · 考勤记录',when:'EVERY DAY',cat:'daily',
-    steps:[
-      {n:1,title:'Bus students first',do_:'Before general roll call, verify ALL bus students have arrived. Cross-reference bus list.',warn:'⚠️ Missing bus student → IMMEDIATE escalation'},
-      {n:2,title:'Call each name',do_:'Call clearly and loudly. Wait for response. Make eye contact. Record: <b>P</b> (present) / <b>abs</b> (absent) / <b>arrival time</b> (late)'},
-      {n:3,title:'Late arrivals',do_:'Record exact arrival time in register. Do NOT skip — exact time matters for parents and MGMT.'},
-      {n:4,title:'3pm school-bus students',do_:'At 3:00pm, confirm boarding-school students have arrived. Record in register with "留" notation.'},
-      {n:5,title:'Absent — confirm reason',do_:'Ask same-school classmates for context. Note reason in register. Report to MGMT same day.',warn:'⚠️ 3+ consecutive absences → MGMT'},
-    ],
-    warns:['⚡ Format: "[Student name] Didn\'t arrive ATC by school bus" — send immediately','⚠️ 3+ consecutive absences = mandatory MGMT report','📝 Register must be updated before 3:25pm','⚠️ Never assume — if not in register, follow up'],
-  },
-  hwbook:{id:'hwbook',n:2,icon:'📒',name:'Homework Book Processing',nameZh:'功课簿收集与处理',when:'EVERY DAY',cat:'hw',
-    steps:[
-      {n:1,title:'Collection on arrival',do_:'Student arrives → submits homework book (sorted by class). THEN allowed to shower / eat.'},
-      {n:2,title:'No book → paper',do_:'Issue a sheet of paper to write today\'s homework. Student pastes into book at home. Record in "遗忘记录" with date.',warn:'⚠️ 3+ times → notify MGMT'},
-      {n:3,title:'Homework completed',do_:'Confirm completed homework is packed into school bag. Assign ATC supplementary tasks or free reading.'},
-      {n:4,title:'Incomplete homework',do_:'Target 3:15pm completion. Teacher may guide but NEVER write answers for student. Mark unfinished items.'},
-      {n:5,title:'Unable to complete by 3:25pm',do_:'Circle uncompleted items. Write "请回家完成". Student must carry book home with BOTH HANDS.',warn:'⚠️ Student must carry book with both hands'},
-      {n:6,title:'Boarding students (3pm)',do_:'Do NOT mark boarding students\' books. Help check only. Student adds "留校日" note. Compare with same-class peers.'},
-    ],
-    warns:['⚠️ No book ≠ no homework — ALWAYS issue paper as substitute','⚠️ Never complete work for students — guide only','📝 Circle + "请回家完成" is the standard notation'],
-  },
-  bagcheck:{id:'bagcheck',n:3,icon:'🎒',name:'Bag Check Procedure',nameZh:'书包抽查',when:'DAILY 1:30pm',cat:'hw',
-    steps:[
-      {n:1,title:'ATC 1 & 2 — daily mandatory',do_:'Teacher personally checks EVERY student\'s bag. No exceptions. Ensure no homework left inside.'},
-      {n:2,title:'ATC 3–6 — rotational',do_:'Check by same-school group/class. Rotate systematically. Flag any class consistently missing spelling/dictation.'},
-      {n:3,title:'Spelling books',do_:'Specifically check: Spelling / Ejaan / 听写 results. Must be reviewed for each student checked.',warn:'⚠️ Consistently no spelling → report to MGMT'},
-      {n:4,title:'Star notation',do_:'After checking: mark ★ in top-left corner of today\'s homework register cell.'},
-    ],
-    warns:['⚠️ ATC 1&2: Every student, every day — no shortcut','⚠️ Any class with zero spelling/dictation for 1+ weeks → flag to MGMT','📝 ★ mark = bag check confirmed for that student'],
-  },
-  layer3:{id:'layer3',n:4,icon:'🔍',name:'3-Layer Quality Check',nameZh:'3层功课质量框架',when:'EVERY DAY',cat:'hw',
-    steps:[
-      {n:1,title:'Layer 1 — Handwriting',do_:'<b>First and most important check.</b> English: letters on lines, correct case. Chinese: strokes clear and within grid. Numbers: not ambiguous (1 vs 7).'},
-      {n:2,title:'L1 fail → rewrite',do_:'Tell student: "请把这一行重新写整齐." Student rewrites. Teacher re-checks. <b>ONLY proceed to L2 after L1 passes.</b>',warn:'⚠️ Time pressure is NOT a reason to skip L1'},
-      {n:3,title:'Layer 2 — Vocabulary Accuracy',do_:'Check spelling of words. Common errors: missing letters (Happy→Hapy), wrong doubles (running→runing), wrong stroke in Chinese.'},
-      {n:4,title:'L2 — guide & re-check',do_:'Correct errors immediately. Guide student — do NOT complete for them. Write positive note in book after correction.'},
-      {n:5,title:'Layer 3 — Content Correctness',do_:'Check answers are correct, no skipped questions, comprehension answers are complete.'},
-      {n:6,title:'L3 — correct & re-check',do_:'Wrong answers → student redoes. May assist. Write encouraging note after. Example: "做得很好！加油！继续努力！"'},
-    ],
-    warns:['⚠️ L1 → L2 → L3 in strict sequence. Never jump layers.','⚠️ Never complete student\'s work — guide only','💡 Handwriting = attitude. Build the standard from the start.','📝 Positive notes in book: parent reads it too — make it count'],
-  },
-  spelling:{id:'spelling',n:5,icon:'✏️',name:'Spelling Practice (听写)',nameZh:'听写练习流程',when:'DAILY 2:30pm',cat:'hw',
-    steps:[
-      {n:1,title:'Priority rule',do_:'Student must finish all main homework BEFORE spelling practice. Prioritise nearest upcoming spelling date.'},
-      {n:2,title:'ATC 1&2 — teacher runs',do_:'Teacher dictates AND personally marks. No exceptions.'},
-      {n:3,title:'ATC 3–6',do_:'Students cross-mark each other. Teacher personally re-checks every paper after.'},
-      {n:4,title:'Marking format',do_:'Write: Date + Teacher Initial + Attempt number (x1, x2…)'},
-      {n:5,title:'Errors → correct 3×',do_:'Each wrong word: student writes correctly 3 times. Then re-attempt spelling (if time permits).'},
-      {n:6,title:'Not all correct / no time',do_:'Circle subject in register. Write in book: "请回家继续练习，加油！"'},
-    ],
-    warns:['⚠️ Homework first — spelling practice is secondary','📝 Marking format MUST include: Date + Initial + x1/x2','⚠️ Wrong words must be corrected 3× before re-attempt'],
-  },
-  class_open:{id:'class_open',n:6,icon:'📋',name:'Tutorial Class Opening',nameZh:'课辅班开课准备 3:30–3:40',when:'DAILY 3:30pm',cat:'class',
-    steps:[
-      {n:1,title:'Roll call',do_:'Call names. Check water bottle. Confirm students have finished tea-break, cleaned up, and used washroom.'},
-      {n:2,title:'Late arrivals',do_:'Record exact arrival time in register. File absent students\' worksheets with date noted.'},
-      {n:3,title:'Early departure notes',do_:'For students leaving early: mark unfinished pages with date + Strike Off. File in folder.'},
-      {n:4,title:'Whiteboard setup',do_:'Write in TOP-RIGHT CORNER of whiteboard: Today\'s topic + task checklist. Students see it immediately when entering.',warn:'📌 Top-right corner — fixed position, never changes'},
-      {n:5,title:'Knowledge activation',do_:'"上次我们学了___，今天我们___" — connect to prior knowledge before starting.'},
-    ],
-    warns:['📌 Whiteboard top-right corner is SACRED — topic + tasks always go there','⚠️ Students should see today\'s goal the moment they walk in','⚠️ All students must have water bottle and be settled before lesson starts'],
-  },
-  teaching:{id:'teaching',n:7,icon:'🖊️',name:'Guided Teaching Flow',nameZh:'项目式引导教学 3:40–4:30',when:'TEACHING',cat:'class',
-    steps:[
-      {n:1,title:'Technique explanation',do_:'MUST explain the answer technique / grammar rule / formula BEFORE students start practice. Never skip this.'},
-      {n:2,title:'Whiteboard demo',do_:'Demo first 2–3 questions on board. Then call students to attempt. Then release: "Now you try."'},
-      {n:3,title:'Time limit',do_:'Set a clear completion time. Remind students: neat handwriting, underline key words.'},
-      {n:4,title:'Roving supervision',do_:'Teacher circulates constantly. Individual guidance as needed. NEVER sit at desk during this time.'},
-      {n:5,title:'Common errors → reteach',do_:'If 2+ students make the same mistake → stop the class → whiteboard re-teach for everyone.'},
-      {n:6,title:'Discipline (严而不凶)',do_:'① Eye contact signal → ② Private gentle reminder → ③ Seat adjustment → ④ Post-class talk → ⑤ MGMT notification'},
-    ],
-    warns:['⚠️ Always teach technique BEFORE practice — never reverse','⚠️ NEVER sit at desk while students are working','💡 Common errors = reteach opportunity — use it for the whole class'],
-  },
-  marking:{id:'marking',n:8,icon:'✅',name:'Marking Standards',nameZh:'批改标准与要求',when:'DAILY 4:30–5:00',cat:'class',
-    steps:[
-      {n:1,title:'Write answers on board',do_:'Write correct answers clearly. Ensure students find KEY answers and note them.'},
-      {n:2,title:'Marking format — mandatory',do_:'Every marking: <b>Date</b> + <b>Teacher Initial</b> + <b>Score</b>. No signature = not counted as marked.',warn:'⚠️ No initial = unmarked'},
-      {n:3,title:'ATC 1–3',do_:'Simple questions: students can cross-mark. All others: teacher must mark personally.'},
-      {n:4,title:'ATC 4–6',do_:'MCQ: students can cross-mark (must write KEY). Essays / comprehension / structured answers: teacher marks personally.'},
-      {n:5,title:'Leftover worksheets',do_:'File unfinished worksheets in Master Copy folder. Do not discard.'},
-    ],
-    warns:['⚠️ Date + Initial is MANDATORY on every marked piece','⚠️ Essays/comprehension/structured answers = teacher marks only','📝 Master Copy folder for all unfinished worksheets'],
-  },
-  love_plus:{id:'love_plus',n:9,icon:'💛',name:'LOVE++ Student Observation',nameZh:'学生重点观察记录',when:'WEEKLY',cat:'record',
-    steps:[
-      {n:1,title:'Select 2 students',do_:'At start of week, identify 2 students for LOVE++ deep observation. Rotate weekly — all students covered over time.'},
-      {n:2,title:'Observation window',do_:'During practice time (4:00–4:25pm): observe both students closely. Note learning, social, behaviour, emotional state.'},
-      {n:3,title:'Categories to observe',do_:'Reading ability / Writing quality / Friendships / Classroom behaviour / Learning progress / Areas for improvement'},
-      {n:4,title:'Post-class record',do_:'After 5:10pm: write detailed LOVE++ report. Include specific examples, not just general impressions.'},
-      {n:5,title:'Non-LOVE++ students',do_:'If any other student shows unusual behaviour (emotional distress, conflict, health concern) — also record and report.'},
-    ],
-    warns:['💡 LOVE++ = deep observation of 2 students per week — not casual notes','📝 Be specific: "During Q3, she stared blankly for 4 minutes" > "She looks distracted"','⚠️ Any unusual behaviour from ANY student → record and report same day'],
-  },
-  post_class:{id:'post_class',n:10,icon:'📋',name:'Post-Class Records',nameZh:'课后记录 5:10–6:00',when:'AFTER CLASS',cat:'record',
-    steps:[
-      {n:1,title:'Complete marking',do_:'Finish any uncompleted marking. Register must be fully updated before you leave.'},
-      {n:2,title:'Subject directory',do_:'Record today\'s teaching unit and date in the subject directory/index.'},
-      {n:3,title:'LOVE++ notes',do_:'Write up this week\'s 2 students\' observation reports. Be specific and detailed.'},
-      {n:4,title:'Prepare next lesson',do_:'Prepare materials, worksheets, whiteboard content for next class. Check consumables.'},
-    ],
-    warns:['⚠️ Register must be complete before leaving for the day','💡 Subject directory = quick reference for "what did we cover last week?"','📝 Prepare next lesson TODAY — never ad hoc tomorrow'],
-  },
-  discipline:{id:'discipline',n:11,icon:'⚖️',name:'Discipline 5-Step Protocol',nameZh:'纪律处理5步骤',when:'AS NEEDED',cat:'daily',
-    steps:[
-      {n:1,title:'Step 1 — Eye signal',do_:'Make eye contact with the student. Hold it. No words. Most students will self-correct.'},
-      {n:2,title:'Step 2 — Private reminder',do_:'Walk to student. Speak quietly. "I notice you\'re doing X. Please do Y." Never announce in front of class.'},
-      {n:3,title:'Step 3 — Seat adjustment',do_:'Move student to a different seat. Matter-of-fact, no drama, no announcement.'},
-      {n:4,title:'Step 4 — Post-class talk',do_:'After lesson ends: private 1-on-1 conversation. Ask about what\'s going on. Listen first. Set expectation.'},
-      {n:5,title:'Step 5 — MGMT notification',do_:'If behaviour persists after steps 1–4: report to MGMT with specific documentation. Include dates and examples.',warn:'⚠️ Document before escalating'},
-    ],
-    warns:['⚠️ NEVER publicly humiliate or scold — 严而不凶','⚠️ NEVER use physical intervention of any kind','💡 Relationship built privately; rules enforced publicly — this is the ATC standard','⚠️ Parents NEVER contacted by new teacher directly — always via MGMT'],
-  },
-  escalation:{id:'escalation',n:12,icon:'🚨',name:'Escalation Protocol',nameZh:'上报触发机制',when:'AS TRIGGERED',cat:'alert',
-    steps:[
-      {n:1,title:'一律从 MiscGo 进去 — 不要自己开 WhatsApp、不要口头',do_:'所有上报走同一个地方：MiscGo。选对分类，写发生了什么，不写猜测与评价。<b>一个入口、一套标准，才不会漏。</b>',warn:'⚡ 填完就结束 — 后续由 MGMT 处理，不要自己追'},
-      {n:2,title:'填完按「Generate + Save」，再按「Send to WhatsApp」',do_:'按下 <b>Generate + Save</b> 那一刻纪录就已经存进系统了，不用另外存。接着跳出预览页，检查一下内容，按 <b>Send to WhatsApp</b> 选群组送出，MGMT 才看得到。<br>没送出就想离开，系统会拦你一次 —— 那是提醒，不是刁难。',warn:'⚠️ 存进系统 ≠ 主管知道了。要送出去才算'},
-      {n:3,title:'立刻 — 校车学生没到',do_:'点名发现没到 → 马上填 MiscGo，分类 <b>PICKUP</b>，写清楚是哪一位、哪一班校车。不要做完手上的事再填。',warn:'⚡ 立刻，不能等'},
-      {n:4,title:'立刻 — 学生不舒服',do_:'任何不舒服的迹象 → 不要自己判断严不严重 → 马上填 MiscGo，分类 <b>HEALTH</b>；有受伤用 <b>INJURED</b>。',warn:'⚡ 立刻'},
-      {n:5,title:'立刻 — 学生冲突',do_:'先分开，保持冷静，不单独审问任何一方。然后填 MiscGo，分类 <b>BEHAVIOUR_R</b>。',warn:'⚡ 立刻'},
-      {n:6,title:'立刻 — 家长当面找你或传讯息',do_:'只说一句：「这件事我会交给管理层，他们会联络您。」然后结束对话，马上填 MiscGo，分类 <b>COMPLAINT</b> 或 <b>REQUEST</b>。',warn:'⚠️ 绝对不准自己回应家长内容'},
-      {n:7,title:'当天 — 情绪 / 哭',do_:'课后私下关心一次。当天填 MiscGo，分类 <b>EMOTION</b>，写清楚是什么引起的。'},
-      {n:8,title:'累积 — 忘记带东西 3 次以上',do_:'日期记在遗忘记录。满 3 次填 MiscGo，分类 <b>FORGOT</b> → 由 MGMT 联络家长。'},
-      {n:9,title:'累积 — 连续 3 天不吃',do_:'连续 3 天没吃 → 先问原因 → 填 MiscGo，分类 <b>HEALTH</b> → 由 MGMT 跟进家长。'},
-      {n:10,title:'作业纸印错 / 内容错',do_:'标注出来，拍照填进 MiscGo，分类 <b>GENERAL</b>。'},
-    ],
-    warns:['⚠️ 存进系统 ≠ 主管知道了 — 一定要按 Send to WhatsApp 送出去','⚠️ 不准自己回应家长 — 只能说「我会交给管理层」','⚠️ 上报本身就是处理 — 报了就是做完了你该做的那一份','⚠️ 不确定要不要报 → 报。判断错不是错，不报才是','⚠️ 不会因为报太多被检讨'],
-  },
-
-};
+const ATC_SOP_DATA={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // ══════════════════════════════════════════
 // TRAINING STRUCTURE
@@ -949,190 +263,12 @@ const ATC_STAGES=[
   {id:4,name:'Stage 4',nameZh:'独立',theme:'Full Independence',days:[13,14]},
   {id:5,name:'Stage 5',nameZh:'认证',theme:'Certified ⭐',days:[]},
 ];
-const ATC_TASKS={
-  mentor:{
-    // STAGE 1: Shadow
-    1:[
-      {id:'m1_1',tag:'obs',text:'Demo full 功课班 flow (1:00–3:25pm) with mentee observing. Narrate your actions out loud.',sops:['roll_call','hwbook']},
-      {id:'m1_2',tag:'must',text:'Demonstrate 3:00pm boarding-student check and register update.',sops:['roll_call']},
-      {id:'m1_3',tag:'doc',text:'Post-class: review mentee\'s observation log. Give written feedback on what to look for tomorrow.',sops:[]},
-    ],
-    2:[
-      {id:'m2_1',tag:'obs',text:'Demo full 课辅班 session (3:30–5:10pm). Mentee shadows and takes notes.',sops:['class_open','teaching']},
-      {id:'m2_2',tag:'obs',text:'Demo LOVE++ observation technique on your 2 students this week.',sops:['love_plus']},
-      {id:'m2_3',tag:'doc',text:'Review mentee\'s notes. Confirm understanding of whiteboard top-right format.',sops:[]},
-    ],
-    3:[
-      {id:'m3_1',tag:'teach',text:'Demo 3-Layer quality check LIVE with commentary on each student. Mentee watches all 3 layers in action.',sops:['layer3']},
-      {id:'m3_2',tag:'obs',text:'Demo bag check procedure for ATC 1&2. Explain rotation system for ATC 3–6.',sops:['bagcheck']},
-      {id:'m3_3',tag:'doc',text:'Check quality of mentee\'s log. Is Day 3 log more detailed than Day 1?',sops:[]},
-    ],
-    4:[
-      {id:'m4_1',tag:'teach',text:'Demo marking session: show Date + Initial + Score format. Explain ATC 1–3 vs ATC 4–6 rules.',sops:['marking']},
-      {id:'m4_2',tag:'must',text:'Walk mentee through FULL escalation protocol. Confirm they know format for bus student alert.',sops:['escalation']},
-      {id:'m4_3',tag:'doc',text:'Check mentee knows discipline 5-step and escalation triggers by heart. Debrief and sign off Stage 1.',sops:['discipline']},
-    ],
-    // STAGE 2: Assist
-    6:[
-      {id:'m6_1',tag:'obs',text:'Supervise mentee conducting roll call (功课班). Note accuracy and timing. Give immediate post-check feedback.',sops:['roll_call']},
-      {id:'m6_2',tag:'obs',text:'Observe mentee collecting homework books and checking absent/late records.',sops:['hwbook']},
-      {id:'m6_3',tag:'doc',text:'Written feedback: what was done well, what to improve tomorrow.',sops:[]},
-    ],
-    7:[
-      {id:'m7_1',tag:'obs',text:'Guide mentee through bag check — ATC 1&2 full check. Verify all ★ marks are recorded.',sops:['bagcheck']},
-      {id:'m7_2',tag:'teach',text:'Observe mentee\'s 3-Layer check on 3 students. Correct any layer-skipping immediately.',sops:['layer3']},
-      {id:'m7_3',tag:'must',text:'⚠️ Verify mentee\'s register is updated correctly by 3:25pm.',sops:[]},
-    ],
-    8:[
-      {id:'m8_1',tag:'obs',text:'Observe mentee conduct spelling practice — ATC 1&2 only today. Check marking format.',sops:['spelling']},
-      {id:'m8_2',tag:'obs',text:'Mentee sets up whiteboard at 3:30pm. Verify top-right corner format is correct.',sops:['class_open']},
-      {id:'m8_3',tag:'doc',text:'Provide detailed written feedback on mentee\'s register and register notation accuracy.',sops:[]},
-    ],
-    9:[
-      {id:'m9_1',tag:'obs',text:'Observe mentee assist with marking session in 课辅班. Verify Date + Initial + Score.',sops:['marking']},
-      {id:'m9_2',tag:'doc',text:'Review mentee\'s first LOVE++ observation notes. Are they specific enough?',sops:['love_plus']},
-      {id:'m9_3',tag:'doc',text:'Review mentee\'s Week 2 weekly report. Sign off Stage 2 progress.',sops:[]},
-    ],
-    // STAGE 3: Lead 功课班
-    11:[
-      {id:'m11_1',tag:'obs',text:'Observe mentee lead FULL 功课班 (1:00–3:25pm) independently. No intervention unless critical.',sops:['roll_call','hwbook','layer3']},
-      {id:'m11_2',tag:'must',text:'Post-class debrief: score each SOP segment. Note specific moments for praise and improvement.',sops:[]},
-      {id:'m11_3',tag:'doc',text:'Confirm mentee\'s LOVE++ weekly observation notes for 2 students.',sops:['love_plus']},
-    ],
-    12:[
-      {id:'m12_1',tag:'obs',text:'Observe mentee lead 功课班 Day 2. Focus on: register accuracy, 3-Layer check quality, spelling practice.',sops:['bagcheck','spelling']},
-      {id:'m12_2',tag:'obs',text:'Allow mentee to assist in 课辅班 opening — verify whiteboard setup independently.',sops:['class_open']},
-      {id:'m12_3',tag:'doc',text:'Written Stage 3 evaluation. Assess readiness for Stage 4.',sops:[]},
-    ],
-    // STAGE 4: Full Independence
-    13:[
-      {id:'m13_1',tag:'obs',text:'Final observation — mentee runs BOTH 功课班 AND 课辅班 fully independently. Observe only.',sops:['teaching','marking']},
-      {id:'m13_2',tag:'doc',text:'Check post-class records: subject directory, LOVE++ notes, register completeness.',sops:['post_class']},
-      {id:'m13_3',tag:'must',text:'⭐ Draft certification report for MGMT. Include: skills confirmed, areas of strength, any remaining gaps.',sops:[]},
-    ],
-    14:[
-      {id:'m14_1',tag:'obs',text:'Final certification observation — confirm consistent ATC standard in both classes.',sops:[]},
-      {id:'m14_2',tag:'doc',text:'Submit FINAL evaluation report to MGMT. Recommend certification.',sops:[]},
-      {id:'m14_3',tag:'must',text:'⭐ Formal handover — new teacher officially takes independent responsibility for their class.',sops:[]},
-    ],
-  },
-  mentee:{
-    // STAGE 1: Shadow
-    1:[
-      {id:'t1_1',tag:'obs',text:'Shadow FULL 功课班 (1:00–3:25pm). Watch every step. Record ALL actions in observation log.',sops:['roll_call','hwbook']},
-      {id:'t1_2',tag:'doc',text:'Log every time slot: what mentor did, what students did, what words mentor used.',sops:[]},
-      {id:'t1_3',tag:'must',text:'⚠️ Do NOT touch homework books or students\' register — observe and record ONLY.',sops:[]},
-    ],
-    2:[
-      {id:'t2_1',tag:'obs',text:'Shadow FULL 课辅班 (3:30–5:10pm). Note: whiteboard position, lesson opening, practice flow, marking.',sops:['class_open','teaching']},
-      {id:'t2_2',tag:'obs',text:'Watch LOVE++ observation technique. Who are this week\'s 2 students? What is mentor noticing?',sops:['love_plus']},
-      {id:'t2_3',tag:'doc',text:'Write: 3 things mentor does well that you want to copy. Write: 2 questions to ask mentor.',sops:[]},
-    ],
-    3:[
-      {id:'t3_1',tag:'obs',text:'Focus on 3-Layer check. Watch every student mentor checks. Write what mentor says at each layer.',sops:['layer3']},
-      {id:'t3_2',tag:'obs',text:'Watch bag check for ATC 1&2. Note the ★ notation system.',sops:['bagcheck']},
-      {id:'t3_3',tag:'doc',text:'Update observation log: can you now recite the 3 layers in sequence from memory?',sops:[]},
-    ],
-    4:[
-      {id:'t4_1',tag:'obs',text:'Focus on marking session. Record: Date format, Initial placement, Score recording.',sops:['marking']},
-      {id:'t4_2',tag:'must',text:'Study escalation protocol. Write down the bus student escalation message format from memory.',sops:['escalation']},
-      {id:'t4_3',tag:'doc',text:'Study discipline 5-step. Write each step and what it looks like in practice.',sops:['discipline']},
-    ],
-    // STAGE 2: Assist
-    6:[
-      {id:'t6_1',tag:'teach',text:'Conduct roll call for your class independently. Mentor verifies record accuracy after.',sops:['roll_call']},
-      {id:'t6_2',tag:'teach',text:'Collect and sort homework books. Record absent/late in register correctly.',sops:['hwbook']},
-      {id:'t6_3',tag:'doc',text:'Update register before 3:25pm. Show mentor for feedback.',sops:[]},
-    ],
-    7:[
-      {id:'t7_1',tag:'teach',text:'Conduct bag check — ATC 1&2 (full). Use ★ notation after each student.',sops:['bagcheck']},
-      {id:'t7_2',tag:'teach',text:'Apply 3-Layer check to 3 students. Mentor observes. Ask if unsure — never guess.',sops:['layer3']},
-      {id:'t7_3',tag:'must',text:'⚠️ Register must show correct notations. Mentor verifies at 3:25pm.',sops:[]},
-    ],
-    8:[
-      {id:'t8_1',tag:'teach',text:'Run spelling practice for ATC 1&2. Apply marking format: Date + Initial + x1.',sops:['spelling']},
-      {id:'t8_2',tag:'teach',text:'Set up whiteboard at 3:30pm for 课辅班. Write topic + task list in top-right corner.',sops:['class_open']},
-      {id:'t8_3',tag:'doc',text:'Write Week 2 report: 3 things done well, 2 areas to improve, 1 question for mentor.',sops:[]},
-    ],
-    9:[
-      {id:'t9_1',tag:'teach',text:'Assist marking during 课辅班. Write Date + Initial + Score on every marked piece.',sops:['marking']},
-      {id:'t9_2',tag:'doc',text:'Write LOVE++ observation notes for this week\'s 2 students. Be specific.',sops:['love_plus']},
-      {id:'t9_3',tag:'doc',text:'Submit Week 2 report to mentor. Update post-class records.',sops:['post_class']},
-    ],
-    // STAGE 3: Lead 功课班
-    11:[
-      {id:'t11_1',tag:'teach',text:'Lead FULL 功课班 (1:00–3:25pm) independently. Mentor observes only.',sops:['roll_call','hwbook','layer3']},
-      {id:'t11_2',tag:'must',text:'Apply 3-Layer check to ALL students. Register complete by 3:25pm.',sops:['bagcheck','spelling']},
-      {id:'t11_3',tag:'doc',text:'Post-class: write self-evaluation. What went well? What felt difficult? Ask mentor 1 question.',sops:[]},
-    ],
-    12:[
-      {id:'t12_1',tag:'teach',text:'Lead full 功课班 Day 2. Focus improvement areas from Day 11 feedback.',sops:[]},
-      {id:'t12_2',tag:'obs',text:'In 课辅班: independently set up whiteboard and run opening. Mentor takes over for teaching.',sops:['class_open']},
-      {id:'t12_3',tag:'doc',text:'Submit LOVE++ weekly report for both observed students.',sops:['love_plus']},
-    ],
-    // STAGE 4: Full Independence
-    13:[
-      {id:'t13_1',tag:'teach',text:'Run BOTH 功课班 AND 课辅班 fully independently (1:00–5:10pm).',sops:['teaching','marking']},
-      {id:'t13_2',tag:'doc',text:'Complete ALL post-class records: register, subject directory, LOVE++ notes.',sops:['post_class']},
-      {id:'t13_3',tag:'must',text:'⭐ Write self-evaluation: am I ready for certification? What areas am I still developing?',sops:[]},
-    ],
-    14:[
-      {id:'t14_1',tag:'teach',text:'Final certification class — run both sessions at full ATC standard.',sops:[]},
-      {id:'t14_2',tag:'doc',text:'Final self-evaluation report submitted to mentor.',sops:[]},
-      {id:'t14_3',tag:'must',text:'⭐ Official handover — take full independent responsibility for your class.',sops:[]},
-    ],
-  },
-};
+const ATC_TASKS={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
-const ATC_SKILL_STAGES={
-  1:{
-    mentor:{check:'Mentee observation log quality?',options:[
-      {val:'detailed',label:'✅ Detailed & specific — ready for next stage'},
-      {val:'basic',label:'⚠️ Basic notes — needs more depth',requireNote:true,notePlaceholder:'What was missing?'},
-      {val:'incomplete',label:'❌ Incomplete log — must redo',requireNote:true,notePlaceholder:'What was not recorded?'},
-    ]},
-    mentee:{check:'Observation log completed today?',options:[
-      {val:'yes',label:'✅ Yes — detailed log for all time slots'},
-      {val:'partial',label:'⚠️ Partial — some gaps',requireNote:true,notePlaceholder:'What did you miss? Why?'},
-    ]},
-  },
-  2:{
-    mentor:{check:'Mentee applied 3-Layer check correctly?',options:[
-      {val:'correct',label:'✅ Correct — all 3 layers in sequence'},
-      {val:'minor',label:'⚠️ Minor errors — skipped occasionally',requireNote:true,notePlaceholder:'Where did they skip/rush?'},
-      {val:'needswork',label:'❌ Needs more practice — incorrect sequencing',requireNote:true,notePlaceholder:'Specific issues:'},
-    ]},
-    mentee:{check:'3-Layer check practised today?',options:[
-      {val:'yes',label:'✅ Yes — applied to 3+ students independently'},
-      {val:'partial',label:'⚠️ Partial — needed mentor prompts',requireNote:true,notePlaceholder:'Where did I need help?'},
-    ]},
-  },
-  3:{
-    mentor:{check:'Mentee independently led 功课班?',options:[
-      {val:'full',label:'✅ Full independence — no prompts needed'},
-      {val:'minor',label:'⚠️ 1–2 prompts needed — acceptable at stage 3',requireNote:true,notePlaceholder:'What needed prompting?'},
-      {val:'frequent',label:'❌ Frequent help needed — not at stage 3 standard',requireNote:true,notePlaceholder:'Specific problems:'},
-    ]},
-    mentee:{check:'Led 功课班 independently today?',options:[
-      {val:'yes',label:'✅ Yes — ran full session from start to finish'},
-      {val:'mostly',label:'⚠️ Mostly — needed 1–2 mentor prompts',requireNote:true,notePlaceholder:'Where did I need help?'},
-    ]},
-  },
-  4:{
-    mentor:{check:'Mentee ready for full certification?',options:[
-      {val:'yes',label:'✅ Yes — both classes at required standard'},
-      {val:'nearly',label:'⚠️ Nearly — minor gaps remaining',requireNote:true,notePlaceholder:'What needs more time?'},
-      {val:'no',label:'❌ Not ready yet — specific skills lacking',requireNote:true,notePlaceholder:'What is missing?'},
-    ]},
-    mentee:{check:'Ran both classes independently today?',options:[
-      {val:'yes',label:'✅ Yes — both sessions completed independently'},
-      {val:'mostly',label:'⚠️ Mostly — one area still needed support',requireNote:true,notePlaceholder:'Which area?'},
-    ]},
-  },
-};
+const ATC_SKILL_STAGES={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 // ══════════════════════════════════════════
 // DAILY TASKS
@@ -1143,28 +279,7 @@ const ATC_STAGE_SOPS={
   3:['teaching','marking','love_plus'],
   4:['post_class','discipline','escalation'],
 };
-const ATC_SUCCESS_CRITERIA={
-  1:{
-    mentor:'Mentee observes every procedure and completes detailed daily observation log. Asks relevant questions.',
-    mentee:'Complete all observation logs. Identify what mentor does at each time slot. Prepare 3+ questions per day.',
-  },
-  2:{
-    mentor:'Mentee correctly assists with roll call, homework book collection, bag check, and 3-Layer check on guided students.',
-    mentee:'Independently run roll call and homework book collection. Correctly apply 3-Layer check framework on 3+ students.',
-  },
-  3:{
-    mentor:'Mentee leads full 功课班 independently at acceptable standard. 3-Layer checks are correct and consistent.',
-    mentee:'Lead complete 功课班 flow. Apply 3-Layer check to all students. Submit LOVE++ weekly observation.',
-  },
-  4:{
-    mentor:'Mentee runs BOTH 功课班 AND 课辅班 independently. All records complete. Ready for certification.',
-    mentee:'Run both classes fully independently. All records updated daily. Submit final self-evaluation.',
-  },
-  5:{
-    mentor:'Certification complete. ATC teacher operates independently.',
-    mentee:'Certified ATC teacher. All SOPs mastered.',
-  },
-};
+const ATC_SUCCESS_CRITERIA={}   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 const ALL_DAYS=[1,2,3,4,6,7,8,9,11,12,13,14];
 
@@ -1216,7 +331,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v33';
+const APP_VERSION='v34';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1733,12 +848,63 @@ async function boot(){
     see:{SRK:!!me.srk_see,GAK:!!me.gak_see,ATC:!!me.atc_see,SRT:!!me.srt_see},
     edit:{SRK:!!me.srk_edit,GAK:!!me.gak_edit,ATC:!!me.atc_edit,SRT:!!me.srt_edit}};
   if(!mySeeDepts().length){gate('Your role ('+me.role+') has no TrainGo access for any department.',false);return;}
+  // v34：SOP、每日任务、技能题、员工手册不再写在公开的档案里，登入後才从资料库拿
+  try{ await loadContent(); }
+  catch(e){gate('Could not load the training content: '+esc(e.message||String(e))+'<br><b>Nothing has been changed.</b> Check your connection and refresh.',false);return;}
   decideRole(); applyRole();
+  showWatermark();
   document.getElementById('gate').style.display='none';
   document.getElementById('mainApp').style.display='block';
   await reloadAll();
   goPage('dashboard');
 }
+
+// ══ v34：训练内容从资料库载入 ══════════════════════════════
+// 以前这 10 份写死在 HTML 里，而 repo 是公开的 —— 不用登入就能整份读走。
+// 现在只有登入、且有 TrainGo 权限的在职员工拿得到；traingo_content_get() 每次都会留纪录。
+// DEPT_CFG 抓的是这些物件本身，所以要「原地」填，不能换成新物件。
+// 用函式包起来：HANDBOOK 宣告在档案後段，开机当下直接引用会碰到 const 的暂时死区而报错
+function contentSlots(){return {SRK_SOP_DATA,SRK_TASKS,SRK_STAGE_META,SRK_SKILL_STAGES,SRK_SUCCESS_CRITERIA,
+                     ATC_SOP_DATA,ATC_TASKS,ATC_SKILL_STAGES,ATC_SUCCESS_CRITERIA,HANDBOOK};}
+async function loadContent(){
+  const {data,error}=await sb.rpc('traingo_content_get');
+  if(error)throw new Error(/DENIED/.test(error.message||'')?'your account is not allowed to read training content':(error.message||'unknown error'));
+  const CONTENT_SLOTS=contentSlots(); const got=new Set();
+  (data||[]).forEach(r=>{
+    const t=CONTENT_SLOTS[r.key]; if(!t||r.body==null)return;
+    if(Array.isArray(t)){t.splice(0,t.length,...r.body);}
+    else{Object.keys(t).forEach(k=>delete t[k]);Object.assign(t,r.body);}
+    got.add(r.key);
+  });
+  const missing=Object.keys(CONTENT_SLOTS).filter(k=>!got.has(k));
+  if(missing.length)throw new Error('missing '+missing.join(', '));
+  Object.values(DEPT_CFG).forEach(c=>{c.SOP_LIST=Object.values(c.SOP);});
+}
+// 打开哪一份 SOP／手册章节 → 记一笔（资料库盖章，失败不影响使用）
+function logOpen(key){try{if(sb)sb.rpc('traingo_content_open',{p_key:key}).then(()=>{},()=>{});}catch(e){}}
+
+// 浮水印：整个画面淡淡铺满「看的人 · 代号 · 日期时间」。截图、拍照都带着名字。
+function showWatermark(){
+  const old=document.getElementById('tgWatermark'); if(old)old.remove();
+  const m=S.me||{}; const d=new Date();
+  const stamp=(m.name||m.code||'')+' · '+(m.code||'')+' · '+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const txt=(stamp+' · Academee confidential').replace(/[<&>"]/g,'');
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='420' height='220'><text x='10' y='120' transform='rotate(-24 210 110)' font-family='Arial,sans-serif' font-size='15' fill='rgba(20,30,50,0.085)'>${txt}</text></svg>`;
+  const w=document.createElement('div'); w.id='tgWatermark';
+  w.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99998;background-repeat:repeat;background-image:url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
+  document.body.appendChild(w);
+}
+// 内容区不能选取、不能复制；输入框不受影响（日报照常打字、贴上）
+document.addEventListener('copy',e=>{
+  const ae=document.activeElement; if(ae&&/^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName))return;
+  const sel=window.getSelection&&window.getSelection(); if(!sel||!sel.rangeCount)return;
+  const n=sel.getRangeAt(0).commonAncestorContainer; const el=n.nodeType===1?n:n.parentElement;
+  if(el&&el.closest('.tg-protect,.overlay .modal-body')&&!el.closest('textarea,input')){
+    e.preventDefault();
+    const f=document.getElementById('savedFlash');
+    if(f){f.textContent='Copying training content is not allowed.';f.style.background='#7a1f1f';f.style.opacity='1';setTimeout(()=>f.style.opacity='0',2200);}
+  }
+});
 
 // 平台六角色 → TrainGo 三身份。只在开机算一次，之后由 settleRole 决定 mentor/mentee
 function decideRole(){
@@ -1893,7 +1059,7 @@ function countChecked(cid,role,day,dept){
 // SOP MODAL
 // ══════════════════════════════════════════════════════════════
 // SOP 弹窗依部门分派：SRK/GAK 有 3 层年龄与 timeline/stepGroups；ATC 是单层步骤流
-function openSopModal(sopId){return _RD==='ATC'?openSopModalATC(sopId):openSopModalSRK(sopId);}
+function openSopModal(sopId){logOpen(_RD+':'+sopId);return _RD==='ATC'?openSopModalATC(sopId):openSopModalSRK(sopId);}
 
 function openSopModalATC(sopId){
   const sop=D.SOP[sopId];if(!sop)return;
@@ -4513,7 +3679,7 @@ async function deletePlan(uid){
   goPage('mgmt');
 }
 
-const HANDBOOK = JSON.parse("[\n  {\n    \"id\": \"about\",\n    \"num\": \"1.1\",\n    \"title\": \"About Us\",\n    \"icon\": \"🏫\",\n    \"subtitle\": \"Who We Are — Our Story & Departments\",\n    \"sections\": [\n      {\n        \"heading\": \"Welcome to Academee\",\n        \"body\": \"We are more than just an education centre — we are a family dedicated to nurturing star students who are independent, confident, and shine brightly wherever they go.\\n\\nFounded in Muar, Academee has grown to become a trusted name in quality education, consistently ranking in the Top 10 nationally among 200+ Smart Reader Kids centres. Over the years we have educated approximately 10,000 students, many of whom have achieved admissions to prestigious universities and scholarship programmes.\"\n      },\n      {\n        \"heading\": \"Our Four Departments\",\n        \"departments\": [\n          {\n            \"code\": \"SRK/GAK\",\n            \"full\": \"Smart Reader Kids / Genius Academic Kids\",\n            \"age\": \"Ages 3–6\",\n            \"theme\": \"Gentle but Firm\",\n            \"focus\": \"Nurture independent, confident, shining little stars who are proud to be Smart Reader students\"\n          },\n          {\n            \"code\": \"ATC\",\n            \"full\": \"After-school Tuition Centre\",\n            \"age\": \"Ages 7–12\",\n            \"theme\": \"Strict but Not Fierce\",\n            \"focus\": \"Nurture independent, proactive, high-achieving primary students who take pride in being Smart Reader students\"\n          },\n          {\n            \"code\": \"SRT\",\n            \"full\": \"Smart Reader Tuition\",\n            \"age\": \"Ages 5–15\",\n            \"theme\": \"Solid and Interesting\",\n            \"focus\": \"Build solid English foundation and transform students into English masters who proudly represent Smart Reader\"\n          },\n          {\n            \"code\": \"CIY\",\n            \"full\": \"Coding It Yourself\",\n            \"age\": \"Ages 6–15\",\n            \"theme\": \"Interesting and Substantial\",\n            \"focus\": \"Open a tech window to the future, nurturing logical thinking and creativity through coding\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Our Core Values\",\n        \"bullets\": [\n          \"⭐ NURTURE STAR STUDENTS — Students who are independent, confident, and shine brightly\",\n          \"🏆 BUILD BRAND PRIDE — Students proudly say: I am a Smart Reader student\",\n          \"📚 EXCELLENCE IN TEACHING — Follow established methods while maintaining quality standards\",\n          \"🔄 CONTINUOUS IMPROVEMENT — Always learning, always growing, always striving for better\",\n          \"🤝 COLLABORATIVE SPIRIT — Teachers, management, and parents working together for student success\",\n          \"❤️ CARING & PROFESSIONAL — Genuine care for each child combined with high professional standards\"\n        ]\n      }\n    ]\n  },\n  {\n    \"id\": \"core\",\n    \"num\": \"1.2\",\n    \"title\": \"Core Message to All Teachers\",\n    \"icon\": \"💬\",\n    \"subtitle\": \"Being Firm, Not Fierce, Is a Teacher's Strongest Presence\",\n    \"sections\": [\n      {\n        \"heading\": \"The Core Message\",\n        \"body\": \"As teachers, we must be firm, but never fierce.\\nFierceness only makes students fear you.\\nFirmness earns their respect, trust, and cooperation.\\n\\nWhat students truly fear is not your volume or facial expression — but this:\\n• Promises must be kept: Do you keep your word?\\n• Rules apply equally to everyone: Are you fair?\\n• Correct behaviour, guide improvement: Are you firm yet kind?\"\n      },\n      {\n        \"heading\": \"In the Classroom\",\n        \"twoCol\": [\n          {\n            \"good\": [\n              \"✅ Rules matter more than emotions\",\n              \"✅ Methods work better than raised voices\",\n              \"✅ Stability is more powerful than intimidation\"\n            ],\n            \"bad\": [\n              \"❌ No crazy shouting\",\n              \"❌ No sarcasm or mocking\",\n              \"❌ No handling problems when emotions are high\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"Three Core Principles (Must Follow)\",\n        \"numbered\": [\n          {\n            \"title\": \"① Be Firm in Rules, Not in Emotions\",\n            \"body\": \"No banging tables, no shouting, no sarcasm. Do not change how you handle issues based on mood. Handle all matters according to rules.\\n\\n👉 Teachers enforce rules, not emotions.\"\n          },\n          {\n            \"title\": \"② Address the Behaviour, Not the Person\",\n            \"body\": \"Do not label students. Do not attack character or personality.\\n\\n❌ Why are you so lazy?\\n✅ Please complete your tasks now.\\n\\n👉 Correct the behaviour. Get straight to the point.\"\n          },\n          {\n            \"title\": \"③ Say It — and Do It. Be Consistent.\",\n            \"body\": \"What applies today applies tomorrow. Same standard for everyone — class leaders, high achievers, and struggling students alike.\\n\\n👉 Students fear double standards, not strict rules.\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Standard Procedures for Handling Student Issues\",\n        \"numbered\": [\n          {\n            \"title\": \"1. When Setting Rules\",\n            \"body\": \"Calm tone, firm attitude. Rules and execution steps must be clear. No emotional explanation. No bargaining.\"\n          },\n          {\n            \"title\": \"2. When a Rule Is Broken\",\n            \"body\": \"Always follow this order:\\n👉 Reminder once → Rule broken → Enforce immediately (but remain calm)\\n\\n⚠️ CRITICAL: When the FIRST student breaks the rule, stop immediately. If you wait until the situation worsens, you lose control.\\n\\nDo not argue or negotiate. State the rule once, clearly. State what they need to do. Do not tolerate.\"\n          },\n          {\n            \"title\": \"3. When Giving Correction\",\n            \"body\": \"IMPORTANT: No aggressive criticism, no intimidation — speak directly to the point.\\n\\nFor MINOR issues: Speak privately. Listen first, then guide with care.\\nFor SERIOUS issues affecting the class: Address publicly. Explain the reason. Focus on behaviour, not person.\"\n          },\n          {\n            \"title\": \"4. Always Leave a Way Forward After Mistakes\",\n            \"body\": \"Allow correction, but require responsibility. Find any opportunity to praise the corrected student.\\n\\nProcess: Mistake → Reflection → Improvement\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"The Most Important Message\",\n        \"highlight\": \"A calm attitude does not mean low expectations. Firm action is true kindness.\\n\\nEducation is not about who is fiercer. It is about who can turn rules into students habits.\"\n      }\n    ]\n  },\n  {\n    \"id\": \"special\",\n    \"num\": \"1.3\",\n    \"title\": \"What Makes Us Special\",\n    \"icon\": \"✨\",\n    \"subtitle\": \"Our Common DNA — What Every Teacher Must Know\",\n    \"sections\": [\n      {\n        \"heading\": \"Our Common DNA\",\n        \"bullets\": [\n          \"❤️ Make students LOVE coming to Smart Reader classes\",\n          \"❤️ Make students LOVE their teachers\",\n          \"❤️ Make students LOVE learning\",\n          \"🏆 Make students PROUD to say: I am a Smart Reader student\"\n        ]\n      },\n      {\n        \"heading\": \"Three Core Principles\",\n        \"numbered\": [\n          {\n            \"title\": \"① Rules Before Emotions\",\n            \"body\": \"Use rules to manage students, not emotions. Stay calm when handling problems. Be consistent: say it and do it.\\n\\n👉 Students fear double standards, not strict rules.\"\n          },\n          {\n            \"title\": \"② Criticise the Behaviour, Protect the Person\",\n            \"body\": \"Correct what they DID, not who they ARE. Never label students. Separate action from identity.\\n\\n👉 You forgot your homework — not You are lazy.\"\n          },\n          {\n            \"title\": \"③ Be Consistent\",\n            \"body\": \"Same rules apply to everyone. Today standard is tomorrow standard. No favourites, no exceptions.\\n\\n👉 Consistency builds trust and security.\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Teacher Red Lines 🚫 (Absolutely Prohibited)\",\n        \"redlines\": [\n          \"NO shouting, table-banging, or throwing things\",\n          \"NO sarcasm or mockery\",\n          \"NO personal attacks or labelling\",\n          \"NO bringing up past mistakes\",\n          \"NO public humiliation\",\n          \"NO treating students differently based on your mood\"\n        ]\n      },\n      {\n        \"heading\": \"The Most Important Message\",\n        \"highlight\": \"Education is not about MANAGEMENT. It is about RELATIONSHIP.\\n\\nWhen students like you, they will:\\n• Listen to you   • Want to learn\\n• Actively improve   • Become your pride\\n\\nMake students love coming, love you, love learning.\\nThis is the essence of great teaching.\"\n      }\n    ]\n  },\n  {\n    \"id\": \"conduct\",\n    \"num\": \"2.1\",\n    \"title\": \"Code of Conduct\",\n    \"icon\": \"📋\",\n    \"subtitle\": \"Guided by Rules, United by Standards\",\n    \"sections\": [\n      {\n        \"heading\": \"A. Attendance & Working Time\",\n        \"subsections\": [\n          {\n            \"sub\": \"Access Card\",\n            \"bullets\": [\n              \"One (1) access card issued upon joining\",\n              \"Replacement fee: RM50 per lost card\"\n            ]\n          },\n          {\n            \"sub\": \"Punch In (Clock In)\",\n            \"bullets\": [\n              \"Arrive and clock in 15 minutes before official working time (8:00am)\",\n              \"Avoid being late — lateness affects attendance records\",\n              \"If technical issue with attendance system, report to MGMT immediately and record time manually\",\n              \"After signing in, go directly to ready class and duty\",\n              \"If eating at school, finish meal 10 minutes before official working time\"\n            ]\n          },\n          {\n            \"sub\": \"Punch Out (Clock Out)\",\n            \"bullets\": [\n              \"Complete all classes and duties before official clock-out time\",\n              \"Ensure classroom is prepared for next day, materials neatly arranged\",\n              \"Do not clock out early without prior MGMT approval\",\n              \"If technical issue, report to MGMT and record time manually\"\n            ]\n          },\n          {\n            \"sub\": \"Leave Application\",\n            \"bullets\": [\n              \"Request and fill Leave Application Form from MGMT\",\n              \"Arrange reliever for duties and classes\",\n              \"Submit form and attach supporting evidence\",\n              \"Follow up to confirm approval or rejection\",\n              \"One day before: remind reliever and pass all teaching materials and lesson plans\"\n            ]\n          },\n          {\n            \"sub\": \"Emergency / Last-Minute Absence\",\n            \"bullets\": [\n              \"Notify and obtain approval from MGMT before 8:00am\",\n              \"Inform MGMT of: (1) Lesson Plan (2) Materials (3) Student Issues (4) Urgent Tasks (5) Additional Notes\",\n              \"Submit leave form after returning, with supporting evidence if any\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"B. Workplace Conduct\",\n        \"subsections\": [\n          {\n            \"sub\": \"Dress Code\",\n            \"bullets\": [\n              \"Dress neatly, clothing must be clean and well maintained, maintain good personal hygiene\",\n              \"Shorts and skirts above the knee are not allowed\",\n              \"One (1) pinafore provided FREE upon confirmation. Extra pinafores must be purchased from MGMT\"\n            ]\n          },\n          {\n            \"sub\": \"Shoes\",\n            \"bullets\": [\n              \"Slippers are not allowed. Sandals are permitted\",\n              \"Place shoes neatly on the shoe rack — not on the floor\"\n            ]\n          },\n          {\n            \"sub\": \"Lunch Arrangements\",\n            \"bullets\": [\n              \"30 minutes for lunch daily, taken according to schedule\",\n              \"May bring own meals, eat school-provided meals, or order food to go\",\n              \"If unsure about meal arrangements, ask MGMT for guidance\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"C. Mobile Phone & Digital Use\",\n        \"subsections\": [\n          {\n            \"sub\": \"Mobile Phone During Working Hours\",\n            \"bullets\": [\n              \"Set mobile phone to silent mode during working hours\",\n              \"Must NOT be used during teaching sessions (except work-related purposes)\",\n              \"Do not share personal mobile numbers or social media accounts with students or parents\",\n              \"Refrain from personal use: casual calls, browsing, social media, gaming, online shopping\",\n              \"Emergency calls: use designated private areas only (e.g. reception room)\"\n            ]\n          },\n          {\n            \"sub\": \"Photo, Video & Social Media\",\n            \"bullets\": [\n              \"Must not photograph or record students, parents, or colleagues without permission\",\n              \"Student photos and videos are strictly for internal or approved school use only\",\n              \"May not post or discuss content related to students or parents on personal platforms\",\n              \"Must comply with the Personal Data Protection Act (PDPA)\",\n              \"May identify as Company staff on social media but must maintain professionalism\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"D. Communication & Reporting\",\n        \"subsections\": [\n          {\n            \"sub\": \"Reporting Line\",\n            \"bullets\": [\n              \"For HR matters: contact ADMIN directly\",\n              \"For work-related issues: report to MGMT and work together to find solutions\"\n            ]\n          },\n          {\n            \"sub\": \"Parents Communication\",\n            \"bullets\": [\n              \"⚠️ Teachers are NOT permitted to communicate directly with parents — to prevent dissemination of inaccurate information\",\n              \"All parent communication must go through MGMT\"\n            ]\n          },\n          {\n            \"sub\": \"Issue Reporting & Incident Handling\",\n            \"bullets\": [\n              \"Immediately report any accidents, incidents, or unusual situations to MGMT or Admin\",\n              \"Urgent matters must be escalated immediately and followed up until fully resolved\",\n              \"Maintain professionalism and confidentiality — report only relevant facts\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]");
+const HANDBOOK = []   /* v34：内容已移到资料库 traingo_content，登入後由 loadContent() 原地填入 */;
 
 
 // ── Handbook renderer ──────────────────────────────────────────
@@ -4537,6 +3703,7 @@ const DEPT_THEME = {
 function renderHandbook(){
   const el=document.getElementById('handbook-content');
   const activeId=window._hbActive||'about';
+  logOpen('HANDBOOK:'+activeId);
   const doc=HANDBOOK.find(h=>h.id===activeId)||HANDBOOK[0];
   const theme=HB_THEME[activeId]||HB_THEME.about;
 
