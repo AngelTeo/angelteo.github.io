@@ -177,10 +177,8 @@ label.lbl:first-child{margin-top:0;}
     <button class="ntab" data-pg="handbook" onclick="goPage('handbook')">🏫 Handbook</button>
     <button class="ntab" data-pg="mgmt" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ Settings</button>
     <span id="roleBadgeTop" class="role-badge" style="margin-left:auto"></span>
-    <button class="btn btn-sm" id="btnExport" style="display:none;margin-left:8px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportData()">↑ Export</button>
-    <button class="btn btn-sm" id="btnImport" style="display:none;margin-left:4px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="importData()">↓ Import</button>
+
   </div>
-  <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(this)">
   <div class="page on" id="page-dashboard"><div id="dashboard-content"></div></div>
   <div class="page" id="page-tasks"><div id="tasks-content"></div></div>
   <div class="page" id="page-report"><div id="report-content"></div></div>
@@ -1218,7 +1216,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v32';
+const APP_VERSION='v33';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1411,8 +1409,8 @@ async function saveTaskCheck(key,val){
   const {error}=await sb.from('traingo_task_check').upsert({
     check_key:key, plan_uid:pk.planUid, dept:pk.dept, role:pk.role,
     day:pk.day, task_id:pk.taskId, checked:!!val},{onConflict:'check_key'});
-  if(error){setSyncStatus('⚠️');console.warn(error);}
-  else setSyncStatus('✅');
+  if(error){setSyncStatus('⚠️');console.warn(error);return false;}
+  setSyncStatus('✅');return true;
 }
 // check_key = {planUid}_{dept}_{role}_{day}_{taskId}
 const CHECK_KEY_RE=/^(.+)_(SRK|GAK|ATC|SRT)_(mentor|mentee)_(\d+)_(.+)$/;
@@ -1756,8 +1754,7 @@ function applyRole(){
   const b=document.getElementById('roleBadgeTop');
   if(b){b.textContent=(labels[S.role]||'')+' · '+(m.name||m.code);b.className='role-badge '+(cls[S.role]||'');}
   const t=document.getElementById('tab-mgmt'); if(t)t.style.display=(S.role==='mgmt')?'':'none';
-  // 备份／还原是管理层的事。新老师看到只会点下去然后被挡掉。
-  ['btnExport','btnImport'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=(S.role==='mgmt')?'':'none';});
+  // v33：Export／Import 按钮已拿掉（Owner 指示）。资料的正本在资料库，不需要从画面汇出汇入。
   const vEl=document.getElementById('topbarVer'); if(vEl)vEl.textContent=APP_VERSION;
 }
 
@@ -1780,6 +1777,7 @@ function logout(){ location.href='../index.html'; }   // 登出在平台层，�
 // ══════════════════════════════════════════════════════════════
 // v31：以前用索引对位（PAGE_MAP），一改选单顺序高亮就跑掉。改成认 data-pg。
 function goPage(p){
+  flushDraft();
   // Access control — only MGMT can access Admin page
   if(p==='mgmt'&&S.role!=='mgmt'){goPage('dashboard');return;}
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
@@ -2563,7 +2561,13 @@ function viewDay(day,cohortId,role){
 }
 
 async function toggleTask(cid,role,day,tid,val){
-  const k=checkKey(cid,S.dept,role,day,tid);S.taskChecks[k]=val;await saveTaskCheck(k,val);
+  const k=checkKey(cid,S.dept,role,day,tid);S.taskChecks[k]=val;
+  // v33：以前存失败勾勾照样留着。现在退回去，并讲清楚没存到。
+  const ok=await saveTaskCheck(k,val);
+  if(ok===false){S.taskChecks[k]=!val;
+    const f=document.getElementById('savedFlash');
+    if(f){f.textContent='⚠️ Not saved — check your connection and tick it again.';f.style.background='#B7791F';f.style.opacity='1';setTimeout(()=>f.style.opacity='0',3500);}
+    renderTasks();return;}
   const item=document.getElementById('ti_'+tid);
   if(item){if(val)item.classList.add('done');else item.classList.remove('done');}
   // Update counter
@@ -2708,7 +2712,14 @@ function renderReport(){
   if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet.</div>`;return;}
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const tasks=(D.TASKS[role]||{})[day]||[];const checked=countChecked(cohort.id,role,day);
-  const existing=getReport(cohort.id,role,day);
+  let existing=getReport(cohort.id,role,day);
+  // 这台机器上有比云上新的备份（例如断线时打的字）→ 用备份画，并马上补送
+  let _restored=false;
+  try{
+    const raw=localStorage.getItem(draftLocalKey([cohort.id,role,day,cohort.dept]));
+    if(raw){const loc=JSON.parse(raw);
+      if(!existing||String(loc.savedAt||'')>String(existing.savedAt||'')){existing=Object.assign({},existing||{},loc);_restored=true;}}
+  }catch(e){}
 
   el.innerHTML=_bar+`
     <div class="card">
@@ -2764,6 +2775,13 @@ function renderReport(){
       </div>
     </div>
     ${renderPartnerSkillSummary(cohort,role,day,stage)}`;
+  // v33：每一格（反思、技能打勾、技能说明、Mentor 的 Ready）都自动存。
+  // 用属性而不是 addEventListener，重画时不会越挂越多。
+  const _h=e=>{if(e.target.closest('.filter'))return;
+    if(!e.target.matches('textarea,input,select'))return;
+    scheduleDraft(cohort.id,role,day,cohort.dept);};
+  el.oninput=_h; el.onchange=_h;
+  if(_restored){_draftCtx=[cohort.id,role,day,cohort.dept];_draftDirty=true;saveDraft(cohort.id,role,day,cohort.dept);}
 }
 
 function renderPartnerSkillSummary(cohort,myRole,day,stage){
@@ -2818,12 +2836,33 @@ function renderPartnerSkillSummary(cohort,myRole,day,stage){
 }
 
 // ── 草稿自动上云：停止打字 1.2 秒存一次 ──────────────────────
-let _draftT=null;
+let _draftT=null, _draftCtx=null, _draftDirty=false, _draftRetry=null;
+function draftLocalKey(c){return 'tg_draft_'+c.join('_');}
 function scheduleDraft(uid,role,day,dept){
+  _draftCtx=[uid,role,day,dept||S.dept]; _draftDirty=true;
+  // 先留一份在这台机器上：手机锁屏、分页被系统关掉、断线重开都还救得回来
+  try{const r=collectReport(uid,role,day,dept);if(r)localStorage.setItem(draftLocalKey(_draftCtx),JSON.stringify(r));}catch(e){}
+  showDraftState('typing');
   clearTimeout(_draftT);
   _draftT=setTimeout(()=>saveDraft(uid,role,day,dept),1200);
 }
+// 离开日报页（切分页、切学员）之前，把还没送出去的那一笔马上送
+function flushDraft(){
+  if(!_draftT||!_draftCtx)return;
+  clearTimeout(_draftT);_draftT=null;
+  saveDraft(..._draftCtx);
+}
+function showDraftState(st,keep){
+  const f=document.getElementById('savedFlash'); if(!f)return;
+  const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(st==='typing'){return;}
+  if(st==='saved'){f.textContent=(keep==='submitted'?'✓ Edit saved ':'✓ Draft saved ')+t;f.style.background='var(--grn)';f.style.opacity='1';setTimeout(()=>{if(!_draftDirty)f.style.opacity='0';},1600);}
+  if(st==='failed'){f.textContent='⚠️ Not saved yet — no connection. Keep this page open, it retries by itself.';f.style.background='#B7791F';f.style.opacity='1';}
+}
+window.addEventListener('online',()=>{if(_draftDirty&&_draftCtx)saveDraft(..._draftCtx);});
+window.addEventListener('beforeunload',e=>{if(_draftDirty){flushDraft();e.preventDefault();e.returnValue='';}});
 async function saveDraft(uid,role,day,dept){
+  clearTimeout(_draftRetry);
   const rpt=collectReport(uid,role,day,dept);
   if(!rpt)return;
   // v32：已经交出去的那一笔，不可以被自动存档降回草稿。
@@ -2832,21 +2871,38 @@ async function saveDraft(uid,role,day,dept){
   const was=getReport(uid,role,day,dept);
   const keep=(was&&was.state==='submitted')?'submitted':'draft';
   rpt.state=keep;
-  await saveReport(rpt,keep);
-  const f=document.getElementById('savedFlash');
-  if(f){f.textContent=(keep==='submitted'?'Edit saved ':'Draft saved ')+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-        f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1600);}
+  const res=await saveReport(rpt,keep);
+  // v33：以前不管成功失败都显示「Draft saved」。现在失败就讲，而且 20 秒後自己再试。
+  if(res&&res.error){
+    showDraftState('failed');
+    _draftRetry=setTimeout(()=>{if(_draftDirty)saveDraft(uid,role,day,dept);},20000);
+    return;
+  }
+  // 存成功：本地资料也要换成这一份，否则切页回来会用旧的重画、看起来像不见了
+  const d=dept||S.dept;
+  S.reports=S.reports.filter(r=>!(r.planUid===uid&&r.role===role&&r.day===day&&r.dept===d));
+  S.reports.push(rpt);
+  _draftDirty=false;
+  try{localStorage.removeItem(draftLocalKey([uid,role,day,d]));}catch(e){}
+  showDraftState('saved',keep);
 }
+// v33：以前草稿只读 rpt_summary（表单上根本没有这一格）、misc、questions、mgmtFlag，
+// 「What went well」「What still needs work」「Ready for next stage」与全部技能打勾都没读 ——
+// 就算草稿存了，主要内容也不在里面。现在跟交出读同一套。
 function collectReport(uid,role,day,dept){
-  const g=id=>document.getElementById(id)?.value||'';
+  if(!document.getElementById('rpt_good'))return null;       // 日报页已经不在画面上
+  const g=id=>(document.getElementById(id)?.value||'').trim();
   const existing=getReport(uid,role,day,dept)||{};
-  return Object.assign({},existing,{
+  const {skills,probes,notes}=collectSkillData(uid,role,day);
+  const r=Object.assign({},existing,{
     id:existing.id||('rpt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)),
     planUid:uid, dept:dept||S.dept, role:role, day:day,
-    summary:g('rpt_summary'), misc:g('rpt_misc'),
-    questions:g('rpt_questions'), mgmtFlag:g('rpt_mgmt_flag'),
-    skills:existing.skills||{}, probes:existing.probes||{}, notes:existing.notes||{}
+    good:g('rpt_good'), improve:g('rpt_improve'), misc:g('rpt_misc'),
+    skills, probes, notes, savedAt:new Date().toISOString()
   });
+  if(role==='mentor'){r.advanceReady=g('rpt_advance');r.mgmtFlag=g('rpt_mgmt_flag');}
+  else r.questions=g('rpt_questions');
+  return r;
 }
 
 async function submitReport(cid,role,day){
@@ -3288,7 +3344,7 @@ function contextBar(page){
     ${ch.map(c=>`<button class="itab ${c.uid===cur.uid&&c.dept===cur.dept?'on':''}" onclick="switchContext('${c.uid}','${c.dept}','${page}')">${S.role==='mentor'?esc(c.name)+' · ':''}${deptShort(c.dept)} <span style="opacity:.6">${dayLabel(c.day)}</span></button>`).join('')}
   </div>`;
 }
-function switchContext(uid,dept,page){S.planUid=uid;S.dept=dept;setRD(dept);goPage(page);}
+function switchContext(uid,dept,page){flushDraft();S.planUid=uid;S.dept=dept;setRD(dept);goPage(page);}
 
 function compPickablePlans(){
   if(S.role==='mgmt')return S.plans;
@@ -4625,91 +4681,9 @@ function openHandbook(id){
 // ══════════════════════════════════════════════════════════════
 // EXPORT / IMPORT
 // ══════════════════════════════════════════════════════════════
-function exportData(){
-  const data={cohorts:S.cohorts,reports:S.reports,taskChecks:S.taskChecks};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const d=new Date();
-  const stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  a.href=url;a.download=`TrainGo_System_${stamp}.json`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function importData(){
-  document.getElementById('importFileInput').click();
-}
-
-function handleImportFile(input){
-  const file=input.files[0];if(!file)return;
-  if(!(S.me&&S.me.isAdmin)){alert('Only management can import.');input.value='';return;}
-  const reader=new FileReader();
-  reader.onload=async function(e){
-    try{
-      const data=JSON.parse(e.target.result);
-      if(!data.cohorts){alert('Wrong file format — use a JSON exported from TrainGo.');return;}
-      const dept=(prompt('Which department does this old backup belong to? Enter SRK / GAK / ATC / SRT','SRK')||'').toUpperCase().trim();
-      if(!['SRK','GAK','ATC','SRT'].includes(dept)){alert('That department code is not valid — cancelled.');return;}
-
-      // 旧档只有名字没有代号，尽量对回老师名册
-      const byName=n=>{
-        if(!n)return null;
-        const t=S.teachers.find(x=>(x.name||'').toLowerCase()===String(n).toLowerCase()
-                                 ||(x.id||'').toLowerCase()===String(n).toLowerCase());
-        return t?t.id:null;
-      };
-      const unmatched=[];
-      const plans=data.cohorts.map(c=>{
-        const tc=byName(c.menteeName), mc=byName(c.mentorName);
-        if(!tc)unmatched.push(c.menteeName);
-        return {old:c.id, uid:'plan_'+c.id, teacher_code:tc, mentor_code:mc,
-                start_date:c.startDate, status:c.status==='completed'?'completed':'active',
-                note:(c.notes||'')+(c.ageGroup?' · '+c.ageGroup:''), currentDay:c.currentDay||1};
-      }).filter(p=>p.teacher_code);
-
-      if(!plans.length){alert('No teacher matched the roster, so nothing was imported.\nNo match for: '+unmatched.join(', '));return;}
-      if(!confirm(`Import ${dept}?\n\nPlans: ${plans.length}`
-        +(unmatched.length?` (${unmatched.length} did not match the roster and will be skipped: ${unmatched.join(', ')})`:'')
-        +`\nDay reports: ${(data.reports||[]).length}\nTask checks: ${Object.keys(data.taskChecks||{}).length}\n\nRows with the same id are overwritten; everything else is left alone.`))return;
-
-      let r=await sb.from('traingo_plan').upsert(plans.map(p=>({
-        client_uid:p.uid, teacher_code:p.teacher_code, mentor_code:p.mentor_code,
-        start_date:p.start_date, status:p.status, note:p.note})),{onConflict:'client_uid'});
-      if(r.error)throw r.error;
-
-      r=await sb.from('traingo_plan_dept').upsert(plans.map(p=>({
-        plan_uid:p.uid, dept:dept, current_day:p.currentDay,
-        status:p.status==='completed'?'completed':'active'})),{onConflict:'plan_uid,dept'});
-      if(r.error)throw r.error;
-
-      const uidOf={}; plans.forEach(p=>{uidOf[p.old]=p.uid;});
-
-      const rpts=(data.reports||[]).filter(x=>uidOf[x.cohortId]).map(x=>({
-        client_uid:'rpt_'+x.id, plan_uid:uidOf[x.cohortId], dept:dept,
-        role:x.role, day:x.day, state:'submitted', payload:x}));
-      if(rpts.length){r=await sb.from('traingo_report').upsert(rpts,{onConflict:'plan_uid,dept,role,day'});if(r.error)throw r.error;}
-
-      // 旧键 {cohortId}_{role}_{day}_{taskId} → 新键 {planUid}_{dept}_{role}_{day}_{taskId}
-      const OLD_RE=/^(.+)_(mentor|mentee)_(\d+)_(.+)$/;
-      const ck=Object.entries(data.taskChecks||{}).map(([k,v])=>{
-        const m=OLD_RE.exec(k); if(!m)return null;
-        const uid=uidOf[m[1]]; if(!uid)return null;
-        return {check_key:checkKey(uid,dept,m[2],parseInt(m[3],10),m[4]),
-                plan_uid:uid, dept:dept, role:m[2], day:parseInt(m[3],10), task_id:m[4], checked:!!v};
-      }).filter(Boolean);
-      if(ck.length){r=await sb.from('traingo_task_check').upsert(ck,{onConflict:'check_key'});if(r.error)throw r.error;}
-
-      await reloadAll();
-      goPage('mgmt');
-      alert(`✅ Import done — plans ${plans.length} · reports ${rpts.length} · checks ${ck.length}`
-        +(unmatched.length?`\nSkipped ${unmatched.length} (name did not match the teacher roster)`:''));
-    }catch(err){alert('Import failed: '+(err.message||err));}
-  };
-  reader.readAsText(file);
-  input.value='';
-}
-
+// v33：exportData() 已移除（Export／Import 停用）
+// v33：importData() 已移除（Export／Import 停用）
+// v33：handleImportFile() 已移除（Export／Import 停用）
 // ══════════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════════
