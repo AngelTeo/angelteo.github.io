@@ -349,7 +349,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v37';
+const APP_VERSION='v38';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -930,7 +930,7 @@ function showWatermark(){
   const m=S.me||{}; const d=new Date();
   const stamp=(m.name||m.code||'')+' · '+(m.code||'')+' · '+d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   const txt=(stamp+' · Academee confidential').replace(/[<&>"]/g,'');
-  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='600' height='320'><text x='40' y='170' transform='rotate(-24 300 160)' font-family='Arial,sans-serif' font-size='15' fill='rgba(20,30,50,0.05)'>${txt}</text></svg>`;
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='620' height='300'><text x='310' y='155' text-anchor='middle' transform='rotate(-24 310 150)' font-family='Arial,sans-serif' font-weight='600' font-size='17' fill='rgba(20,30,50,0.18)'>${txt}</text></svg>`;
   const w=document.createElement('div'); w.id='tgWatermark';
   w.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:99998;background-repeat:repeat;background-image:url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
   document.body.appendChild(w);
