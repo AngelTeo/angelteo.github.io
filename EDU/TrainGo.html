@@ -332,7 +332,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v35';
+const APP_VERSION='v36';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1867,7 +1867,7 @@ function renderSkillConfirm(cohort,role,day,stage,existing){
       </div>
 
       <!-- Step 2: Understanding Probe (radio) -->
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:7px">${cfg.probe}</div>
+      ${cfg.probe?`<div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:7px">${cfg.probe}</div>`:''}
       <div style="display:flex;flex-direction:column;gap:5px">
       ${cfg.options.map(opt=>`
         <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:6px 8px;border-radius:6px;border:.5px solid ${probeVal===opt.val?borderCol:'var(--bdr)'};background:${probeVal===opt.val?'var(--sur2)':'transparent'};transition:all .15s">
