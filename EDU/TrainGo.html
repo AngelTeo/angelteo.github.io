@@ -156,9 +156,9 @@ label.lbl:first-child{margin-top:0;}
   <div class="login-box">
     <div style="font-size:40px;margin-bottom:10px">🎯</div>
     <div class="login-logo">TrainGo</div>
-    <div class="login-sub">Academee 新老师训练系统</div>
-    <div id="gateMsg" style="margin-top:20px;font-size:13px;line-height:1.7;color:var(--txt)">正在确认你的身份…</div>
-    <a id="gateBtn" href="../index.html" style="display:none;margin-top:18px;padding:12px;border-radius:10px;background:#1B3A5C;color:#fff;font-size:14px;font-weight:700;text-decoration:none">回平台首页登入 →</a>
+    <div class="login-sub">Academee New Teacher Training System</div>
+    <div id="gateMsg" style="margin-top:20px;font-size:13px;line-height:1.7;color:var(--txt)">Checking who you are…</div>
+    <a id="gateBtn" href="../index.html" style="display:none;margin-top:18px;padding:12px;border-radius:10px;background:#1B3A5C;color:#fff;font-size:14px;font-weight:700;text-decoration:none">Sign in on the platform home →</a>
   </div>
 </div>
 
@@ -167,18 +167,18 @@ label.lbl:first-child{margin-top:0;}
   <div class="topbar">
     <span class="topbar-brand">🎯 TrainGo</span>
     <span class="topbar-ver" id="topbarVer"></span>
-    <span id="syncStatus" style="font-size:10px;margin-left:2px;opacity:.7" title="云端同步状态"></span>
-    <button class="ntab on" onclick="goPage('dashboard')">🏠 首页</button>
-    <button class="ntab" onclick="goPage('tasks')">📋 任务</button>
-    <button class="ntab" onclick="goPage('report')">📝 日报</button>
-    <button class="ntab" onclick="goPage('progress')">📊 进度</button>
-    <button class="ntab" onclick="goPage('comp')">✅ 清单</button>
+    <span id="syncStatus" style="font-size:10px;margin-left:2px;opacity:.7" title="Cloud sync status"></span>
+    <button class="ntab on" onclick="goPage('dashboard')">🏠 Home</button>
+    <button class="ntab" onclick="goPage('tasks')">📋 Tasks</button>
+    <button class="ntab" onclick="goPage('report')">📝 Day Report</button>
+    <button class="ntab" onclick="goPage('progress')">📊 Progress</button>
+    <button class="ntab" onclick="goPage('comp')">✅ Checklist</button>
     <button class="ntab" onclick="goPage('sop')">📖 SOP</button>
-    <button class="ntab" onclick="goPage('handbook')">🏫 手册</button>
-    <button class="ntab" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ 设定</button>
+    <button class="ntab" onclick="goPage('handbook')">🏫 Handbook</button>
+    <button class="ntab" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ Settings</button>
     <span id="roleBadgeTop" class="role-badge" style="margin-left:auto"></span>
-    <button class="btn btn-sm" onclick="exportData()" style="margin-left:8px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">↑ 汇出</button>
-    <button class="btn btn-sm" onclick="importData()" style="margin-left:4px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">↓ 汇入</button>
+    <button class="btn btn-sm" onclick="exportData()" style="margin-left:8px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">↑ Export</button>
+    <button class="btn btn-sm" onclick="importData()" style="margin-left:4px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">↓ Import</button>
   </div>
   <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(this)">
   <div class="page on" id="page-dashboard"><div id="dashboard-content"></div></div>
@@ -1185,10 +1185,10 @@ Object.values(DEPT_CFG).forEach(c=>{c.SOP_LIST=Object.values(c.SOP);});
 // SRT 尚未建立部门配置
 const DEPT_ALIAS={GAK:'SRK'};
 const DEPT_OPTIONS=[
-  {code:'SRK',label:'SRK — Smart Reader Kids · 3–6 岁',ready:true},
-  {code:'GAK',label:'GAK — Genius Academic Kids · 3–6 岁',ready:true,note:'与 SRK 共用'},
-  {code:'ATC',label:'ATC — 安亲班 · 7–12 岁',ready:true},
-  {code:'SRT',label:'SRT — 英文专科 · 5–15 岁',ready:false,note:'配置未建立'},
+  {code:'SRK',label:'SRK — Smart Reader Kids · age 3–6',ready:true},
+  {code:'GAK',label:'GAK — Genius Academic Kids · age 3–6',ready:true,note:'Shares SRK content'},
+  {code:'ATC',label:'ATC — After-School Care · age 7–12',ready:true},
+  {code:'SRT',label:'SRT — English Specialist · age 5–15',ready:false,note:'Not configured yet'},
 ];
 function deptKey(d){return DEPT_ALIAS[d]||(DEPT_CFG[d]?d:'SRK');}
 function deptLabel(d){const o=DEPT_OPTIONS.find(x=>x.code===d);return o?o.label:(d||'—');}
@@ -1213,7 +1213,7 @@ function getStageForDay(d){return D.STAGES.find(s=>s.days.includes(d))||D.STAGES
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v29';
+const APP_VERSION='v30';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1287,7 +1287,7 @@ function exceptionReason(plan,dept,iso){
 // 训练日编号 = TRAIN_DAYS 的顺位（1,2,3,4,6,7,8,9,11,12,13,14 是任务表的键）
 // 画面上一律写「第 N 个训练日」，N = 顺位，所以永远照时间排，不会跳号
 function dayNo(d){const i=TRAIN_DAYS.indexOf(d);return i<0?1:i+1;}
-function dayLabel(d){return '第 '+dayNo(d)+' 个训练日';}
+function dayLabel(d){return 'Day '+dayNo(d);}
 
 // 週一到週四 = 训练日；週五 = 整理日。碰到假期或例外整天跳过。
 // 週一到週五都是训练日。碰到假期、被标「跳过」、或被标「整理日」的那天，不给训练日编号。
@@ -1367,14 +1367,14 @@ function planPayload(p){return{
 async function savePlan(p){
   if(!sb)return;
   const {error}=await sb.from('traingo_plan').upsert(planPayload(p),{onConflict:'client_uid'});
-  if(error){setSyncStatus('⚠️');alert('存不进云端：'+error.message);throw error;}
+  if(error){setSyncStatus('⚠️');alert('Could not save to the cloud: '+error.message);throw error;}
   setSyncStatus('✅');
 }
 async function savePlanDept(planUid,dept,currentDay,status){
   if(!sb)return;
   const {error}=await sb.from('traingo_plan_dept')
     .upsert({plan_uid:planUid,dept:dept,current_day:currentDay,status:status||'active'},{onConflict:'plan_uid,dept'});
-  if(error){setSyncStatus('⚠️');alert('部门进度存不进去：'+error.message);throw error;}
+  if(error){setSyncStatus('⚠️');alert('Could not save department progress: '+error.message);throw error;}
   setSyncStatus('✅');
 }
 async function saveReport(rpt,state){
@@ -1390,7 +1390,7 @@ async function saveReport(rpt,state){
 async function saveTaskCheck(key,val){
   if(!sb)return;
   const pk=parseCheckKey(key);
-  if(!pk){console.warn('打勾键格式不认得，没有存：',key);return;}
+  if(!pk){console.warn('Unrecognised check key, not saved:',key);return;}
   const {error}=await sb.from('traingo_task_check').upsert({
     check_key:key, plan_uid:pk.planUid, dept:pk.dept, role:pk.role,
     day:pk.day, task_id:pk.taskId, checked:!!val},{onConflict:'check_key'});
@@ -1407,20 +1407,20 @@ async function addException(planUid,dept,onDate,reason,kind){
   if(!sb)return;
   const {error}=await sb.from('traingo_day_exception')
     .insert({plan_uid:planUid,dept:dept||null,on_date:onDate,reason:reason,kind:kind||'skip'});
-  if(error){alert('标注不进去：'+error.message);return;}
+  if(error){alert('Could not save the marking: '+error.message);return;}
   await reloadAll();
 }
 async function setReleased(planUid,val,note){
   if(!sb)return;
   const {error}=await sb.from('traingo_plan').update({released:val,release_note:note||null}).eq('client_uid',planUid);
-  if(error){alert(error.message.includes('NOT_A_RELEASER')?'你不在放行人名单里。':'放行失败：'+error.message);return;}
+  if(error){alert(error.message.includes('NOT_A_RELEASER')?'You are not on the releaser list.':'Release failed: '+error.message);return;}
   await reloadAll();
 }
 
 // ══════════════════════════════════════════════════════════════
 // v27 · 岗位清单 · 求助 · 没机会练 · 整理日任务 · 完成交代
 // ══════════════════════════════════════════════════════════════
-const LEVEL_LABEL={0:'还没开始',1:'知道',2:'会做但要人看着',3:'能独立做',4:'能教别人'};
+const LEVEL_LABEL={0:'Not started',1:'Knows',2:'Can do with supervision',3:'Can do independently',4:'Can teach others'};
 
 function compFor(dept){
   const d=deptKey(dept);
@@ -1477,12 +1477,12 @@ async function setCompLevel(planUid,compId,dept,level,second,note){
 }
 function compErrMsg(m){
   m=String(m||'');
-  if(m.includes('L4_NEEDS_MGMT'))return'第 4 级要管理层签（MGMT / TOP_MGMT / ADMIN / OWNER）。';
-  if(m.includes('L23_NEEDS_MENTOR'))return'第 2、3 级要 Mentor 签。';
-  if(m.includes('L1_NOT_YOURS'))return'第 1 级只有她本人、她的 Mentor 或管理层能签。';
-  if(m.includes('SAFETY_NEEDS_SECOND'))return'这是安全类，到第 3 级要第二个人一起签。';
-  if(m.includes('SAFETY_SAME_SIGNER'))return'第二个签核人不能跟你是同一个人。';
-  return'存不进去：'+m;
+  if(m.includes('L4_NEEDS_MGMT'))return'Level 4 has to be signed by management (MGMT / TOP_MGMT / ADMIN / OWNER).';
+  if(m.includes('L23_NEEDS_MENTOR'))return'Levels 2 and 3 have to be signed by the Mentor.';
+  if(m.includes('L1_NOT_YOURS'))return'Level 1 can only be signed by her, her Mentor, or management.';
+  if(m.includes('SAFETY_NEEDS_SECOND'))return'This is safety-critical — reaching Level 3 needs a second signer.';
+  if(m.includes('SAFETY_SAME_SIGNER'))return'The second signer cannot be the same person as you.';
+  return'Could not save: '+m;
 }
 
 // ── 求助 ──
@@ -1491,7 +1491,7 @@ async function addHelp(planUid,dept,day,body,urgent){
   const {error}=await sb.from('traingo_help_request')
     .insert({client_uid:genId('hp'),plan_uid:planUid,dept:dept||null,day:day||null,
              body:body,urgent:!!urgent,status:'pending'});
-  if(error){alert('送不出去：'+error.message);return false;}
+  if(error){alert('Could not send: '+error.message);return false;}
   await reloadAll();return true;
 }
 async function answerHelp(id,answer){
@@ -1499,7 +1499,7 @@ async function answerHelp(id,answer){
   const {error}=await sb.from('traingo_help_request')
     .update({answer:answer,answered_by_code:(S.me&&S.me.code)||null,
              answered_at:new Date().toISOString(),status:'completed'}).eq('id',id);
-  if(error){alert('回不进去：'+error.message);return false;}
+  if(error){alert('Could not save your reply: '+error.message);return false;}
   await reloadAll();return true;
 }
 function helpsOf(planUid){return (S.helps||[]).filter(x=>x.plan_uid===planUid);}
@@ -1511,7 +1511,7 @@ async function addNoPractice(planUid,dept,day,sopKey,label,reason){
   const {error}=await sb.from('traingo_no_practice')
     .insert({client_uid:genId('np'),plan_uid:planUid,dept:deptKey(dept),day:day||null,
              sop_key:sopKey||null,item_label:label||null,reason:reason});
-  if(error){alert('记不进去：'+error.message);return false;}
+  if(error){alert('Could not log it: '+error.message);return false;}
   await reloadAll();return true;
 }
 function noPracticeOf(planUid,dept){
@@ -1524,14 +1524,14 @@ async function addCatchup(planUid,dept,onDate,title,body){
   const {error}=await sb.from('traingo_catchup_task')
     .insert({client_uid:genId('ct'),plan_uid:planUid,dept:dept||null,on_date:onDate,
              title:title,body:body||null,status:'pending'});
-  if(error){alert('派不出去：'+error.message);return false;}
+  if(error){alert('Could not assign it: '+error.message);return false;}
   await reloadAll();return true;
 }
 async function setCatchupDone(id,done){
   if(!sb)return false;
   const {error}=await sb.from('traingo_catchup_task')
     .update({status:done?'completed':'pending',done_at:done?new Date().toISOString():null}).eq('id',id);
-  if(error){alert('改不了：'+error.message);return false;}
+  if(error){alert('Could not change it: '+error.message);return false;}
   await reloadAll();return true;
 }
 function catchupsOf(planUid,onDate){
@@ -1546,13 +1546,13 @@ async function saveCompletion(planUid,summary,strengths,watch){
   let error;
   if(cur){({error}=await sb.from('traingo_completion').update(row).eq('id',cur.id));}
   else{row.client_uid=genId('cp');({error}=await sb.from('traingo_completion').insert(row));}
-  if(error){alert('存不进去：'+error.message);return false;}
+  if(error){alert('Could not save: '+error.message);return false;}
   await reloadAll();return true;
 }
 async function ackCompletion(id){
   if(!sb)return false;
   const {error}=await sb.from('traingo_completion').update({acknowledged_at:new Date().toISOString()}).eq('id',id);
-  if(error){alert('签不了：'+error.message);return false;}
+  if(error){alert('Could not sign: '+error.message);return false;}
   await reloadAll();return true;
 }
 function completionOf(planUid){return (S.completions||[]).find(x=>x.plan_uid===planUid);}
@@ -1621,7 +1621,7 @@ async function reloadAll(){
     S.ready=true;S.err=null;setSyncStatus('✅');
   }catch(e){
     S.ready=false;S.err=e.message||String(e);setSyncStatus('⚠️');
-    alert('读不到云端资料：'+S.err+'\n没有任何资料被改动。');
+    alert('Could not read cloud data: '+S.err+'\nNothing has been changed.');
   }
   if(S.role)refreshCurrentPage();
 }
@@ -1674,21 +1674,21 @@ function gate(msg,showBtn){
 }
 
 async function boot(){
-  if(!sb){gate('读不到云端程式库。请检查网络后重新整理。<br><b>没有任何资料被改动。</b>',false);return;}
+  if(!sb){gate('Cannot load the cloud library. Check your connection and refresh.<br><b>Nothing has been changed.</b>',false);return;}
   let session=null;
   try{const r=await sb.auth.getSession();session=r.data.session;}catch(e){}
-  if(!session){gate('你还没有登入 Academee 平台。<br>本系统与平台共用同一个登入。',true);return;}
+  if(!session){gate('You are not signed in to the Academee platform.<br>This system shares the same sign-in as the platform.',true);return;}
   let me=null;
   try{
     const {data,error}=await sb.rpc('traingo_me');
     if(error)throw error;
     me=(data&&data[0])||null;
-  }catch(e){gate('读不到你的身份资料：'+e.message+'<br><b>没有任何资料被改动。</b>',false);return;}
-  if(!me){gate('你的平台帐号还没有建立资料。请管理层先设定。',false);return;}
+  }catch(e){gate('Could not read your profile: '+e.message+'<br><b>Nothing has been changed.</b>',false);return;}
+  if(!me){gate('Your platform account has no profile yet. Please ask management to set it up.',false);return;}
   S.me={code:me.teacher_code,name:me.display_name,role:me.role,isAdmin:!!me.is_admin,
     see:{SRK:!!me.srk_see,GAK:!!me.gak_see,ATC:!!me.atc_see,SRT:!!me.srt_see},
     edit:{SRK:!!me.srk_edit,GAK:!!me.gak_edit,ATC:!!me.atc_edit,SRT:!!me.srt_edit}};
-  if(!mySeeDepts().length){gate('你的角色（'+me.role+'）没有任何部门的 TrainGo 权限。',false);return;}
+  if(!mySeeDepts().length){gate('Your role ('+me.role+') has no TrainGo access for any department.',false);return;}
   decideRole(); applyRole();
   document.getElementById('gate').style.display='none';
   document.getElementById('mainApp').style.display='block';
@@ -1705,7 +1705,7 @@ function decideRole(){
 // 只负责画面：角色徽章、Settings 页签、版本号。不改 S.role
 function applyRole(){
   const m=S.me;
-  const labels={mgmt:'🏫 管理层',mentor:'👨‍🏫 Mentor',mentee:'🎓 新老师'};
+  const labels={mgmt:'🏫 Management',mentor:'👨‍🏫 Mentor',mentee:'🎓 New Teacher'};
   const cls={mgmt:'role-mgmt',mentor:'role-mentor',mentee:'role-mentee'};
   const b=document.getElementById('roleBadgeTop');
   if(b){b.textContent=(labels[S.role]||'')+' · '+(m.name||m.code);b.className='role-badge '+(cls[S.role]||'');}
@@ -1753,8 +1753,9 @@ function goPage(p){
 // HELPERS
 // ══════════════════════════════════════════════════════════════
 function getTodayISO(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-const _WD=['日','一','二','三','四','五','六'];
-Date.prototype.__zhDate=function(){return (this.getMonth()+1)+' 月 '+this.getDate()+' 日（周'+_WD[this.getDay()]+'）';};
+const _WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const _MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+Date.prototype.__zhDate=function(){return _WD[this.getDay()]+', '+this.getDate()+' '+_MO[this.getMonth()];};
 function fmtDate(ds){if(!ds)return'—';return new Date(ds+'T12:00:00').__zhDate();}
 function getDayDate(startDate,dayNum,schedule){
   // Use manual schedule if set for this day
@@ -1826,7 +1827,7 @@ function openSopModalATC(sopId){
 
   const warnsHtml=sop.warns&&sop.warns.length?`
     <div style="margin-top:14px">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">重点提醒</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Key reminders</div>
       ${sop.warns.map(w=>`<div class="warn-pill">${w}</div>`).join('')}
     </div>`:'';
 
@@ -1840,11 +1841,11 @@ function openSopModalATC(sopId){
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">步骤</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Steps</div>
       ${stepsHtml}
       ${warnsHtml}
     </div>
-    <div class="modal-foot"><button class="btn btn-pri" onclick="this.closest('.overlay').remove()">关闭 ×</button></div>
+    <div class="modal-foot"><button class="btn btn-pri" onclick="this.closest('.overlay').remove()">Close ×</button></div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
@@ -1945,7 +1946,7 @@ function openSopModalSRK(sopId){
 
   const ageHtml=`
     <div style="margin-top:14px">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">分龄做法</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">By age group</div>
       <table class="age-table">
         <thead><tr>
           <th class="age-hdr-jr">🟠 JR (Age 4)</th>
@@ -1962,7 +1963,7 @@ function openSopModalSRK(sopId){
 
   const warnsHtml=sop.warns.length?`
     <div style="margin-top:14px">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">重点提醒</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Key reminders</div>
       ${sop.warns.map(w=>`<div class="warn-pill">${w}</div>`).join('')}
     </div>`:'';
 
@@ -1976,12 +1977,12 @@ function openSopModalSRK(sopId){
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${sop.timeline&&sop.timeline.length?"时间轴":"步骤"}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${sop.timeline&&sop.timeline.length?"Timeline":"Steps"}</div>
       ${stepsHtml}
       ${ageHtml}
       ${warnsHtml}
     </div>
-    <div class="modal-foot"><button class="btn btn-pri" onclick="this.closest('.overlay').remove()">关闭 ×</button></div>
+    <div class="modal-foot"><button class="btn btn-pri" onclick="this.closest('.overlay').remove()">Close ×</button></div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
@@ -1999,8 +2000,8 @@ function renderDashboard(){
   if(!cohort){
     el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
       <div style="font-size:30px;margin-bottom:10px">🎓</div>
-      <div style="font-weight:600;margin-bottom:5px">还没有训练计划</div>
-      <div style="color:var(--mut);font-size:12px">请管理层帮你建立。</div>
+      <div style="font-weight:600;margin-bottom:5px">No training plan yet</div>
+      <div style="color:var(--mut);font-size:12px">Ask management to set one up for you.</div>
     </div>`;return;
   }
   const role=S.role;const day=cohort.currentDay||1;const stage=getStageForDay(day);
@@ -2014,32 +2015,32 @@ function renderDashboard(){
   el.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
-        <div style="font-size:15px;font-weight:700">${name||'老师'}，早安 👋</div>
-        <div style="font-size:11px;color:var(--mut)">${getTodayISO()} · 第 ${day} 个训练日 · 第 ${stage.id} 阶段 ${stage.nameZh}</div>
+        <div style="font-size:15px;font-weight:700">Good morning, ${name||'Teacher'} 👋</div>
+        <div style="font-size:11px;color:var(--mut)">${getTodayISO()} · Day ${day} · Stage ${stage.id} ${stage.nameZh}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:10px;color:var(--mut)">计划</div>
+        <div style="font-size:10px;color:var(--mut)">Plan</div>
         <div style="font-weight:600">${cohort.menteeName}</div>
         ${cohort.ageGroup?`<div style="font-size:10px;color:var(--mut)">${cohort.ageGroup}</div>`:''}
       </div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="stat-num" style="color:var(--acc)">${day}</div><div class="stat-lbl">训练日</div></div>
-      <div class="stat"><div class="stat-num" style="color:var(--gold)">S${stage.id}</div><div class="stat-lbl">阶段</div></div>
-      <div class="stat"><div class="stat-num" style="color:${checked===tasks.length&&tasks.length>0?'var(--grn)':'var(--acc)'}">${checked}/${tasks.length}</div><div class="stat-lbl">做完的任务</div></div>
-      <div class="stat"><div class="stat-num" style="color:${pct===100?'var(--grn)':'var(--acc)'}">${pct}%</div><div class="stat-lbl">进度</div></div>
+      <div class="stat"><div class="stat-num" style="color:var(--acc)">${day}</div><div class="stat-lbl">Training day</div></div>
+      <div class="stat"><div class="stat-num" style="color:var(--gold)">S${stage.id}</div><div class="stat-lbl">Stage</div></div>
+      <div class="stat"><div class="stat-num" style="color:${checked===tasks.length&&tasks.length>0?'var(--grn)':'var(--acc)'}">${checked}/${tasks.length}</div><div class="stat-lbl">Tasks done</div></div>
+      <div class="stat"><div class="stat-num" style="color:${pct===100?'var(--grn)':'var(--acc)'}">${pct}%</div><div class="stat-lbl">Progress</div></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><span class="card-title">训练历程</span><span class="chip chip-blue">${stage.theme}</span></div>
+      <div class="card-hdr"><span class="card-title">Training journey</span><span class="chip chip-blue">${stage.theme}</span></div>
       ${renderMiniTimeline(cohort)}
       <div style="margin-top:8px">
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-bottom:3px"><span>总进度</span><span>${pct}%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-bottom:3px"><span>Overall</span><span>${pct}%</span></div>
         <div class="prog-bar"><div class="prog-fill ${pct===100?'grn':''}" style="width:${pct}%"></div></div>
       </div>
     </div>
     <div class="grid2">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">📋 今天要做的</span><button class="btn btn-pri btn-sm" onclick="goPage('tasks')">全部任务 →</button></div>
+        <div class="card-hdr"><span class="card-title">📋 Today</span><button class="btn btn-pri btn-sm" onclick="goPage('tasks')">All tasks →</button></div>
         ${tasks.slice(0,3).map(t=>`
           <div class="task-item ${S.taskChecks[checkKey(cohort.id,S.dept,role,day,t.id)]?'done':''}">
             <input type="checkbox" ${S.taskChecks[checkKey(cohort.id,S.dept,role,day,t.id)]?'checked':''} onchange="toggleTask('${cohort.id}','${role}',${day},'${t.id}',this.checked)">
@@ -2048,11 +2049,11 @@ function renderDashboard(){
         ${tasks.length>3?`<div style="font-size:11px;color:var(--mut);padding-top:6px">+${tasks.length-3} more tasks →</div>`:''}
       </div>
       <div class="card">
-        <div class="card-hdr"><span class="card-title">📊 状态</span></div>
+        <div class="card-hdr"><span class="card-title">📊 Status</span></div>
         ${reportDone?`<div class="alert alert-grn">✅ Your Day ${day} report submitted</div>`:`<div class="alert alert-amb">⏳ Day ${day} report not yet submitted</div>`}
         ${role==='mentor'?(partnerReport?`<div class="alert alert-grn">✅ New Teacher's report submitted</div>`:`<div class="alert alert-amb">⏳ New Teacher's report pending</div>`):''}
         <div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px;font-size:11px;line-height:1.6;color:var(--txt)">${D.SUCCESS_CRITERIA[stage.id][role]}</div>
-        <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="goPage('report')">📝 送出今天的日报</button>
+        <button class="btn btn-pri" style="width:100%;margin-top:10px" onclick="goPage('report')">📝 Submit today's day report</button>
       </div>
     </div>
     ${role==='mentor'?renderMentorActionItems(cohort,day,stage):''}
@@ -2087,10 +2088,10 @@ function renderMenteeActionItems(cohort,day,stage){
         items.push({icon:'🔄',type:'Mentor will re-demo tomorrow',sop:`${sop.icon} ${sop.name}`,note:'Pay close attention during the re-demo.'});
     });
   }
-  if(!menteeRpt&&!mentorRpt)return`<div class="card" style="border-left:3px solid var(--bdr)"><div class="card-hdr"><span class="card-title">📌 待办</span></div><div style="font-size:12px;color:var(--mut)">交了日报才看得到今天的待办。</div></div>`;
-  if(!items.length)return`<div class="card" style="border-left:3px solid var(--grn)"><div class="card-hdr"><span class="card-title">📌 待办</span><span class="chip chip-grn">都正常 ✅</span></div><div style="font-size:12px;color:var(--grn)">很好，没有要跟进的。</div></div>`;
+  if(!menteeRpt&&!mentorRpt)return`<div class="card" style="border-left:3px solid var(--bdr)"><div class="card-hdr"><span class="card-title">📌 Follow-ups</span></div><div style="font-size:12px;color:var(--mut)">Follow-ups appear once the day reports are in.</div></div>`;
+  if(!items.length)return`<div class="card" style="border-left:3px solid var(--grn)"><div class="card-hdr"><span class="card-title">📌 Follow-ups</span><span class="chip chip-grn">All clear ✅</span></div><div style="font-size:12px;color:var(--grn)">Nothing to follow up on.</div></div>`;
   return`<div class="card" style="border-left:3px solid var(--gold)">
-    <div class="card-hdr"><span class="card-title">📌 明天的待办</span><span class="chip chip-amb">${items.length} 项</span></div>
+    <div class="card-hdr"><span class="card-title">📌 Follow-ups for tomorrow</span><span class="chip chip-amb">${items.length}</span></div>
     ${items.map(i=>`<div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:#FFFBEA;border:.5px solid #F9CB42">
       <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600"><span>${i.icon}</span><span style="color:var(--amb)">${i.type}</span><span style="font-weight:400;color:var(--txt)">— ${i.sop}</span></div>
       ${i.note?`<div style="font-size:11px;color:var(--mut);margin-top:4px;padding-left:22px;font-style:italic">"${i.note}"</div>`:''}
@@ -2130,18 +2131,18 @@ function renderMentorActionItems(cohort,day,stage){
 
   if(!items.length&&!menteeRpt){
     return`<div class="card" style="border-left:3px solid var(--bdr)">
-      <div class="card-hdr"><span class="card-title">📌 待办</span></div>
-      <div style="font-size:12px;color:var(--mut)">等新老师交日报…</div>
+      <div class="card-hdr"><span class="card-title">📌 Follow-ups</span></div>
+      <div style="font-size:12px;color:var(--mut)">Waiting for her day report…</div>
     </div>`;
   }
   if(!items.length){
     return`<div class="card" style="border-left:3px solid var(--grn)">
-      <div class="card-hdr"><span class="card-title">📌 待办</span><span class="chip chip-grn">都正常 ✅</span></div>
-      <div style="font-size:12px;color:var(--grn)">没有要跟进的，她进度正常。</div>
+      <div class="card-hdr"><span class="card-title">📌 Follow-ups</span><span class="chip chip-grn">All clear ✅</span></div>
+      <div style="font-size:12px;color:var(--grn)">Nothing to follow up on — she is on track.</div>
     </div>`;
   }
   return`<div class="card" style="border-left:3px solid ${items.some(i=>i.urgent)?'var(--red)':'var(--gold)'}">
-    <div class="card-hdr"><span class="card-title">📌 明天的待办</span><span class="chip ${items.some(i=>i.urgent)?'chip-red':'chip-amb'}">${items.length} 项</span></div>
+    <div class="card-hdr"><span class="card-title">📌 Follow-ups for tomorrow</span><span class="chip ${items.some(i=>i.urgent)?'chip-red':'chip-amb'}">${items.length}</span></div>
     ${items.map(i=>`
       <div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:${i.urgent?'#FFF0F0':'#FFFBEA'};border:.5px solid ${i.urgent?'#F09595':'#F9CB42'}">
         <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600">
@@ -2215,25 +2216,25 @@ function renderMgmtDashboard(el){
     mentorFlags.forEach(f=>alerts.push({type:'mgmt',msg:`${c.menteeName} Day ${f.day}: Mentor flagged — "${f.flag}"`,cohort:c}));
   });
   el.innerHTML=`
-    <div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">管理层总览 🏫</div><div style="font-size:11px;color:var(--mut)">${today}</div></div>
+    <div style="margin-bottom:12px"><div style="font-size:15px;font-weight:700">Management overview 🏫</div><div style="font-size:11px;color:var(--mut)">${today}</div></div>
     <div class="stats">
-      <div class="stat"><div class="stat-num">${S.cohorts.length}</div><div class="stat-lbl">计划总数</div></div>
-      <div class="stat"><div class="stat-num" style="color:var(--grn)">${active.length}</div><div class="stat-lbl">进行中</div></div>
-      <div class="stat"><div class="stat-num" style="color:var(--acc)">${completed.length}</div><div class="stat-lbl">已完成</div></div>
-      <div class="stat"><div class="stat-num" style="color:${alerts.length?'var(--red)':'var(--grn)'}">${alerts.length}</div><div class="stat-lbl">⚠️ 要注意</div></div>
+      <div class="stat"><div class="stat-num">${S.cohorts.length}</div><div class="stat-lbl">Plans</div></div>
+      <div class="stat"><div class="stat-num" style="color:var(--grn)">${active.length}</div><div class="stat-lbl">In progress</div></div>
+      <div class="stat"><div class="stat-num" style="color:var(--acc)">${completed.length}</div><div class="stat-lbl">Completed</div></div>
+      <div class="stat"><div class="stat-num" style="color:${alerts.length?'var(--red)':'var(--grn)'}">${alerts.length}</div><div class="stat-lbl">⚠️ Needs attention</div></div>
     </div>
     ${alerts.length?`<div class="card" style="border-color:#F09595">
-      <div class="card-title" style="color:var(--red);margin-bottom:8px">⚠️ 要注意 (${alerts.length})</div>
+      <div class="card-title" style="color:var(--red);margin-bottom:8px">⚠️ Needs attention (${alerts.length})</div>
       ${alerts.map(a=>`<div class="alert ${a.type==='skill'?'alert-red':a.type==='mgmt'?'alert-amb':'alert-amb'}" style="margin-bottom:5px">${a.msg}</div>`).join('')}
     </div>`:`<div class="alert alert-grn" style="margin-bottom:12px">✅ No alerts — all on track</div>`}
     ${renderMgmtHelpInbox()}
     ${renderMgmtCompBoard()}
     ${renderMgmtActionItems(active)}
     <div class="card">
-      <div class="card-hdr"><span class="card-title">进行中的计划</span><button class="btn btn-pri btn-sm" onclick="goPage('mgmt')">+ 新增计划</button></div>
-      ${active.length===0?`<div style="text-align:center;padding:20px;color:var(--mut)">没有进行中的计划，到「设定」页建一份。</div>`:active.map(c=>renderCohortRow(c)).join('')}
+      <div class="card-hdr"><span class="card-title">Plans in progress</span><button class="btn btn-pri btn-sm" onclick="goPage('mgmt')">+ New plan</button></div>
+      ${active.length===0?`<div style="text-align:center;padding:20px;color:var(--mut)">No plans in progress. Create one on the Settings page.</div>`:active.map(c=>renderCohortRow(c)).join('')}
     </div>
-    ${completed.length?`<div class="card"><div class="card-hdr"><span class="card-title">已完成 ✅</span></div>${completed.map(c=>renderCohortRow(c)).join('')}</div>`:''}`;
+    ${completed.length?`<div class="card"><div class="card-hdr"><span class="card-title">Completed ✅</span></div>${completed.map(c=>renderCohortRow(c)).join('')}</div>`:''}`;
 }
 
 function renderMgmtHelpInbox(){
@@ -2242,13 +2243,13 @@ function renderMgmtHelpInbox(){
   const rows=ops.map(x=>{
     const p=getPlan(x.plan_uid);
     return `<div style="padding:8px 0;border-bottom:.5px solid var(--bdr)">
-      <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">现在就要</span>':''}
+      <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">Needs help now</span>':''}
         <b>${esc(p?p.teacherName:(x.asked_by_code||'—'))}</b> · ${esc(x.body)}</div>
       <div style="font-size:11px;color:var(--mut);margin-top:3px">${String(x.created_at).slice(0,16).replace('T',' ')}</div>
-      <div style="margin-top:5px"><button class="btn btn-sm" onclick="openAnswerHelp('${x.id}')">回覆</button></div>
+      <div style="margin-top:5px"><button class="btn btn-sm" onclick="openAnswerHelp('${x.id}')">Reply</button></div>
     </div>`;}).join('');
   return `<div class="card" style="border-color:#F9CB42">
-    <div class="card-title" style="color:var(--amb);margin-bottom:8px">🙋 有人卡住了（${ops.length}）</div>${rows}</div>`;
+    <div class="card-title" style="color:var(--amb);margin-bottom:8px">🙋 Someone is stuck (${ops.length})</div>${rows}</div>`;
 }
 
 function renderMgmtCompBoard(){
@@ -2263,14 +2264,14 @@ function renderMgmtCompBoard(){
       <div style="flex:1;min-width:0">
         <div style="font-size:12.5px;font-weight:500">${esc(p.teacherName)}</div>
         <div class="prog-bar" style="margin-top:5px"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
-        <div style="font-size:11px;color:var(--mut);margin-top:3px">${cw.ok}／${cw.total} 项达标${mc===null?'':' · MiscGo '+mc+' 笔'}</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:3px">${cw.ok}／${cw.total} at required level${mc===null?'':' · MiscGo '+mc+' filed'}</div>
       </div>
-      <button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">清单</button>
-      <button class="btn btn-sm" onclick="openCatchupModal('${p.uid}','${today}')">派任务</button>
+      <button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">Checklist</button>
+      <button class="btn btn-sm" onclick="openCatchupModal('${p.uid}','${today}')">Assign task</button>
     </div>`;}).join('');
   return `<div class="card">
-    <div class="card-title" style="margin-bottom:6px">岗位清单进度</div>
-    <div style="font-size:11.5px;color:var(--mut);margin-bottom:6px">完成看的是这张清单，不是天数。「派任务」是整理日那天给她的功课。</div>
+    <div class="card-title" style="margin-bottom:6px">Job checklist progress</div>
+    <div style="font-size:11.5px;color:var(--mut);margin-bottom:6px">Completion is judged on this checklist, not on the day count. "Assign task" is homework for a catch-up day.</div>
     ${rows}</div>`;
 }
 
@@ -2297,7 +2298,7 @@ function renderMgmtActionItems(active){
   if(!active.length||!items.length)return'';
   const urgent=items.filter(i=>i.urgent);const normal=items.filter(i=>!i.urgent);
   return`<div class="card" style="border-left:3px solid ${urgent.length?'var(--red)':'var(--gold)'}">
-    <div class="card-hdr"><span class="card-title">📌 待办</span><span class="chip ${urgent.length?'chip-red':'chip-amb'}">${items.length} 项</span></div>
+    <div class="card-hdr"><span class="card-title">📌 Follow-ups</span><span class="chip ${urgent.length?'chip-red':'chip-amb'}">${items.length}</span></div>
     ${[...urgent,...normal].map(i=>`<div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:${i.urgent?'#FFF0F0':'#FFFBEA'};border:.5px solid ${i.urgent?'#F09595':'#F9CB42'}">
       <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600">
         <span>${i.icon}</span><span style="color:${i.urgent?'var(--red)':'var(--amb)'}">${i.type}</span><span style="color:var(--mut);font-weight:400">— ${i.cohort}</span>
@@ -2345,23 +2346,23 @@ function renderMiniTimeline(cohort){
 function renderQuickReference(){
   return`<div class="card" style="border:.5px solid #F9CB42">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div><div class="card-title">⚡ 快速参考</div>
-      <div style="font-size:10px;color:var(--mut);margin-top:2px">训练指南 3_2 —— 每天看一次</div></div>
-      <span class="chip" style="background:#FFF8E1;color:#9C6500">一眼看</span>
+      <div><div class="card-title">⚡ Quick reference</div>
+      <div style="font-size:10px;color:var(--mut);margin-top:2px">Training Guide 3_2 — check once a day</div></div>
+      <span class="chip" style="background:#FFF8E1;color:#9C6500">At a glance</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div style="background:#F0F7FF;border-radius:8px;padding:11px;border:.5px solid #AABDD4">
         <div style="font-size:10px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">📝 Daily Checklist</div>
-        <div style="font-size:10px;font-weight:600;color:var(--mut);margin-bottom:4px">课前</div>
+        <div style="font-size:10px;font-weight:600;color:var(--mut);margin-bottom:4px">Before class</div>
         ${["Review lesson plan","Prepare all materials","Arrive 15 min early","Set up the classroom"].map(i=>'<div style="font-size:11px;line-height:1.7">☐ '+i+'</div>').join('')}
-        <div style="font-size:10px;font-weight:600;color:var(--mut);margin-top:7px;margin-bottom:4px">课中</div>
+        <div style="font-size:10px;font-weight:600;color:var(--mut);margin-top:7px;margin-bottom:4px">During class</div>
         ${["Follow lesson plan exactly","Record activity log","Mirror teaching — no improvisation","Handle MISC on whiteboard"].map(i=>'<div style="font-size:11px;line-height:1.7">☐ '+i+'</div>').join('')}
-        <div style="font-size:10px;font-weight:600;color:var(--mut);margin-top:7px;margin-bottom:4px">课后</div>
+        <div style="font-size:10px;font-weight:600;color:var(--mut);margin-top:7px;margin-bottom:4px">After class</div>
         ${["Submit day report on time","Update activity log","Report MISC in group chat"].map(i=>'<div style="font-size:11px;line-height:1.7">☐ '+i+'</div>').join('')}
       </div>
       <div style="display:flex;flex-direction:column;gap:9px">
         <div style="background:#E1F5EE;border-radius:8px;padding:11px;border:.5px solid #9FE1CB">
-          <div style="font-size:10px;font-weight:700;color:#0F6E56;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">🔑 重点提醒</div>
+          <div style="font-size:10px;font-weight:700;color:#0F6E56;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">🔑 Key reminders</div>
           ${[["Mirror Teaching","Copy Mentor EXACTLY — same words, tone, gestures"],["No Improvisation","First LEARN the system, then improve it"],["Record Everything","Your logs = Your training dictionary"],["Ask Questions","If unsure, ASK! Never guess"]].map(([k,v])=>`<div style="font-size:11px;line-height:1.6;margin-bottom:4px"><strong>${k}:</strong> ${v}</div>`).join('')}
         </div>
         <div style="background:#FFF8E1;border-radius:8px;padding:11px;border:.5px solid #F9CB42">
@@ -2392,9 +2393,9 @@ function renderStageSopBadges(stageId){
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div>
         <div class="card-title">📖 ${label5}</div>
-        <div style="font-size:11px;color:var(--mut);margin-top:2px">点任何一步看完整流程 + JR / IN / SR approach</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:2px">Tap any step for the full flow + JR / IN / SR approach</div>
       </div>
-      <span class="chip chip-blue">第 ${stageId} 阶段</span>
+      <span class="chip chip-blue">Stage ${stageId}</span>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:0">${badges}</div>
   </div>`;
@@ -2403,9 +2404,9 @@ function renderStageSopBadges(stageId){
 function renderTasks(){
   const el=document.getElementById('tasks-content');
   const role=S.role;
-  if(role==='mgmt'){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">先到「日报」页选一份计划，才看得到任务。</div>`;return;}
+  if(role==='mgmt'){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">Pick a plan on the Day Report page first — tasks show up after that.</div>`;return;}
   const cohort=getCohort();
-  if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">还没有指派计划，请找管理层。</div>`;return;}
+  if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet. Please speak to management.</div>`;return;}
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const tasks=(D.TASKS[role]||{})[day]||[];const checked=countChecked(cohort.id,role,day);
 
@@ -2413,7 +2414,7 @@ function renderTasks(){
     <div class="card">
       <div class="card-hdr">
         <div><div class="card-title">Day ${day} — ${role==='mentor'?'Mentor':'New Teacher'}</div>
-        <div style="font-size:11px;color:var(--mut)">第 ${stage.id} 阶段 ${stage.nameZh} · ${stage.theme}</div></div>
+        <div style="font-size:11px;color:var(--mut)">Stage ${stage.id} ${stage.nameZh} · ${stage.theme}</div></div>
         <div style="text-align:right"><div style="font-size:18px;font-weight:700;color:${checked===tasks.length&&tasks.length>0?'var(--grn)':'var(--acc)'}">${checked}/${tasks.length}</div><div style="font-size:9px;color:var(--mut)">done</div></div>
       </div>
       <div class="prog-bar" style="margin-bottom:12px"><div class="prog-fill ${checked===tasks.length&&tasks.length>0?'grn':''}" style="width:${tasks.length?Math.round(checked/tasks.length*100):0}%"></div></div>
@@ -2426,7 +2427,7 @@ function renderTasks(){
     </div>
 
     <div class="card">
-      <div class="card-title" style="margin-bottom:9px">看其他天</div>
+      <div class="card-title" style="margin-bottom:9px">Other days</div>
       <div class="day-grid">
         ${ALL_DAYS.map(d=>{
           const s=getStageForDay(d);const c2=countChecked(cohort.id,role,d);
@@ -2442,7 +2443,7 @@ function renderTasks(){
       </div>
     </div>
     <div class="card" style="background:var(--sur2)">
-      <div class="card-title" style="margin-bottom:5px">⭐ 第 ${stage.id} 阶段的过关标准</div>
+      <div class="card-title" style="margin-bottom:5px">⭐ Stage ${stage.id} success criteria</div>
       <div style="font-size:12px;line-height:1.7">${D.SUCCESS_CRITERIA[stage.id][role]}</div>
     </div>
     ${renderStageSopBadges(stage.id)}
@@ -2487,7 +2488,7 @@ function renderSkillConfirm(cohort,role,day,stage,existing){
 
   let html=`<div style="margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-      <div style="font-size:12px;font-weight:700">🎯 技能确认 — 第 ${stage.id} 阶段 ${meta.label}</div>
+      <div style="font-size:12px;font-weight:700">🎯 Skill confirmation — Stage ${stage.id} ${meta.label}</div>
       <span class="chip chip-blue">${roleLabel}</span>
     </div>
     ${meta.risk?`<div style="font-size:10px;color:var(--mut);margin-bottom:10px;font-style:italic">Risk this stage: ${meta.risk}</div>`:'<div style="margin-bottom:10px"></div>'}`;
@@ -2549,7 +2550,7 @@ function renderProbeExtra(cid,role,day,sopId,probeVal,noteVal,cfg){
   }
   if(opt.requireNote){
     html+=`<div style="margin-top:8px">
-      <textarea id="${skillNoteKey(cid,role,day,sopId)}" rows="2" placeholder="${opt.notePlaceholder||'请描述…'}"
+      <textarea id="${skillNoteKey(cid,role,day,sopId)}" rows="2" placeholder="${opt.notePlaceholder||'Describe it…'}"
         style="width:100%;border:.5px solid var(--bdr);border-radius:6px;padding:7px;font-family:inherit;font-size:11px;resize:vertical;background:var(--sur)"
         oninput="saveNoteTemp('${cid}','${role}',${day},'${sopId}',this.value)">${noteVal}</textarea>
     </div>`;
@@ -2593,7 +2594,7 @@ function renderReport(){
   const role=S.role;
   if(role==='mgmt'){renderMgmtReportView(el);return;}
   const cohort=getCohort();
-  if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">还没有指派计划。</div>`;return;}
+  if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet.</div>`;return;}
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const tasks=(D.TASKS[role]||{})[day]||[];const checked=countChecked(cohort.id,role,day);
   const existing=getReport(cohort.id,role,day);
@@ -2601,8 +2602,8 @@ function renderReport(){
   el.innerHTML=`
     <div class="card">
       <div class="card-hdr">
-        <div><div class="card-title">📝 每日日报 — 第 ${day}</div>
-        <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'新老师'} · 第 ${stage.id} 阶段 ${stage.nameZh}</div></div>
+        <div><div class="card-title">📝 Day Report — Day ${day}</div>
+        <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'New Teacher'} · Stage ${stage.id} ${stage.nameZh}</div></div>
         ${existing?`<span class="chip chip-grn">✅ Submitted ${existing.submitTime||''}</span>`:`<span class="chip chip-amb">⏳ Not submitted</span>`}
       </div>
 
@@ -2623,31 +2624,31 @@ function renderReport(){
       <div style="border-top:.5px solid var(--bdr);padding-top:12px;margin-top:4px">
         <div style="font-size:11px;font-weight:700;margin-bottom:10px">✍️ Reflection</div>
 
-        <label class="lbl">今天哪里做得好？ <span style="color:var(--red)">*</span></label>
+        <label class="lbl">What went well today? <span style="color:var(--red)">*</span></label>
         <textarea id="rpt_good" rows="2" placeholder="${role==='mentor'?'e.g. Mentee managed all routines independently, mirrored Flash Card correctly…':'e.g. I successfully led Group Reading, managed Washroom routine without reminder…'}">${existing?.good||''}</textarea>
 
-        <label class="lbl">哪里还要加强？</label>
+        <label class="lbl">What still needs work?</label>
         <textarea id="rpt_improve" rows="2" placeholder="${role==='mentor'?'e.g. Mentee still hesitant during Spelling, needs more practice…':'e.g. I forgot to write date on board, need to remember format…'}">${existing?.improve||''}</textarea>
 
         ${role==='mentor'?`
-        <label class="lbl">可以进下一阶段了吗？</label>
+        <label class="lbl">Ready for the next stage?</label>
         <select id="rpt_advance">
-          <option value="">请选择…</option>
+          <option value="">Choose…</option>
           <option value="yes" ${existing?.advanceReady==='yes'?'selected':''}>✅ Yes — Mentee is ready for next stage</option>
           <option value="no" ${existing?.advanceReady==='no'?'selected':''}>❌ No — needs more time in current stage</option>
           <option value="pending" ${existing?.advanceReady==='pending'?'selected':''}>⏳ Not sure — need to observe more</option>
         </select>
-        <label class="lbl" style="margin-top:10px">需要管理层介入吗？ <span style="font-weight:400;color:var(--mut)">（可不填）</span></label>
-        <textarea id="rpt_mgmt_flag" rows="2" placeholder="哪一项需要管理层介入或亲自重教？写下来。" oninput="scheduleDraft(\'${cohort.id}\',\'${role}\',${day},\'${cohort.dept}\')">${existing?.mgmtFlag||''}</textarea>`:`
-        <label class="lbl">想问 Mentor 的</label>
-        <textarea id="rpt_questions" rows="2" placeholder="有哪一步不太确定？写下来问 Mentor。" oninput="scheduleDraft(\'${cohort.id}\',\'${role}\',${day},\'${cohort.dept}\')">${existing?.questions||''}</textarea>`}
+        <label class="lbl" style="margin-top:10px">Does management need to step in? <span style="font-weight:400;color:var(--mut)">(optional)</span></label>
+        <textarea id="rpt_mgmt_flag" rows="2" placeholder="Which part needs management to step in or reteach? Write it down." oninput="scheduleDraft(\'${cohort.id}\',\'${role}\',${day},\'${cohort.dept}\')">${existing?.mgmtFlag||''}</textarea>`:`
+        <label class="lbl">Questions for your Mentor</label>
+        <textarea id="rpt_questions" rows="2" placeholder="Any step you are unsure about? Write it down and ask your Mentor." oninput="scheduleDraft(\'${cohort.id}\',\'${role}\',${day},\'${cohort.dept}\')">${existing?.questions||''}</textarea>`}
 
-        <label class="lbl">其他 / 突发状况</label>
-        <textarea id="rpt_misc" rows="2" placeholder="没有就留白" oninput="scheduleDraft(\'${cohort.id}\',\'${role}\',${day},\'${cohort.dept}\')">${existing?.misc||''}</textarea>
+        <label class="lbl">Anything else / unexpected</label>
+        <textarea id="rpt_misc" rows="2" placeholder="Leave blank if none" oninput="scheduleDraft(\'${cohort.id}\',\'${role}\',${day},\'${cohort.dept}\')">${existing?.misc||''}</textarea>
       </div>
 
       <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
-        ${existing?`<button class="btn btn-sm" onclick="deleteReport('${cohort.id}','${role}',${day})">删掉重填</button>`:''}
+        ${existing?`<button class="btn btn-sm" onclick="deleteReport('${cohort.id}','${role}',${day})">Delete and redo</button>`:''}
         <button class="btn btn-pri" onclick="submitReport('${cohort.id}','${role}',${day})">${existing?'🔄 Update':'📤 Submit'} Report</button>
       </div>
     </div>
@@ -2660,7 +2661,7 @@ function renderPartnerSkillSummary(cohort,myRole,day,stage){
 
   // Mentor sees Mentee's report only
   const pr=getReport(cohort.id,'mentee',day);
-  if(!pr)return`<div class="card"><div class="card-title" style="margin-bottom:5px">🎓 新老师日报</div><div style="color:var(--mut);font-size:12px">还没交。</div></div>`;
+  if(!pr)return`<div class="card"><div class="card-title" style="margin-bottom:5px">🎓 New Teacher report</div><div style="color:var(--mut);font-size:12px">Not submitted yet.</div></div>`;
 
   const sops=D.STAGE_SOPS[stage.id]||[];
   const stageCfg=D.SKILL_STAGES[stage.id]?.mentee;
@@ -2693,7 +2694,7 @@ function renderPartnerSkillSummary(cohort,myRole,day,stage){
   }
 
   return`<div class="card">
-    <div class="card-hdr"><span class="card-title">🎓 新老师日报 — 第 ${day}</span><span class="chip chip-grn">✅ ${pr.submitTime}</span></div>
+    <div class="card-hdr"><span class="card-title">🎓 New Teacher report — Day ${day}</span><span class="chip chip-grn">✅ ${pr.submitTime}</span></div>
     <div style="font-size:12px;line-height:1.7">
       ${pr.good?`<div><strong>✅</strong> ${pr.good}</div>`:''}
       ${pr.improve?`<div style="margin-top:3px"><strong>🔧</strong> ${pr.improve}</div>`:''}
@@ -2716,7 +2717,7 @@ async function saveDraft(uid,role,day,dept){
   rpt.state='draft';
   await saveReport(rpt,'draft');
   const f=document.getElementById('savedFlash');
-  if(f){f.textContent='已储存 '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(f){f.textContent='Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
         f.style.opacity='1';setTimeout(()=>f.style.opacity='0',1600);}
 }
 function collectReport(uid,role,day,dept){
@@ -2734,7 +2735,7 @@ function collectReport(uid,role,day,dept){
 async function submitReport(cid,role,day){
   if(!cid){alert('⚠️ No cohort found. Please wait for data to load, then try again.');return;}
   const good=document.getElementById('rpt_good')?.value.trim();
-  if(!good){alert('请先填「今天哪里做得好」。');return;}
+  if(!good){alert('Please fill in "What went well today" first.');return;}
   const stage=getStageForDay(day);
   const sops=D.STAGE_SOPS[stage.id]||[];
   const qs=D.SKILL_STAGES[stage.id]?.[role]||[];
@@ -2772,17 +2773,17 @@ async function submitReport(cid,role,day){
 }
 
 async function deleteReport(cid,role,day){
-  if(!confirm('删掉这份日报重填？'))return;
+  if(!confirm('Delete this day report and start again?'))return;
   const rpt=S.reports.find(r=>r.planUid===cid&&r.role===role&&r.day===day);
   if(rpt)await deleteReportFb(rpt.id);
   renderReport();
 }
 
 function renderMgmtReportView(el){
-  if(!S.cohorts.length){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">还没有计划，到「设定」页建一份。</div>`;return;}
+  if(!S.cohorts.length){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plans yet. Create one on the Settings page.</div>`;return;}
   const sel=getCohort()||S.cohorts[0];S.cohortId=sel.id;
   el.innerHTML=`
-    <div style="margin-bottom:10px"><div class="card-title">日报对照</div></div>
+    <div style="margin-bottom:10px"><div class="card-title">Day reports side by side</div></div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
       ${S.cohorts.map(c=>`<button class="btn ${c.id===S.cohortId?'btn-pri':''}" onclick="S.cohortId='${c.id}';renderReport()">${c.menteeName}</button>`).join('')}
     </div>
@@ -2802,20 +2803,20 @@ function renderCohortRptDetail(cohort){
     html+=`<button class="itab ${d===day?'on':''}" onclick="viewRptDay('${cohort.id}',${d})">${getDayLabel(d)} ${both?'✅':mr2||tr2?'⏳':'⬜'}</button>`;
   });
   html+=`</div>`;
-  html+=`<div style="font-size:11px;color:var(--mut);margin-bottom:10px">第 ${day} 个训练日 · 第 ${stage.id} 阶段 ${stage.nameZh} · ${cohort.menteeName}</div>`;
+  html+=`<div style="font-size:11px;color:var(--mut);margin-bottom:10px">Day ${day} · Stage ${stage.id} ${stage.nameZh} · ${cohort.menteeName}</div>`;
 
   // ── SKILL CONFIRMATION MATRIX ──
   const sops=D.STAGE_SOPS[stage.id]||[];
   if(sops.length&&(mr||tr)){
     html+=`<div class="card" style="margin-bottom:10px">
-      <div class="card-hdr"><span class="card-title">🎯 技能确认表 — 第 ${stage.id} 阶段</span><span style="font-size:10px;color:var(--mut)">管理层总览</span></div>
+      <div class="card-hdr"><span class="card-title">🎯 Skill confirmation — Stage ${stage.id}</span><span style="font-size:10px;color:var(--mut)">Management view</span></div>
       <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:11px">
         <thead><tr style="background:var(--sur2)">
-          <th style="padding:7px 10px;text-align:left;border-bottom:.5px solid var(--bdr)">SOP 项目</th>
-          <th style="padding:7px 10px;text-align:center;border-bottom:.5px solid var(--bdr);color:#185FA5">👨‍🏫 Mentor<br><span style="font-weight:400;font-size:9px">教过 ✓ ｜ 确认过 ✓</span></th>
-          <th style="padding:7px 10px;text-align:center;border-bottom:.5px solid var(--bdr);color:#0F6E56">🎓 新老师<br><span style="font-weight:400;font-size:9px">学过 ✓ ｜ 练过 ✓</span></th>
-          <th style="padding:7px 10px;text-align:center;border-bottom:.5px solid var(--bdr)">状态</th>
+          <th style="padding:7px 10px;text-align:left;border-bottom:.5px solid var(--bdr)">SOP item</th>
+          <th style="padding:7px 10px;text-align:center;border-bottom:.5px solid var(--bdr);color:#185FA5">👨‍🏫 Mentor<br><span style="font-weight:400;font-size:9px">Taught ✓ ｜ Confirmed ✓</span></th>
+          <th style="padding:7px 10px;text-align:center;border-bottom:.5px solid var(--bdr);color:#0F6E56">🎓 New Teacher<br><span style="font-weight:400;font-size:9px">Learned ✓ ｜ Practised ✓</span></th>
+          <th style="padding:7px 10px;text-align:center;border-bottom:.5px solid var(--bdr)">Status</th>
         </tr></thead><tbody>`;
 
     sops.forEach((sopId,i)=>{
@@ -2886,12 +2887,12 @@ function renderCohortRptDetail(cohort){
 
   // ── SIDE BY SIDE REPORTS ──
   html+=`<div class="grid2">`;
-  html+=`<div class="card"><div class="card-hdr"><span class="card-title">👨‍🏫 Mentor</span>${mr?`<span class="chip chip-grn">✅ ${mr.submitTime}</span>`:'<span class="chip chip-red">未交</span>'}</div>`;
+  html+=`<div class="card"><div class="card-hdr"><span class="card-title">👨‍🏫 Mentor</span>${mr?`<span class="chip chip-grn">✅ ${mr.submitTime}</span>`:'<span class="chip chip-red">Not submitted</span>'}</div>`;
   if(mr){html+=renderRptBody(mr,'mentor');if(mr.advanceReady){const cls=mr.advanceReady==='yes'?'alert-grn':mr.advanceReady==='no'?'alert-red':'alert-amb';const lbl=mr.advanceReady==='yes'?'✅ Ready to advance':mr.advanceReady==='no'?'❌ Not ready':'⏳ Needs more time';html+=`<div class="alert ${cls}" style="margin-top:8px">${lbl}</div>`;}}
-  else{html+=`<div style="color:var(--mut);font-size:12px;padding:10px 0">还没交</div>`;}
+  else{html+=`<div style="color:var(--mut);font-size:12px;padding:10px 0">Not submitted yet</div>`;}
   html+=`</div>`;
-  html+=`<div class="card"><div class="card-hdr"><span class="card-title">🎓 新老师</span>${tr?`<span class="chip chip-grn">✅ ${tr.submitTime}</span>`:'<span class="chip chip-red">未交</span>'}</div>`;
-  if(tr)html+=renderRptBody(tr,'mentee');else html+=`<div style="color:var(--mut);font-size:12px;padding:10px 0">还没交</div>`;
+  html+=`<div class="card"><div class="card-hdr"><span class="card-title">🎓 New Teacher</span>${tr?`<span class="chip chip-grn">✅ ${tr.submitTime}</span>`:'<span class="chip chip-red">Not submitted</span>'}</div>`;
+  if(tr)html+=renderRptBody(tr,'mentee');else html+=`<div style="color:var(--mut);font-size:12px;padding:10px 0">Not submitted yet</div>`;
   html+=`</div></div>`;
 
   const canAdvance=mr?.advanceReady==='yes'&&tr&&day<14;
@@ -2904,7 +2905,7 @@ function renderCohortRptDetail(cohort){
       return!(mskP.every(v=>v)&&tskP.every(v=>v));
     });
     html+=`<div class="card" style="border-color:var(--grn);background:#E1F5EE">
-      <div class="card-title" style="color:var(--grn);margin-bottom:6px">⭐ Mentor 建议前进到第 ${nextDay}</div>
+      <div class="card-title" style="color:var(--grn);margin-bottom:6px">⭐ Mentor suggests moving on to Day ${nextDay}</div>
       ${unclearedSops.length?`<div class="alert alert-amb" style="margin-bottom:8px">⚠️ ${unclearedSops.length} skill(s) not fully confirmed: ${unclearedSops.map(id=>D.SOP[id]?.name||id).join(', ')}</div>`:'<div style="font-size:11px;margin-bottom:8px">✅ All skills confirmed by both parties.</div>'}
       <button class="btn btn-grn" onclick="advanceDay('${cohort.id}')">✅ Confirm — Advance to Day ${nextDay}</button>
     </div>`;
@@ -2944,7 +2945,7 @@ async function advanceDay(planUid,dept){
     pd.currentDay=TRAIN_DAYS[idx+1];
     await savePlanDept(p.uid,dp,pd.currentDay,'active');
     await reloadAll();
-    alert(`✅ ${dp} 前进到${dayLabel(pd.currentDay)}`);
+    alert(`✅ ${dp} moved on to ${dayLabel(pd.currentDay)}`);
   }else{
     // 完成 ≠ 跑完 14 天。清单没齐就继续往下跑（架构正本 §4.1）
     const r=compDone(p.uid,dp);
@@ -2953,16 +2954,16 @@ async function advanceDay(planUid,dept){
       pd.currentDay=nextDay;
       await savePlanDept(p.uid,dp,nextDay,'active');
       await reloadAll();
-      alert(`${dp} 的清单还差 ${r.total-r.ok} 项，所以不算完成，继续跑第 ${nextDay} 天。\n\n还差：\n`
+      alert(`${dp}: the checklist is still ${r.total-r.ok} item(s) short, so this is not complete. Moving on to day ${nextDay}.\n\nStill missing:\n`
             +r.missing.slice(0,6).map(x=>'· '+x.name).join('\n')
-            +(r.missing.length>6?`\n…还有 ${r.missing.length-6} 项`:''));
+            +(r.missing.length>6?`\n…and ${r.missing.length-6} more`:''));
       return;
     }
     pd.status='completed';
     await savePlanDept(p.uid,dp,day,'completed');
     await reloadAll();
     const allDone=(getPlan(p.uid).depts||[]).every(x=>x.status==='completed');
-    alert(allDone?'🎉 所有部门的清单都齐了。接下来由放行人决定能不能独立带班。':`✅ ${dp} 的清单齐了。其他部门还在进行。`);
+    alert(allDone?'🎉 Every department checklist is complete. A releaser now decides whether she can take a class on her own.':`✅ ${dp} checklist is complete. Other departments are still running.`);
   }
 }
 
@@ -2975,10 +2976,10 @@ async function openAdvanceModal(planUid,dept){
   const next=TRAIN_DAYS[idx+1];
   const mr=getReport(p.uid,'mentor',day,dp), tr=getReport(p.uid,'mentee',day,dp);
   const cr=compDone(p.uid,dp);
-  const compLine=`\n岗位清单：${cr.ok}／${cr.total} 项达标`+(cr.done?' ✅':' ⚠️ 还差 '+(cr.total-cr.ok)+' 项');
+  const compLine=`\nJob checklist: ${cr.ok}／${cr.total} at required level`+(cr.done?' ✅':' ⚠️ '+(cr.total-cr.ok)+' still short');
   const msg=next
-    ? `${p.teacherName} · ${dp}\n${dayLabel(day)} → ${dayLabel(next)}？\n\nMentor 日报：${mr?'✅ 已交':'⚠️ 还没交'}\n新老师日报：${tr?'✅ 已交':'⚠️ 还没交'}${compLine}\n\n继续？`
-    : `${p.teacherName} · ${dp}\n这是第 ${day} 天。${compLine}\n\n`+(cr.done?'清单齐了，标记这个部门跑完？':'清单还没齐 —— 按下去会继续跑下一天，不会标成完成。');
+    ? `${p.teacherName} · ${dp}\n${dayLabel(day)} → ${dayLabel(next)}?\n\nMentor report: ${mr?'✅ submitted':'⚠️ not yet'}\nNew teacher report: ${tr?'✅ submitted':'⚠️ not yet'}${compLine}\n\nContinue?`
+    : `${p.teacherName} · ${dp}\nThis is day ${day}. ${compLine}\n\n`+(cr.done?'Checklist complete — mark this department as finished?':'Checklist is not complete — this will move on to the next day, not mark it finished.');
   if(confirm(msg)) await advanceDay(p.uid,dp);
 }
 
@@ -2988,12 +2989,12 @@ async function openAdvanceModal(planUid,dept){
 function renderProgress(){
   const el=document.getElementById('progress-content');
   if(S.role==='mgmt'){
-    el.innerHTML=`<div style="margin-bottom:10px"><div class="card-title">全部计划进度</div></div>`+
-      (S.cohorts.length===0?`<div class="card" style="text-align:center;padding:28px;color:var(--mut)">还没有计划。</div>`:S.cohorts.map(c=>renderFullProgress(c)).join(''));
+    el.innerHTML=`<div style="margin-bottom:10px"><div class="card-title">All plans</div></div>`+
+      (S.cohorts.length===0?`<div class="card" style="text-align:center;padding:28px;color:var(--mut)">No plans yet.</div>`:S.cohorts.map(c=>renderFullProgress(c)).join(''));
     return;
   }
   const cohort=getCohort();
-  if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">还没有指派计划。</div>`;return;}
+  if(!cohort){el.innerHTML=`<div class="card" style="padding:28px;text-align:center;color:var(--mut)">No plan assigned yet.</div>`;return;}
   el.innerHTML=renderFullProgress(cohort,S.role);
 }
 
@@ -3001,7 +3002,7 @@ function renderFullProgress(cohort,role){
   const day=cohort.currentDay||1;const{pct}=stageProgress(cohort);
   let html=`<div class="card" style="margin-bottom:12px">
     <div class="card-hdr">
-      <div><div class="card-title">🎓 ${cohort.menteeName} — 训练进度</div>
+      <div><div class="card-title">🎓 ${cohort.menteeName} — Training progress</div>
       <div style="font-size:11px;color:var(--mut)">Mentor: ${getMentorForDay(cohort,cohort.currentDay||1)} · Started: ${fmtDate(cohort.startDate)}${cohort.ageGroup?' · '+cohort.ageGroup:''}</div></div>
       <span class="chip ${pct===100?'chip-grn':'chip-blue'}">${pct}% Complete</span>
     </div>
@@ -3009,13 +3010,13 @@ function renderFullProgress(cohort,role){
     <div style="margin-top:12px;overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:11px">
       <thead><tr style="background:var(--sur2)">
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:left">第几天</th>
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">阶段</th>
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">Mentor 的任务</th>
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">新老师的任务</th>
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">Mentor 日报</th>
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">新老师日报</th>
-        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">状态</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:left">Day</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">Stage</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">Mentor tasks</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">New teacher tasks</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">Mentor report</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">New teacher report</th>
+        <th style="padding:6px 9px;border-bottom:.5px solid var(--bdr);text-align:center">Status</th>
       </tr></thead><tbody>`;
   ALL_DAYS.forEach((d,i)=>{
     const s=getStageForDay(d);
@@ -3034,7 +3035,7 @@ function renderFullProgress(cohort,role){
       <td style="padding:6px 9px;text-align:center;color:${isFuture?'var(--hint)':'var(--txt)'}">${isFuture?'—':`${nd}/${nt}`}</td>
       <td style="padding:6px 9px;text-align:center">${isFuture?'—':mr?'<span class="chip chip-grn">✅</span>':'<span class="chip chip-amb">⏳</span>'}</td>
       <td style="padding:6px 9px;text-align:center">${isFuture?'—':tr?'<span class="chip chip-grn">✅</span>':'<span class="chip chip-amb">⏳</span>'}</td>
-      <td style="padding:6px 9px;text-align:center">${isFuture?'<span style="color:var(--hint)">接下来</span>':isCurrent?'<span class="chip chip-blue">今天</span>':mr&&tr?'<span class="chip chip-grn">做完</span>':'<span class="chip chip-amb">部分</span>'}</td>
+      <td style="padding:6px 9px;text-align:center">${isFuture?'<span style="color:var(--hint)">Upcoming</span>':isCurrent?'<span class="chip chip-blue">Today</span>':mr&&tr?'<span class="chip chip-grn">Done</span>':'<span class="chip chip-amb">Partial</span>'}</td>
     </tr>`;
   });
   html+=`</tbody></table></div>
@@ -3061,7 +3062,7 @@ function renderTrainingChart(cohort){
   // Build grid HTML
   let grid=`
   <div style="margin-top:18px">
-    <div style="font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">训练进度图</div>
+    <div style="font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Training progress chart</div>
     <div style="overflow-x:auto">
     <table style="border-collapse:separate;border-spacing:4px;width:100%;min-width:520px">
       <thead>
@@ -3070,7 +3071,7 @@ function renderTrainingChart(cohort){
           ${weeks.map(w=>`<td colspan="${w.days.length}" style="text-align:center;font-size:10px;font-weight:700;color:var(--mut);padding-bottom:4px;text-transform:uppercase;letter-spacing:.06em">${w.label}</td>`).join('')}
         </tr>
         <tr>
-          <td style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;padding-right:8px">阶段</td>
+          <td style="font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;padding-right:8px">Stage</td>
           ${weeks.flatMap(w=>w.days).map(d=>{
             const isCurrent=d===day;const isFuture=d>day;
             return`<td style="text-align:center;font-size:9px;font-weight:${isCurrent?'700':'400'};color:${isCurrent?'var(--acc)':isFuture?'var(--hint)':'var(--mut)'};padding-bottom:2px">${getDayLabel(d)}</td>`;
@@ -3102,7 +3103,7 @@ function renderTrainingChart(cohort){
         let cellBorder=isCurrent?`2px solid var(--acc)`:`.5px solid ${pal.border}`;
         let inner='';
         if(isCurrent){
-          inner=`<div style="font-size:9px;font-weight:700;color:var(--acc)">今天</div>`;
+          inner=`<div style="font-size:9px;font-weight:700;color:var(--acc)">Today</div>`;
         } else if(!isFuture){
           const done=mr&&tr2;const partial=mr||tr2;
           inner=`<div style="font-size:12px">${done?'✅':partial?'⏳':'⬜'}</div>`;
@@ -3119,11 +3120,11 @@ function renderTrainingChart(cohort){
     </div>
     <!-- Legend -->
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
-      <span style="font-size:10px;color:var(--mut)">说明：</span>
-      <span style="font-size:10px">✅ 两份日报都交了</span>
-      <span style="font-size:10px">⏳ 还差一份</span>
-      <span style="font-size:10px">⬜ 都还没交</span>
-      <span style="font-size:10px;font-weight:600;color:var(--acc)">蓝色 = 今天</span>
+      <span style="font-size:10px;color:var(--mut)">Legend:</span>
+      <span style="font-size:10px">✅ Both reports in</span>
+      <span style="font-size:10px">⏳ One still missing</span>
+      <span style="font-size:10px">⬜ Neither submitted</span>
+      <span style="font-size:10px;font-weight:600;color:var(--acc)">Blue = today</span>
     </div>
   </div>`;
   return grid;
@@ -3146,14 +3147,14 @@ function compSetDept(d){S.dept=d;setRD(d);renderCompetency();}
 function levelPill(lv,req,safety){
   const ok=lv>=req;
   const cls=ok?'chip-grn':(lv>0?'chip-amb':'');
-  return `<span class="chip ${cls}" title="${esc(LEVEL_LABEL[lv]||'')}${safety?' · 安全类':''}">${lv}／${req}</span>`;
+  return `<span class="chip ${cls}" title="${esc(LEVEL_LABEL[lv]||'')}${safety?' · Safety-critical':''}">${lv}／${req}</span>`;
 }
 
 // ══════════════════════════════════════════════════════════════
 // v27 · 求助 · 没机会练 · 整理日任务 · 完成交代（介面）
 // ══════════════════════════════════════════════════════════════
 function openHelpModal(){
-  const p=myPlan()||getPlan(); if(!p){alert('你还没有训练计划。');return;}
+  const p=myPlan()||getPlan(); if(!p){alert('You do not have a training plan yet.');return;}
   const iso=todayISO();
   const blocks=todayDeptTasks(p).filter(b=>!b.rest);
   const dept=(blocks[0]||{}).dept||S.dept||(p.depts[0]||{}).dept||'SRK';
@@ -3163,21 +3164,21 @@ function openHelpModal(){
   ov.innerHTML=`<div class="modal">
     <div class="modal-hdr">
       <span style="font-size:20px">🙋</span>
-      <div class="modal-hdr-title">我卡住了<br>
+      <div class="modal-hdr-title">I am stuck<br>
         <span style="font-size:11px;font-weight:400;color:var(--mut)">${deptShort(dept)}${day?' · '+dayLabel(day):''}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
     </div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--mut);margin-bottom:8px">
-        写下你卡在哪。你的 Mentor 和管理层都看得到。<b>问不是丢脸，猜才是。</b></div>
-      <textarea id="hpBody" rows="4" placeholder="例：抄白板的时候有三个孩子一直离座，我不知道该先处理谁"
+        Write down where you are stuck. Your Mentor and management can both see it. <b>Asking is not embarrassing — guessing is.</b></div>
+      <textarea id="hpBody" rows="4" placeholder="e.g. During Copy Whiteboard three children kept leaving their seats and I did not know who to handle first"
         style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
       <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12.5px;cursor:pointer">
-        <input type="checkbox" id="hpUrgent" style="width:17px;height:17px"> 现在就需要人来（不是等下课）</label>
+        <input type="checkbox" id="hpUrgent" style="width:17px;height:17px"> I need someone now (not after class)</label>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="submitHelp('${p.uid}','${dept}',${day||'null'},this)">送出</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitHelp('${p.uid}','${dept}',${day||'null'},this)">Send</button>
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3185,12 +3186,12 @@ function openHelpModal(){
 }
 async function submitHelp(uid,dept,day,btn){
   const body=(document.getElementById('hpBody').value||'').trim();
-  if(!body){alert('写一句你卡在哪，Mentor 才知道怎么帮。');return;}
+  if(!body){alert('Write one line about where you are stuck, so your Mentor knows how to help.');return;}
   const urgent=document.getElementById('hpUrgent').checked;
-  btn.disabled=true;btn.textContent='送…';
+  btn.disabled=true;btn.textContent='Sending…';
   const ok=await addHelp(uid,dept,day,body,urgent);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
-  else{btn.disabled=false;btn.textContent='送出';}
+  else{btn.disabled=false;btn.textContent='Send';}
 }
 function openAnswerHelp(id){
   const hp=(S.helps||[]).find(x=>x.id===id); if(!hp)return;
@@ -3198,16 +3199,16 @@ function openAnswerHelp(id){
   ov.className='overlay';
   ov.innerHTML=`<div class="modal">
     <div class="modal-hdr"><span style="font-size:20px">🙋</span>
-      <div class="modal-hdr-title">回覆求助<br><span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(hp.asked_by_code||'')} · ${String(hp.created_at).slice(0,10)}</span></div>
+      <div class="modal-hdr-title">Reply to request<br><span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(hp.asked_by_code||'')} · ${String(hp.created_at).slice(0,10)}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <div class="card" style="background:var(--sur2);margin-bottom:12px">${esc(hp.body)}</div>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">你的回覆</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Your reply</div>
       <textarea id="hpAns" rows="4" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(hp.answer||'')}</textarea>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="submitAnswerHelp('${id}',this)">回覆并结案</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitAnswerHelp('${id}',this)">Reply and close</button>
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3215,16 +3216,16 @@ function openAnswerHelp(id){
 }
 async function submitAnswerHelp(id,btn){
   const a=(document.getElementById('hpAns').value||'').trim();
-  if(!a){alert('写一句回覆。');return;}
-  btn.disabled=true;btn.textContent='存…';
+  if(!a){alert('Write a reply first.');return;}
+  btn.disabled=true;btn.textContent='Saving…';
   const ok=await answerHelp(id,a);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
-  else{btn.disabled=false;btn.textContent='回覆并结案';}
+  else{btn.disabled=false;btn.textContent='Reply and close';}
 }
 
 // ── 今天没机会练 ──
 function openNoPracticeModal(){
-  const p=myPlan()||getPlan(); if(!p){alert('你还没有训练计划。');return;}
+  const p=myPlan()||getPlan(); if(!p){alert('You do not have a training plan yet.');return;}
   const blocks=todayDeptTasks(p).filter(b=>!b.rest);
   const dept=(blocks[0]||{}).dept||S.dept||(p.depts[0]||{}).dept||'SRK';
   const day=(blocks[0]||{}).day||null;
@@ -3235,21 +3236,21 @@ function openNoPracticeModal(){
   ov.className='overlay';
   ov.innerHTML=`<div class="modal">
     <div class="modal-hdr"><span style="font-size:20px">🕳️</span>
-      <div class="modal-hdr-title">今天没机会练<br>
+      <div class="modal-hdr-title">No chance to practise today<br>
         <span style="font-size:11px;font-weight:400;color:var(--mut)">${deptShort(dept)}${day?' · '+dayLabel(day):''}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--mut);margin-bottom:9px">
-        某一项今天根本没轮到，记一笔。<b>记了就不会被当成偷懒。</b></div>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">哪一项</div>
+        Log it when something simply did not come up today. <b>Logging it means it will not look like slacking.</b></div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Which item</div>
       <select id="npItem" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${items}</select>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">为什么没轮到</div>
-      <textarea id="npReason" rows="3" placeholder="例：今天没有听写，改成补上週的活动"
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">Why it did not come up</div>
+      <textarea id="npReason" rows="3" placeholder="e.g. No spelling today — we did last week's activity instead"
         style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="submitNoPractice('${p.uid}','${dept}',${day||'null'},this)">记一笔</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitNoPractice('${p.uid}','${dept}',${day||'null'},this)">Log it</button>
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3259,12 +3260,12 @@ async function submitNoPractice(uid,dept,day,btn){
   const id=document.getElementById('npItem').value;
   const it=(S.comp||[]).find(x=>x.id===id);
   const reason=(document.getElementById('npReason').value||'').trim();
-  if(!it){alert('先选一项。');return;}
-  if(!reason){alert('写一句为什么没轮到。');return;}
-  btn.disabled=true;btn.textContent='记…';
+  if(!it){alert('Pick an item first.');return;}
+  if(!reason){alert('Write one line on why it did not come up.');return;}
+  btn.disabled=true;btn.textContent='Logging…';
   const ok=await addNoPractice(uid,dept,day,it.sop_key,it.name,reason);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
-  else{btn.disabled=false;btn.textContent='记一笔';}
+  else{btn.disabled=false;btn.textContent='Log it';}
 }
 
 // ── 整理日任务（管理层派）──
@@ -3274,19 +3275,19 @@ function openCatchupModal(planUid,onDate){
   ov.className='overlay';
   ov.innerHTML=`<div class="modal">
     <div class="modal-hdr"><span style="font-size:20px">🗂️</span>
-      <div class="modal-hdr-title">派一件整理日任务<br>
+      <div class="modal-hdr-title">Assign a catch-up task<br>
         <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)} · ${onDate}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">任务</div>
-      <input id="ctTitle" placeholder="例：把这一週的 Flash Card 再练三轮"
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Task</div>
+      <input id="ctTitle" placeholder="e.g. Run through this week's Flash Card three more times"
         style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">说明（选填）</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">Notes (optional)</div>
       <textarea id="ctBody" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="submitCatchup('${p.uid}','${onDate}',this)">派出去</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitCatchup('${p.uid}','${onDate}',this)">Assign</button>
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3294,12 +3295,12 @@ function openCatchupModal(planUid,onDate){
 }
 async function submitCatchup(uid,onDate,btn){
   const t=(document.getElementById('ctTitle').value||'').trim();
-  if(!t){alert('写一句任务。');return;}
+  if(!t){alert('Write the task first.');return;}
   const b=(document.getElementById('ctBody').value||'').trim();
-  btn.disabled=true;btn.textContent='派…';
+  btn.disabled=true;btn.textContent='Assigning…';
   const ok=await addCatchup(uid,null,onDate,t,b);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
-  else{btn.disabled=false;btn.textContent='派出去';}
+  else{btn.disabled=false;btn.textContent='Assign';}
 }
 async function toggleCatchup(id,done){ await setCatchupDone(id,done); refreshCurrentPage(); }
 
@@ -3311,22 +3312,22 @@ function openCompletionModal(planUid){
   ov.className='overlay';
   ov.innerHTML=`<div class="modal">
     <div class="modal-hdr"><span style="font-size:20px">🎓</span>
-      <div class="modal-hdr-title">完成交代<br>
+      <div class="modal-hdr-title">Completion note<br>
         <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--mut);margin-bottom:10px">
-        她跑完了，总要有人跟她讲一句。这一段她看得到。</div>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">这一轮她走过什么</div>
+        She has finished — someone should say something to her. She can read this.</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">What she went through</div>
       <textarea id="cpSum" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.summary||'')}</textarea>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">她哪里做得好</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">What she did well</div>
       <textarea id="cpStr" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.strengths||'')}</textarea>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">上岗以后要自己盯着的地方</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">What to watch once she is on her own</div>
       <textarea id="cpWatch" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.watch||'')}</textarea>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="submitCompletion('${p.uid}',this)">存起来</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitCompletion('${p.uid}',this)">Save</button>
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3336,11 +3337,11 @@ async function submitCompletion(uid,btn){
   const s=(document.getElementById('cpSum').value||'').trim();
   const g=(document.getElementById('cpStr').value||'').trim();
   const w=(document.getElementById('cpWatch').value||'').trim();
-  if(!s&&!g&&!w){alert('至少写一段。');return;}
-  btn.disabled=true;btn.textContent='存…';
+  if(!s&&!g&&!w){alert('Write at least one section.');return;}
+  btn.disabled=true;btn.textContent='Saving…';
   const ok=await saveCompletion(uid,s,g,w);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();refreshCurrentPage();}
-  else{btn.disabled=false;btn.textContent='存起来';}
+  else{btn.disabled=false;btn.textContent='Save';}
 }
 async function doAckCompletion(id){ await ackCompletion(id); refreshCurrentPage(); }
 
@@ -3350,8 +3351,8 @@ function renderCompetency(){
   if(!plans.length){
     el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
       <div style="font-size:30px;margin-bottom:10px">✅</div>
-      <div style="font-weight:600;margin-bottom:5px">还没有可以看的岗位清单</div>
-      <div style="color:var(--mut);font-size:12px">要先有训练计划，清单才挂得上去。</div></div>`;return;}
+      <div style="font-weight:600;margin-bottom:5px">No job checklist to show yet</div>
+      <div style="color:var(--mut);font-size:12px">A training plan has to exist before the checklist can hang off it.</div></div>`;return;}
   let p=getPlan(); if(!p||!plans.some(x=>x.uid===p.uid)){p=plans[0];S.planUid=p.uid;}
   const depts=(p.depts||[]).map(x=>x.dept);
   if(!depts.includes(S.dept))S.dept=depts[0]||'SRK';
@@ -3359,12 +3360,12 @@ function renderCompetency(){
 
   let h='';
   if(plans.length>1){
-    h+=`<div class="filter"><span style="font-size:11px;color:var(--mut);margin-right:6px">学员</span>`;
+    h+=`<div class="filter"><span style="font-size:11px;color:var(--mut);margin-right:6px">Trainee</span>`;
     plans.forEach(x=>{h+=`<button class="itab ${x.uid===p.uid?'on':''}" onclick="compSetPlan('${x.uid}')">${esc(x.teacherName)}</button>`;});
     h+=`</div>`;
   }
   if(depts.length>1){
-    h+=`<div class="filter"><span style="font-size:11px;color:var(--mut);margin-right:6px">部门</span>`;
+    h+=`<div class="filter"><span style="font-size:11px;color:var(--mut);margin-right:6px">Department</span>`;
     depts.forEach(d=>{h+=`<button class="itab ${d===S.dept?'on':''}" onclick="compSetDept('${d}')">${deptShort(d)}</button>`;});
     h+=`</div>`;
   }
@@ -3375,26 +3376,26 @@ function renderCompetency(){
   const pct=r.total?Math.round(r.ok/r.total*100):0;
 
   h+=`<div class="card">
-    <div class="card-title">${esc(p.teacherName)} · ${deptShort(S.dept)} 岗位清单</div>
+    <div class="card-title">${esc(p.teacherName)} · ${deptShort(S.dept)} Job Checklist</div>
     <div style="font-size:12px;color:var(--mut);margin:4px 0 10px">
-      完成 ＝ 这张清单每一项都到了要求的级数。天数只是进度显示，不是完成条件。</div>
+      Complete means every item on this checklist has reached its required level. The day count is only progress, not the completion test.</div>
     <div class="prog-bar"><div class="prog-fill ${r.done?'grn':''}" style="width:${pct}%"></div></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
-      <span>${r.ok}／${r.total} 项达标</span>
-      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ 这个部门的清单齐了':'还差 '+(r.total-r.ok)+' 项'}</span>
+      <span>${r.ok}／${r.total} at required level</span>
+      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ This department is complete':(r.total-r.ok)+' still short'}</span>
     </div>
-    ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">整份计划：${whole.ok}／${whole.total} 项${whole.done?' · 全部齐了':''}</div>`:''}
+    ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">Whole plan: ${whole.ok}／${whole.total}${whole.done?' · all complete':''}</div>`:''}
   </div>`;
 
   const misc=miscCountOf(p.teacherCode);
   h+=`<div class="card" style="background:var(--sur2)">
-    <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">客观证据</div>
+    <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">Objective evidence</div>
     <div style="font-size:13px;margin-top:5px">
-      她本人填过的 MiscGo 上报：<b>${misc===null?'读不到':misc+' 笔'}</b>
+      MiscGo reports she filed herself: <b>${misc===null?'cannot read':misc}</b>
     </div>
     <div style="font-size:11.5px;color:var(--mut);margin-top:4px">
-      ${misc===null?'你的帐号没有 MiscGo 权限，所以这里读不到。这不代表她没填过。'
-                  :'只给 Mentor 参考，不挡签核。'}
+      ${misc===null?'Your account has no MiscGo access, so this cannot be read. It does not mean she filed none.'
+                  :'For the Mentor\'s reference only — it does not block signing.'}
     </div>
   </div>`;
 
@@ -3402,8 +3403,8 @@ function renderCompetency(){
     const items=list.filter(x=>x.grp===g);
     if(!items.length)return;
     h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">
-      ${g==='A'?'A 组 · 来自 SOP':'B 组 · 没有独立 SOP'}
-      <span style="font-weight:400;font-size:11px;color:var(--mut)">（${items.length} 项）</span></div>`;
+      ${g==='A'?'Group A · From the SOPs':'Group B · No standalone SOP'}
+      <span style="font-weight:400;font-size:11px;color:var(--mut)">(${items.length})</span></div>`;
     items.forEach(it=>{
       const lv=compLevel(p.uid,it.id);
       const ck=compCheck(p.uid,it.id);
@@ -3411,14 +3412,14 @@ function renderCompetency(){
       h+=`<div style="display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr)">
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:${ok?'400':'500'};line-height:1.35">${esc(it.name)}
-            ${it.is_safety?'<span class="chip chip-red" style="margin-left:5px">安全类</span>':''}</div>
+            ${it.is_safety?'<span class="chip chip-red" style="margin-left:5px">Safety</span>':''}</div>
           <div style="font-size:11px;color:var(--mut);margin-top:3px">
-            ${esc(LEVEL_LABEL[lv]||'')}${ck&&ck.signed_by_code?' · '+esc(ck.signed_by_code)+' 签':''}${ck&&ck.second_by_code?' ＋ '+esc(ck.second_by_code):''}
+            ${esc(LEVEL_LABEL[lv]||'')}${ck&&ck.signed_by_code?' · signed by '+esc(ck.signed_by_code):''}${ck&&ck.second_by_code?' ＋ '+esc(ck.second_by_code):''}
           </div>
         </div>
         ${levelPill(lv,it.level_required||3,it.is_safety)}
         ${it.sop_key&&D.SOP[it.sop_key]?`<button class="btn btn-sm" onclick="openSopModal('${it.sop_key}')">SOP</button>`:''}
-        <button class="btn btn-sm" onclick="openCompModal('${it.id}')">改</button>
+        <button class="btn btn-sm" onclick="openCompModal('${it.id}')">Edit</button>
       </div>`;
     });
     h+=`</div>`;
@@ -3426,14 +3427,14 @@ function renderCompetency(){
 
   const np=noPracticeOf(p.uid,S.dept);
   if(np.length){
-    h+=`<div class="card"><div class="card-title" style="margin-bottom:6px">今天没机会练的纪录（${np.length}）</div>`;
+    h+=`<div class="card"><div class="card-title" style="margin-bottom:6px">Logged as no chance to practise (${np.length})</div>`;
     np.slice(0,8).forEach(x=>{
       h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr);font-size:12px">
         <b>${esc(x.item_label||x.sop_key||'—')}</b>
         <span style="color:var(--mut)"> · ${String(x.on_date).slice(0,10)}</span>
         <div style="color:var(--mut);margin-top:2px">${esc(x.reason||'')}</div></div>`;
     });
-    h+=`<div style="font-size:11px;color:var(--mut);margin-top:8px">这些不是偷懒 —— 是那天真的没轮到。</div></div>`;
+    h+=`<div style="font-size:11px;color:var(--mut);margin-top:8px">These are not slacking — those items genuinely did not come up.</div></div>`;
   }
   el.innerHTML=h;
 }
@@ -3444,7 +3445,7 @@ function openCompModal(compId){
   const lv=compLevel(p.uid,it.id);
   const ck=compCheck(p.uid,it.id);
   const req=it.level_required||3;
-  const opts=[0,1,2,3,4].map(n=>`<option value="${n}" ${n===lv?'selected':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← 要求':''}</option>`).join('');
+  const opts=[0,1,2,3,4].map(n=>`<option value="${n}" ${n===lv?'selected':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}</option>`).join('');
   const people=(S.teachers||[]).filter(t=>t.id!==(S.me&&S.me.code))
     .map(t=>`<option value="${esc(t.id)}" ${ck&&ck.second_by_code===t.id?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
   const ov=document.createElement('div');
@@ -3452,29 +3453,29 @@ function openCompModal(compId){
   ov.innerHTML=`<div class="modal">
     <div class="modal-hdr">
       <div class="modal-hdr-title">${esc(it.name)}<br>
-        <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)} · ${deptShort(it.dept)} · 要求第 ${req} 级${it.is_safety?' · 安全类':''}</span></div>
+        <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)} · ${deptShort(it.dept)} · requires Level ${req}${it.is_safety?' · safety-critical':''}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">她现在到第几级</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">What level is she at now</div>
       <select id="cmLevel" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${opts}</select>
       <div style="font-size:11px;color:var(--mut);margin-top:6px">
-        1 知道 · 2 会做但要人看着 · 3 能独立做 · 4 能教别人（＝可以当这一项的 Mentor）<br>
-        第 1 级她自己签 · 第 2、3 级 Mentor 签 · 第 4 级管理层签
+        1 Knows · 2 Can do with supervision · 3 Can do independently · 4 Can teach others (= can mentor this item)<br>
+        Level 1 she signs herself · Levels 2 and 3 the Mentor signs · Level 4 management signs
       </div>
       ${it.is_safety?`<div style="margin-top:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">安全类 · 到第 3 级要第二个人一起签</div>
+        <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · reaching Level 3 needs a second signer</div>
         <select id="cmSecond" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
-          <option value="">— 选第二位签核人 —</option>${people}</select>
+          <option value="">— Choose a second signer —</option>${people}</select>
       </div>`:''}
       <div style="margin-top:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">备注（选填）</div>
+        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Note (optional)</div>
         <textarea id="cmNote" rows="2" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(ck&&ck.note||'')}</textarea>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="submitCompLevel('${it.id}',this)">存起来</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitCompLevel('${it.id}',this)">Save</button>
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3488,11 +3489,11 @@ async function submitCompLevel(compId,btn){
   const secEl=document.getElementById('cmSecond');
   const sec=secEl?secEl.value:'';
   const note=(document.getElementById('cmNote')||{}).value||'';
-  if(it.is_safety&&lv>=3&&!sec){alert('这是安全类，到第 3 级要选第二位签核人。');return;}
-  btn.disabled=true;btn.textContent='存…';
+  if(it.is_safety&&lv>=3&&!sec){alert('This is safety-critical — reaching Level 3 needs a second signer.');return;}
+  btn.disabled=true;btn.textContent='Saving…';
   const ok=await setCompLevel(p.uid,compId,it.dept,lv,sec,note);
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();renderCompetency();}
-  else{btn.disabled=false;btn.textContent='存起来';}
+  else{btn.disabled=false;btn.textContent='Save';}
 }
 
 function renderSopLibrary(){
@@ -3500,10 +3501,10 @@ function renderSopLibrary(){
 
   const CAT_META=_RD==='ATC'?{
     daily: {label:'Every Day',          icon:'🔄',color:'#0F6E56',bg:'#E8F7F2',border:'#9FE1CB'},
-    hw:    {label:'功课班 Homework Class',icon:'📓',color:'#185FA5',bg:'#EEF5FF',border:'#AABDD4'},
-    class: {label:'课辅班 Tutorial Class',icon:'📚',color:'#6B3FA0',bg:'#F4F0FF',border:'#C5B3F5'},
-    record:{label:'课后记录 After Class', icon:'📝',color:'#854F0B',bg:'#FFF8E1',border:'#F9CB42'},
-    alert: {label:'上报 Escalation',      icon:'⚡',color:'#A32D2D',bg:'#FCEBEB',border:'#F09595'},
+    hw:    {label:'Homework Class',icon:'📓',color:'#185FA5',bg:'#EEF5FF',border:'#AABDD4'},
+    class: {label:'Tutorial Class',icon:'📚',color:'#6B3FA0',bg:'#F4F0FF',border:'#C5B3F5'},
+    record:{label:'After Class',   icon:'📝',color:'#854F0B',bg:'#FFF8E1',border:'#F9CB42'},
+    alert: {label:'Escalation',    icon:'⚡',color:'#A32D2D',bg:'#FCEBEB',border:'#F09595'},
   }:{
     morning:{label:'Before Class',icon:'🌅',color:'#0F6E56',bg:'#E8F7F2',border:'#9FE1CB'},
     monday: {label:'Monday Only', icon:'📅',color:'#854F0B',bg:'#FFF8E1',border:'#F9CB42'},
@@ -3521,8 +3522,8 @@ function renderSopLibrary(){
   });
 
   let html=`<div style="margin-bottom:12px">
-    <div class="card-title">📖 SOP 内容库 <span class="chip chip-blue">${deptShort(_RD)}</span></div>
-    <div style="font-size:11px;color:var(--mut);margin:3px 0 8px">点任何一步看完整流程${_RD==='SRK'?' + JR / IN / SR approach':' + ATC 1–2 / 3–6 approach'}</div>
+    <div class="card-title">📖 SOP Library <span class="chip chip-blue">${deptShort(_RD)}</span></div>
+    <div style="font-size:11px;color:var(--mut);margin:3px 0 8px">Tap any step for the full flow${_RD==='SRK'?' + JR / IN / SR approach':' + ATC 1–2 / 3–6 approach'}</div>
     <div style="display:flex;gap:5px;flex-wrap:wrap">${Object.keys(DEPT_CFG).map(k=>
       `<button class="btn btn-sm ${_RD===k?'btn-pri':''}" onclick="setRD('${k}');renderSopLibrary()">${k}</button>`).join('')}</div>
   </div>`;
@@ -3557,7 +3558,7 @@ function renderSopLibrary(){
                 <div style="display:flex;align-items:center;gap:6px">
                   <span style="font-size:9px;background:${m.bg};color:${m.color};border:.5px solid ${m.border};padding:2px 7px;border-radius:8px;font-weight:600">${sop.when}</span>
                   <span style="font-size:10px;color:var(--hint)">${stepCount} step${stepCount!==1?'s':''}</span>
-                  <span style="font-size:10px;color:${m.color};margin-left:auto">点开看 →</span>
+                  <span style="font-size:10px;color:${m.color};margin-left:auto">Open →</span>
                 </div>
               </div>
             </div>
@@ -3569,7 +3570,7 @@ function renderSopLibrary(){
 
   // Core Principles card at bottom
   html+=`<div class="card" style="background:var(--sur2)">
-    <div class="card-title" style="margin-bottom:8px">🔑 核心原则</div>
+    <div class="card-title" style="margin-bottom:8px">🔑 Core principles</div>
     <div style="font-size:12px;line-height:1.8">
       <div style="margin-bottom:6px"><strong>Gentle but Firm</strong></div>
       <div>✅ Rules over emotions — use rules, not mood, to manage students</div>
@@ -3598,16 +3599,16 @@ function renderSopLibrary(){
 // ══════════════════════════════════════════════════════════════
 function renderPasswordMgmt(){
   return`<div class="card" style="margin-top:10px">
-    <div class="card-title">🔑 登入与权限</div>
+    <div class="card-title">🔑 Sign-in and access</div>
     <div style="font-size:12px;line-height:1.8;color:var(--mut);margin-top:6px">
-      本系统<b>不再有自己的密码</b>。登入、角色、部门权限全部来自 Academee 平台
-      （权限码 <code>EDU-TrainGo-SRK / GAK / ATC / SRT</code>）。<br>
-      要让某位老师进得来、或改她看得到哪个部门，请到平台的权限设定处理。
+      This system <b>no longer has its own password</b>. Sign-in, role and department access all come from the Academee platform
+      (permission codes <code>EDU-TrainGo-SRK / GAK / ATC / SRT</code>).<br>
+      To let a teacher in, or change which departments she can see, use the platform permission settings.
     </div>
     <div style="margin-top:10px;font-size:12px">
-      你现在的身份：<b>${S.me?(S.me.name||S.me.code):'—'}</b> ·
-      角色 <b>${S.me?S.me.role:'—'}</b> ·
-      看得到 <b>${mySeeDepts().join(' / ')||'—'}</b>
+      You are signed in as: <b>${S.me?(S.me.name||S.me.code):'—'}</b> ·
+      role <b>${S.me?S.me.role:'—'}</b> ·
+      can see <b>${mySeeDepts().join(' / ')||'—'}</b>
     </div>
   </div>`;
 }
@@ -3638,8 +3639,8 @@ function renderMentorHome(){
   if(!plans.length){
     el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
       <div style="font-size:30px;margin-bottom:10px">👨‍🏫</div>
-      <div style="font-weight:600;margin-bottom:5px">你现在没有带人</div>
-      <div style="color:var(--mut);font-size:12px">管理层把新老师指派给你之后，这里就会出现。</div>
+      <div style="font-weight:600;margin-bottom:5px">You are not mentoring anyone right now</div>
+      <div style="color:var(--mut);font-size:12px">Once management assigns a new teacher to you, she will appear here.</div>
     </div>`;return;
   }
 
@@ -3667,30 +3668,30 @@ function renderMentorHome(){
   // ── 第一层：今天做这一件 ──────────────────────────────────
   if(restAll){
     h+=`<div class="card" style="border:2px solid var(--gold)">
-      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">今天是整理日</div>
-      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">陪她把弱的地方补起来</div>
-      <div style="font-size:12px;color:var(--mut)">今天不出任务。看她这一週哪里卡住，带她过一遍。</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">Today is a catch-up day</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Help her close the gaps</div>
+      <div style="font-size:12px;color:var(--mut)">No tasks are issued today. Look at where she got stuck this week and walk her through it.</div>
     </div>`;
   }else if(first){
     h+=`<div class="card" style="border:2px solid var(--acc)">
-      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">今天做这一步</div>
+      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">Do this next</div>
       <div style="font-size:19px;font-weight:700;margin:8px 0 4px;line-height:1.35">${esc(first.task.text)}</div>
-      <div style="font-size:12px;color:var(--mut)">带 ${esc(first.plan.teacherName)} · ${deptShort(first.dept)} · ${dayLabel(first.day)} · ${tagBadge(first.task.tag)}</div>
+      <div style="font-size:12px;color:var(--mut)">With ${esc(first.plan.teacherName)} · ${deptShort(first.dept)} · ${dayLabel(first.day)} · ${tagBadge(first.task.tag)}</div>
       <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-pri" onclick="openMentorPlan('${first.plan.uid}','${first.dept}','tasks')">开始</button>
-        <button class="btn" onclick="openMentorPlan('${first.plan.uid}','${first.dept}','report')">写今天的日报</button>
+        <button class="btn btn-pri" onclick="openMentorPlan('${first.plan.uid}','${first.dept}','tasks')">Start</button>
+        <button class="btn" onclick="openMentorPlan('${first.plan.uid}','${first.dept}','report')">Write today's report</button>
       </div>
     </div>
-    <div style="text-align:center;color:var(--mut);font-size:11px;margin:-4px 0 10px">系统一次只叫你做一件事。</div>`;
+    <div style="text-align:center;color:var(--mut);font-size:11px;margin:-4px 0 10px">One thing at a time.</div>`;
   }else if(anyDuty){
     h+=`<div class="card" style="border:2px solid var(--grn)">
-      <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">今天的都做完了</div>
-      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">剩下写日报</div>
+      <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">Everything for today is done</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Just the day report left</div>
     </div>`;
   }else{
     h+=`<div class="card">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">今天没有要带的课</div>
-      <div style="font-size:12px;color:var(--mut)">你带的新老师今天的课表里，没有还在训练中的部门。</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Nothing to mentor today</div>
+      <div style="font-size:12px;color:var(--mut)">None of the departments still in training appear on your trainees' timetables today.</div>
     </div>`;
   }
 
@@ -3701,7 +3702,7 @@ function renderMentorHome(){
     h+=`<div class="card">
       <div class="card-hdr">
         <span class="card-title">🎓 ${esc(p.teacherName)}</span>
-        ${allDone?'<span class="chip chip-grn">训练跑完了</span>':''}
+        ${allDone?'<span class="chip chip-grn">Training finished</span>':''}
       </div>`;
 
     (p.depts||[]).forEach(pd=>{
@@ -3719,21 +3720,21 @@ function renderMentorHome(){
       const mine=getReport(p.uid,'mentor',day,pd.dept);
       let rpt='';
       if(active&&duty&&!rest){
-        rpt = hers ? '<span class="chip chip-grn" style="font-size:9px">她交了</span>'
-                   : '<span class="chip chip-amb" style="font-size:9px">她还没交</span>';
-        if(!mine) rpt += ' <span class="chip chip-red" style="font-size:9px">你还没交</span>';
+        rpt = hers ? '<span class="chip chip-grn" style="font-size:9px">Hers is in</span>'
+                   : '<span class="chip chip-amb" style="font-size:9px">Hers not in</span>';
+        if(!mine) rpt += ' <span class="chip chip-red" style="font-size:9px">Yours not in</span>';
       }
 
       h+=`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr);cursor:pointer"
              onclick="openMentorPlan('${p.uid}','${pd.dept}','tasks')">
         <span class="chip ${duty&&active?'chip-blue':''}" style="min-width:42px;text-align:center">${deptShort(pd.dept)}</span>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12.5px;font-weight:500">${pd.status==='completed'?'这个部门跑完了':(rest?'整理日':dayLabel(day))} ${rpt}</div>
+          <div style="font-size:12.5px;font-weight:500">${pd.status==='completed'?'Department finished':(rest?'Catch-up day':dayLabel(day))} ${rpt}</div>
           <div style="margin-top:5px">${dots||'<span style="font-size:11px;color:var(--mut)">—</span>'}</div>
         </div>
         <div style="font-size:11.5px;color:var(--mut);white-space:nowrap">
-          ${pd.status==='completed'?'<span style="color:var(--grn)">✅ 完成</span>'
-            :(rest?'整理':(duty?`做完 ${done}／${tasks.length}`:'今天没课'))}
+          ${pd.status==='completed'?'<span style="color:var(--grn)">✅ Done</span>'
+            :(rest?'Catch-up':(duty?`${done}／${tasks.length} done`:'No class today'))}
         </div>
       </div>`;
     });
@@ -3744,36 +3745,36 @@ function renderMentorHome(){
       const mc=miscCountOf(p.teacherCode);
       h+=`<div style="margin-top:10px;padding-top:9px;border-top:.5px solid var(--bdr)">
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
-          <span style="font-weight:500">岗位清单</span>
-          <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} 项达标</span></div>
+          <span style="font-weight:500">Job checklist</span>
+          <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} at required level</span></div>
         <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
         <div style="font-size:11px;color:var(--mut);margin-top:5px">
-          她填过的 MiscGo 上报：${mc===null?'读不到（你没有 MiscGo 权限）':'<b>'+mc+'</b> 笔 · 只供参考，不挡签核'}</div>
-        <div style="margin-top:8px"><button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">签清单 ›</button></div>
+          MiscGo reports she filed: ${mc===null?'cannot read (you have no MiscGo access)':'<b>'+mc+'</b> · reference only, does not block signing'}</div>
+        <div style="margin-top:8px"><button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">Sign checklist ›</button></div>
       </div>`;
     }
     // 她的求助
     const ops=openHelps(p.uid);
     if(ops.length){
       h+=`<div style="margin-top:10px;padding-top:9px;border-top:.5px solid var(--bdr)">
-        <div style="font-size:12px;font-weight:600;color:var(--amb);margin-bottom:6px">🙋 她在等你回覆（${ops.length}）</div>`;
+        <div style="font-size:12px;font-weight:600;color:var(--amb);margin-bottom:6px">🙋 She is waiting for your reply (${ops.length})</div>`;
       ops.slice(0,3).forEach(x=>{
         h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr)">
-          <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">现在就要</span>':''}${esc(x.body)}</div>
-          <div style="margin-top:5px"><button class="btn btn-sm" onclick="event.stopPropagation();openAnswerHelp('${x.id}')">回覆</button></div>
+          <div style="font-size:12.5px">${x.urgent?'<span class="chip chip-red" style="margin-right:5px">Needs help now</span>':''}${esc(x.body)}</div>
+          <div style="margin-top:5px"><button class="btn btn-sm" onclick="event.stopPropagation();openAnswerHelp('${x.id}')">Reply</button></div>
         </div>`;
       });
       h+=`</div>`;
     }
     if(allDone){
       h+= p.released
-        ? `<div class="alert alert-grn" style="margin-top:10px">🎉 她已经被放行了。</div>`
-        : `<div class="alert alert-amb" style="margin-top:10px">她训练跑完了，等管理层放行。</div>`;
+        ? `<div class="alert alert-grn" style="margin-top:10px">🎉 She has been released.</div>`
+        : `<div class="alert alert-amb" style="margin-top:10px">She has finished training — waiting for management to release her.</div>`;
       const cp=completionOf(p.uid);
-      h+=`<div style="margin-top:8px"><button class="btn btn-sm" onclick="openCompletionModal('${p.uid}')">${cp?'改完成交代':'✍️ 写完成交代'}</button>
-        ${cp&&cp.acknowledged_at?'<span style="font-size:11px;color:var(--grn);margin-left:7px">她看过了</span>':(cp?'<span style="font-size:11px;color:var(--mut);margin-left:7px">她还没看</span>':'')}</div>`;
+      h+=`<div style="margin-top:8px"><button class="btn btn-sm" onclick="openCompletionModal('${p.uid}')">${cp?'Edit completion note':'✍️ Write completion note'}</button>
+        ${cp&&cp.acknowledged_at?'<span style="font-size:11px;color:var(--grn);margin-left:7px">She has read it</span>':(cp?'<span style="font-size:11px;color:var(--mut);margin-left:7px">She has not read it yet</span>':'')}</div>`;
     }
-    h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">看她的整份计划 ›</button></div>
+    h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">See her whole plan ›</button></div>
     </div>`;
   });
 
@@ -3796,8 +3797,8 @@ function renderMenteeHome(){
   const p=getPlan();
   if(!p){el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
     <div style="font-size:30px;margin-bottom:10px">🎓</div>
-    <div style="font-weight:600;margin-bottom:5px">还没有训练计划</div>
-    <div style="color:var(--mut);font-size:12px">请管理层先帮你建立。</div></div>`;return;}
+    <div style="font-weight:600;margin-bottom:5px">No training plan yet</div>
+    <div style="color:var(--mut);font-size:12px">Ask management to set one up for you.</div></div>`;return;}
 
   const iso=todayISO();
   const blocks=todayDeptTasks(p);
@@ -3817,12 +3818,12 @@ function renderMenteeHome(){
     const ct=catchupsOf(p.uid,iso);
     const weak=(()=>{const m=[];(p.depts||[]).forEach(d=>{compDone(p.uid,d.dept).missing.forEach(x=>m.push(x));});return m;})();
     h+=`<div class="card" style="border:2px solid var(--gold)">
-      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">今天是整理日</div>
-      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">整理自己，补弱的地方</div>
-      <div style="font-size:12px;color:var(--mut)">今天不出训练任务，也不算训练日。</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">Today is a catch-up day</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Work on your weak spots</div>
+      <div style="font-size:12px;color:var(--mut)">No training tasks today, and it does not count as a training day.</div>
     </div>`;
-    h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">管理层派给你的（${ct.length}）</div>`;
-    if(!ct.length){h+=`<div style="font-size:12px;color:var(--mut)">今天没有派任务给你。</div>`;}
+    h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">Assigned by management (${ct.length})</div>`;
+    if(!ct.length){h+=`<div style="font-size:12px;color:var(--mut)">Nothing assigned to you today.</div>`;}
     ct.forEach(x=>{
       const done=x.status==='completed';
       h+=`<div style="display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:.5px solid var(--bdr)">
@@ -3834,38 +3835,38 @@ function renderMenteeHome(){
     });
     h+=`</div>`;
     if(weak.length){
-      h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">你自己该补的（清单还差 ${weak.length} 项）</div>`;
+      h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">Your own gaps (${weak.length} still short)</div>`;
       weak.slice(0,6).forEach(x=>{h+=`<div style="font-size:12.5px;padding:6px 0;border-bottom:.5px solid var(--bdr)">${esc(x.name)}
-        <span class="chip" style="margin-left:5px">要到第 ${x.level_required} 级</span></div>`;});
-      if(weak.length>6)h+=`<div style="font-size:11.5px;color:var(--mut);margin-top:7px">…还有 ${weak.length-6} 项，去清单页看。</div>`;
-      h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">看整张清单 ›</button></div></div>`;
+        <span class="chip" style="margin-left:5px">needs Level ${x.level_required}</span></div>`;});
+      if(weak.length>6)h+=`<div style="font-size:11.5px;color:var(--mut);margin-top:7px">…and ${weak.length-6} more — see the Checklist page.</div>`;
+      h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">See the whole checklist ›</button></div></div>`;
     }
   }else if(first){
     h+=`<div class="card" style="border:2px solid var(--acc)">
-      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">今天做这一步</div>
+      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">Do this next</div>
       <div style="font-size:19px;font-weight:700;margin:8px 0 4px;line-height:1.35">${esc(first.text)}</div>
       <div style="font-size:12px;color:var(--mut)">${deptShort(firstDept)} · ${dayLabel(firstDay)} · ${tagBadge(first.tag)}</div>
       <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-pri" onclick="goPage('tasks')">开始</button>
-        <button class="btn" onclick="goPage('report')">写今天的日报</button>
+        <button class="btn btn-pri" onclick="goPage('tasks')">Start</button>
+        <button class="btn" onclick="goPage('report')">Write today's report</button>
       </div>
     </div>
-    <div style="text-align:center;color:var(--mut);font-size:11px;margin:-4px 0 10px">系统一次只叫你做一件事。</div>`;
+    <div style="text-align:center;color:var(--mut);font-size:11px;margin:-4px 0 10px">One thing at a time.</div>`;
   }else if(blocks.length){
     h+=`<div class="card" style="border:2px solid var(--grn)">
-      <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">今天的都做完了</div>
-      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">剩下写日报</div>
-      <div style="margin-top:12px"><button class="btn btn-pri" onclick="goPage('report')">写今天的日报</button></div>
+      <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">Everything for today is done</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Just the day report left</div>
+      <div style="margin-top:12px"><button class="btn btn-pri" onclick="goPage('report')">Write today's report</button></div>
     </div>`;
   }else{
     h+=`<div class="card">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">今天没有排到训练的课</div>
-      <div style="font-size:12px;color:var(--mut)">你今天的课表没有训练中的部门。可以自己看 SOP 复习。</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">No training class scheduled today</div>
+      <div style="font-size:12px;color:var(--mut)">None of the departments you are training in are on your timetable today. You can review the SOPs on your own.</div>
     </div>`;
   }
 
   // ── 第二层：这一週（用件数，不用天数）──
-  h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">这一週</div>`;
+  h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">This week</div>`;
   (p.depts||[]).forEach(pd=>{
     setRD(pd.dept);
     const day=pd.currentDay||1;
@@ -3877,37 +3878,37 @@ function renderMenteeHome(){
     h+=`<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--bdr)">
       <span class="chip ${duty?'chip-blue':''}" style="min-width:42px;text-align:center">${deptShort(pd.dept)}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12.5px;font-weight:500">${pd.status==='completed'?'这个部门跑完了':(rest?'整理日':dayLabel(day))}</div>
+        <div style="font-size:12.5px;font-weight:500">${pd.status==='completed'?'Department finished':(rest?'Catch-up day':dayLabel(day))}</div>
         <div style="margin-top:5px">${dots||'<span style="font-size:11px;color:var(--mut)">—</span>'}</div>
       </div>
       <div style="font-size:11.5px;color:var(--mut);white-space:nowrap">
-        ${pd.status==='completed'?'<span style="color:var(--grn)">✅ 完成</span>'
-          :(rest?'整理':(duty?`做完 ${done}／${tasks.length}`:'今天没课'))}
+        ${pd.status==='completed'?'<span style="color:var(--grn)">✅ Done</span>'
+          :(rest?'Catch-up':(duty?`${done}／${tasks.length} done`:'No class today'))}
       </div>
     </div>`;
   });
-  h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('progress')">我的整份计划 ›</button></div></div>`;
+  h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('progress')">My whole plan ›</button></div></div>`;
 
   // ── 清单进度 ──
   const cw=planCompDone(p);
   if(cw.total){
     h+=`<div class="card">
-      <div class="card-title" style="margin-bottom:6px">岗位清单</div>
+      <div class="card-title" style="margin-bottom:6px">Job checklist</div>
       <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
-        <span>${cw.ok}／${cw.total} 项达标</span>
-        <span style="color:var(--mut)">${cw.done?'全部齐了':'完成看的是这张清单，不是天数'}</span></div>
-      <div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">看清单 ›</button></div>
+        <span>${cw.ok}／${cw.total} at required level</span>
+        <span style="color:var(--mut)">${cw.done?'All complete':'Completion is judged on this checklist, not the day count'}</span></div>
+      <div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">See checklist ›</button></div>
     </div>`;
   }
 
   // ── 卡住了 / 没机会练 ──
   h+=`<div class="card">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-pri" onclick="openHelpModal()">🙋 我卡住了</button>
-      <button class="btn" onclick="openNoPracticeModal()">🕳️ 今天没机会练</button>
+      <button class="btn btn-pri" onclick="openHelpModal()">🙋 I am stuck</button>
+      <button class="btn" onclick="openNoPracticeModal()">🕳️ No chance to practise today</button>
     </div>
-    <div style="font-size:11.5px;color:var(--mut);margin-top:8px">问不是丢脸，猜才是。没轮到就记一笔，不会被当成偷懒。</div>`;
+    <div style="font-size:11.5px;color:var(--mut);margin-top:8px">Asking is not embarrassing — guessing is. Log anything that did not come up; it will not look like slacking.</div>`;
   const myHelps=helpsOf(p.uid).slice(0,4);
   if(myHelps.length){
     h+=`<div style="margin-top:12px;border-top:.5px solid var(--bdr);padding-top:9px">`;
@@ -3915,7 +3916,7 @@ function renderMenteeHome(){
       h+=`<div style="padding:7px 0;border-bottom:.5px solid var(--bdr)">
         <div style="font-size:12.5px">${esc(x.body)}</div>
         <div style="font-size:11px;color:var(--mut);margin-top:3px">
-          ${x.status==='completed'?'<span style="color:var(--grn)">已回覆</span> · '+esc(x.answered_by_code||''):'<span style="color:var(--amb)">等回覆</span>'}
+          ${x.status==='completed'?'<span style="color:var(--grn)">Answered</span> · '+esc(x.answered_by_code||''):'<span style="color:var(--amb)">Waiting for a reply</span>'}
         </div>
         ${x.answer?`<div style="font-size:12px;background:var(--sur2);padding:7px 9px;border-radius:6px;margin-top:5px">${esc(x.answer)}</div>`:''}
       </div>`;
@@ -3928,18 +3929,18 @@ function renderMenteeHome(){
   const allDone=(p.depts||[]).length&&(p.depts||[]).every(x=>x.status==='completed');
   if(allDone){
     h+=p.released
-      ? `<div class="alert alert-grn">🎉 你已经被放行，可以自己带班了。</div>`
-      : `<div class="alert alert-amb">训练都跑完了，等管理层放行。</div>`;
+      ? `<div class="alert alert-grn">🎉 You have been released — you can take a class on your own.</div>`
+      : `<div class="alert alert-amb">Training is finished. Waiting for management to release you.</div>`;
     const cp=completionOf(p.uid);
     if(cp){
       h+=`<div class="card" style="border:2px solid var(--grn)">
-        <div class="card-title" style="margin-bottom:8px">🎓 给你的交代</div>
-        ${cp.summary?`<div style="font-size:11px;font-weight:600;color:var(--mut)">这一轮你走过什么</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.summary)}</div>`:''}
-        ${cp.strengths?`<div style="font-size:11px;font-weight:600;color:var(--mut)">你哪里做得好</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.strengths)}</div>`:''}
-        ${cp.watch?`<div style="font-size:11px;font-weight:600;color:var(--mut)">上岗以后要自己盯着的</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.watch)}</div>`:''}
-        <div style="font-size:11px;color:var(--mut)">${esc(cp.issued_by_code||'')} 写于 ${String(cp.issued_at).slice(0,10)}</div>
-        ${cp.acknowledged_at?`<div style="font-size:11.5px;color:var(--grn);margin-top:8px">✅ 你已经看过了</div>`
-          :`<div style="margin-top:10px"><button class="btn btn-pri btn-sm" onclick="doAckCompletion('${cp.id}')">我看过了</button></div>`}
+        <div class="card-title" style="margin-bottom:8px">🎓 Your completion note</div>
+        ${cp.summary?`<div style="font-size:11px;font-weight:600;color:var(--mut)">What you went through</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.summary)}</div>`:''}
+        ${cp.strengths?`<div style="font-size:11px;font-weight:600;color:var(--mut)">What you did well</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.strengths)}</div>`:''}
+        ${cp.watch?`<div style="font-size:11px;font-weight:600;color:var(--mut)">What to watch once you are on your own</div><div style="font-size:13px;margin:3px 0 10px;line-height:1.5">${esc(cp.watch)}</div>`:''}
+        <div style="font-size:11px;color:var(--mut)">Written by ${esc(cp.issued_by_code||'')} on ${String(cp.issued_at).slice(0,10)}</div>
+        ${cp.acknowledged_at?`<div style="font-size:11.5px;color:var(--grn);margin-top:8px">✅ You have read this</div>`
+          :`<div style="margin-top:10px"><button class="btn btn-pri btn-sm" onclick="doAckCompletion('${cp.id}')">I have read this</button></div>`}
       </div>`;
     }
   }
@@ -3963,7 +3964,7 @@ function renderMgmt(){
     return `<div class="cohort-card">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <div><span style="font-weight:600;font-size:13px">${esc(p.teacherName)}</span>
-          ${p.released?'<span class="chip chip-grn" style="margin-left:6px">已放行</span>':''}</div>
+          ${p.released?'<span class="chip chip-grn" style="margin-left:6px">Released</span>':''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="openPlanEdit('${p.uid}')">✏️</button>
           ${adv}
@@ -3971,22 +3972,22 @@ function renderMgmt(){
         </div>
       </div>
       <div style="margin-top:6px">${deptChips}</div>
-      <div class="cohort-meta">Mentor：${esc(p.mentorName)} · 开始 ${fmtDate(p.startDate)}${tgt?' · 预计完成 '+fmtDate(tgt):''}</div>
-      ${(p.exceptions||[]).length?`<div class="cohort-meta">标注 ${p.exceptions.length} 天：${p.exceptions.slice(0,2).map(e=>(e.kind==='consolidate'?'整理日 ':'跳过 ')+fmtDate(e.on_date)).join('、')}${p.exceptions.length>2?' …':''}</div>`:''}
+      <div class="cohort-meta">Mentor: ${esc(p.mentorName)} · started ${fmtDate(p.startDate)}${tgt?' · target '+fmtDate(tgt):''}</div>
+      ${(p.exceptions||[]).length?`<div class="cohort-meta">${p.exceptions.length} day(s) marked: ${p.exceptions.slice(0,2).map(e=>(e.kind==='consolidate'?'Catch-up ':'Skipped ')+fmtDate(e.on_date)).join(', ')}${p.exceptions.length>2?' …':''}</div>`:''}
       ${allDone?(p.released
-        ? `<div class="cohort-meta" style="color:var(--grn)">已放行${p.releasedAt?' · '+fmtDate(String(p.releasedAt).slice(0,10)):''}</div>`
+        ? `<div class="cohort-meta" style="color:var(--grn)">Released${p.releasedAt?' · '+fmtDate(String(p.releasedAt).slice(0,10)):''}</div>`
         : (canRelease()
-           ? `<div style="margin-top:8px"><button class="btn btn-pri btn-sm" onclick="doRelease('${p.uid}')">✅ 放行：可以自己带班</button></div>`
-           : `<div class="cohort-meta" style="color:var(--amb)">等放行人点头（你不在名单里）</div>`)):''}
+           ? `<div style="margin-top:8px"><button class="btn btn-pri btn-sm" onclick="doRelease('${p.uid}')">✅ Release: can take a class alone</button></div>`
+           : `<div class="cohort-meta" style="color:var(--amb)">Waiting for a releaser (you are not on the list)</div>`)):''}
     </div>`;
   }).join('');
 
   el.innerHTML=`
     <div class="card">
-      <div class="card-hdr"><span class="card-title">⚙️ 训练计划</span>
-        <button class="btn btn-pri" onclick="openNewPlan()">+ 新增计划</button></div>
-      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">一位新老师一份计划。计划里每个部门各自跑自己的进度。</div>
-      ${S.plans.length?rows:`<div style="text-align:center;padding:28px;color:var(--mut)">还没有计划。</div>`}
+      <div class="card-hdr"><span class="card-title">⚙️ Training plans</span>
+        <button class="btn btn-pri" onclick="openNewPlan()">+ New plan</button></div>
+      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">One plan per new teacher. Each department inside a plan runs its own progress line.</div>
+      ${S.plans.length?rows:`<div style="text-align:center;padding:28px;color:var(--mut)">No plans yet.</div>`}
     </div>
     ${renderReleaserCard()}
     ${renderPasswordMgmt()}`;
@@ -3995,19 +3996,19 @@ function renderMgmt(){
 function renderReleaserCard(){
   const list=(S.releasers||[]);
   return `<div class="card" style="margin-top:10px">
-    <div class="card-title">✅ 放行人名单</div>
+    <div class="card-title">✅ Releaser list</div>
     <div style="font-size:11px;color:var(--mut);margin:4px 0 8px">
-      OWNER 与 TOP_MGMT 预设可以放行。其余要被加进名单才行 —— 名单在资料库，画面只读。</div>
-    <div>${list.length?list.map(c=>`<span class="chip chip-amb" style="margin-right:5px">${esc(teacherName(c))}</span>`).join(''):'<span style="color:var(--mut);font-size:12px">名单是空的（只有 OWNER / TOP_MGMT 可以放行）</span>'}</div>
+      OWNER and TOP_MGMT can release by default. Anyone else has to be added to the list — the list lives in the database and is read-only here.</div>
+    <div>${list.length?list.map(c=>`<span class="chip chip-amb" style="margin-right:5px">${esc(teacherName(c))}</span>`).join(''):'<span style="color:var(--mut);font-size:12px">The list is empty (only OWNER / TOP_MGMT can release)</span>'}</div>
   </div>`;
 }
 
 async function doRelease(uid){
   const p=getPlan(uid); if(!p)return;
-  const note=prompt(`放行 ${p.teacherName}？\n\n放行后她可以自己带班。这个动作会留下纪录（谁、何时）。\n\n备注（可留白）：`,'');
+  const note=prompt(`Release ${p.teacherName}?\n\nOnce released she can take a class on her own. This action is recorded (who and when).\n\nNote (optional):`,'');
   if(note===null)return;
   await setReleased(uid,true,note);
-  alert('✅ 已放行，纪录留下了。');
+  alert('✅ Released. The record has been kept.');
 }
 
 // ── 新增计划 ─────────────────────────────────────────────────
@@ -4017,23 +4018,23 @@ function openNewPlan(){
       <span>${o.code==='SRK'?'✓':'＋'}</span> ${o.code}</span>`).join('');
   const ov=document.createElement('div');ov.className='overlay';
   ov.innerHTML=`<div class="modal" style="max-width:460px">
-    <div class="modal-hdr"><span class="modal-hdr-title">新增训练计划</span>
+    <div class="modal-hdr"><span class="modal-hdr-title">New training plan</span>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
-      <label class="lbl">新老师 *</label>
-      <select id="np_teacher"><option value="">— 请选择 —</option>${tOpts}</select>
+      <label class="lbl">New teacher *</label>
+      <select id="np_teacher"><option value="">— Choose —</option>${tOpts}</select>
       <label class="lbl">Mentor *</label>
-      <select id="np_mentor"><option value="">— 请选择 —</option>${tOpts}</select>
-      <label class="lbl">她要受训哪些部门 *（可多选）</label>
+      <select id="np_mentor"><option value="">— Choose —</option>${tOpts}</select>
+      <label class="lbl">Which departments she trains in * (choose one or more)</label>
       <div class="chk" id="np_depts">${dChips}</div>
-      <label class="lbl" style="margin-top:10px">开始日期 *</label>
+      <label class="lbl" style="margin-top:10px">Start date *</label>
       <input type="date" id="np_start" value="${getTodayISO()}" onchange="npPreview()">
       <div id="np_preview" style="font-size:11px;color:var(--mut);margin-top:6px;line-height:1.7"></div>
-      <label class="lbl">备注</label><textarea id="np_note" rows="2" placeholder="可留白"></textarea>
+      <label class="lbl">Note</label><textarea id="np_note" rows="2" placeholder="Optional"></textarea>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="createPlan()">✅ 建立</button></div>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="createPlan()">✅ Create</button></div>
   </div>`;
   document.body.appendChild(ov);
   npPreview();
@@ -4062,17 +4063,17 @@ function npPreview(){
       cur.setDate(cur.getDate()+1);
     }
     const uniq=[...new Set(skipped)];
-    return `${d}：${fmtDate(m[1])} → ${fmtDate(m[14])}${uniq.length?`（跳过 ${uniq.slice(0,2).join('、')}${uniq.length>2?' 等':''}）`:''}`;
+    return `${d}: ${fmtDate(m[1])} → ${fmtDate(m[14])}${uniq.length?` (skipping ${uniq.slice(0,2).join(', ')}${uniq.length>2?' etc.':''})`:''}`;
   });
-  box.innerHTML='週一到週五都是训练日，碰到假期自动往后挪。整理日建好之后自己标。<br>'+lines.join('<br>');
+  box.innerHTML='Monday to Friday are training days; public holidays push everything back automatically. Catch-up days are marked by hand after the plan is created.<br>'+lines.join('<br>');
 }
 async function createPlan(){
   const tc=document.getElementById('np_teacher')?.value;
   const mc=document.getElementById('np_mentor')?.value;
   const st=document.getElementById('np_start')?.value;
   const depts=npSelectedDepts();
-  if(!tc||!mc||!st||!depts.length){alert('新老师、Mentor、部门、开始日期都要填。');return;}
-  if(tc===mc){alert('新老师与 Mentor 不能是同一个人。');return;}
+  if(!tc||!mc||!st||!depts.length){alert('New teacher, Mentor, departments and start date are all required.');return;}
+  if(tc===mc){alert('The new teacher and the Mentor cannot be the same person.');return;}
   const uid='plan_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
   const plan={uid:uid,teacherCode:tc,mentorCode:mc,startDate:st,
     note:document.getElementById('np_note')?.value||'',status:'active',depts:depts.map(d=>({dept:d}))};
@@ -4082,56 +4083,56 @@ async function createPlan(){
   document.querySelector('.overlay')?.remove();
   await reloadAll();
   goPage('mgmt');
-  alert(`✅ ${teacherName(tc)} 的训练计划建好了（${depts.join(' / ')}）`);
+  alert(`✅ Training plan created for ${teacherName(tc)} (${depts.join(' / ')})`);
 }
 
 // ── 编辑计划：Mentor 换人 · 标注例外 ─────────────────────────
 function openPlanEdit(uid){
   const p=getPlan(uid); if(!p)return;
   const tOpts=S.teachers.map(t=>`<option value="${esc(t.id)}" ${t.id===p.mentorCode?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
-  const dOpts=['<option value="">全部部门</option>'].concat((p.depts||[]).map(d=>`<option value="${d.dept}">${d.dept}</option>`)).join('');
+  const dOpts=['<option value="">All departments</option>'].concat((p.depts||[]).map(d=>`<option value="${d.dept}">${d.dept}</option>`)).join('');
   const ov=document.createElement('div');ov.className='overlay';
   ov.innerHTML=`<div class="modal" style="max-width:460px;max-height:90vh;overflow-y:auto">
-    <div class="modal-hdr"><span class="modal-hdr-title">${esc(p.teacherName)} 的计划</span>
+    <div class="modal-hdr"><span class="modal-hdr-title">${esc(p.teacherName)}'s plan</span>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <label class="lbl">Mentor</label><select id="pe_mentor">${tOpts}</select>
-      <label class="lbl">开始日期</label><input type="date" id="pe_start" value="${p.startDate}">
-      <label class="lbl">备注</label><textarea id="pe_note" rows="2">${esc(p.note||'')}</textarea>
+      <label class="lbl">Start date</label><input type="date" id="pe_start" value="${p.startDate}">
+      <label class="lbl">Note</label><textarea id="pe_note" rows="2">${esc(p.note||'')}</textarea>
 
       <div style="margin-top:14px;border-top:.5px solid var(--bdr);padding-top:12px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:3px">📅 标注某一天</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">📅 Mark a day</div>
         <div style="font-size:10px;color:var(--mut);margin-bottom:8px">
-          <b>跳过不算</b>：学校临时有活动、班级取消 —— 那天不算训练日，往后顺延。<br>
-          <b>整理日</b>：她整理自己、补弱的地方；你可以派任务给她。那天不出训练任务。</div>
+          <b>Skip</b>: school event, class cancelled — that day does not count as a training day and everything shifts back.<br>
+          <b>Catch-up day</b>: she works on her own weak spots and you can assign her tasks. No training tasks are issued.</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <input type="date" id="pe_ex_date" style="flex:1;min-width:120px">
           <select id="pe_ex_kind" style="width:auto">
-            <option value="skip">跳过不算</option>
-            <option value="consolidate">整理日</option>
+            <option value="skip">Skip</option>
+            <option value="consolidate">Catch-up day</option>
           </select>
           <select id="pe_ex_dept" style="width:auto">${dOpts}</select>
         </div>
-        <input type="text" id="pe_ex_reason" placeholder="原因（必填）" style="margin-top:6px">
-        <button class="btn btn-sm btn-pri" style="margin-top:6px" onclick="addExceptionFromForm('${p.uid}')">+ 标注</button>
+        <input type="text" id="pe_ex_reason" placeholder="Reason (required)" style="margin-top:6px">
+        <button class="btn btn-sm btn-pri" style="margin-top:6px" onclick="addExceptionFromForm('${p.uid}')">+ Mark</button>
         <div style="margin-top:8px">
           ${(p.exceptions||[]).map(e=>`<div style="font-size:11px;color:var(--mut);padding:3px 0">
-            <span class="chip ${e.kind==='consolidate'?'chip-amb':''}" style="margin-right:5px">${e.kind==='consolidate'?'整理日':'跳过'}</span>
-            ${fmtDate(e.on_date)}${e.dept?' · '+e.dept:' · 全部'} — ${esc(e.reason)}</div>`).join('')||'<span style="font-size:11px;color:var(--mut)">还没有标注</span>'}
+            <span class="chip ${e.kind==='consolidate'?'chip-amb':''}" style="margin-right:5px">${e.kind==='consolidate'?'Catch-up':'Skip'}</span>
+            ${fmtDate(e.on_date)}${e.dept?' · '+e.dept:' · All'} — ${esc(e.reason)}</div>`).join('')||'<span style="font-size:11px;color:var(--mut)">Nothing marked yet</span>'}
         </div>
       </div>
 
       <div style="margin-top:14px;border-top:.5px solid var(--bdr);padding-top:12px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:3px">👨‍🏫 Mentor 换人纪录</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">👨‍🏫 Mentor handover history</div>
         <div style="margin-top:6px">
           ${(p.mentorHistory||[]).map(e=>`<div style="font-size:11px;color:var(--mut);padding:3px 0">
-            ${esc(teacherName(e.mentor_code))} — 从第 ${e.from_day||'?'} 天起${e.dept?' · '+e.dept:''}</div>`).join('')||'<span style="font-size:11px;color:var(--mut)">没有换过</span>'}
+            ${esc(teacherName(e.mentor_code))} — from day ${e.from_day||'?'}${e.dept?' · '+e.dept:''}</div>`).join('')||'<span style="font-size:11px;color:var(--mut)">No handover</span>'}
         </div>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">取消</button>
-      <button class="btn btn-pri" onclick="savePlanEdit('${p.uid}')">储存</button></div>
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="savePlanEdit('${p.uid}')">Save</button></div>
   </div>`;
   document.body.appendChild(ov);
 }
@@ -4140,7 +4141,7 @@ async function addExceptionFromForm(uid){
   const dp=document.getElementById('pe_ex_dept')?.value||null;
   const kd=document.getElementById('pe_ex_kind')?.value||'skip';
   const r=document.getElementById('pe_ex_reason')?.value.trim();
-  if(!d||!r){alert('日期和原因都要填。');return;}
+  if(!d||!r){alert('Both the date and the reason are required.');return;}
   await addException(uid,dp,d,r,kd);
   document.querySelector('.overlay')?.remove();
   openPlanEdit(uid);
@@ -4154,19 +4155,19 @@ async function savePlanEdit(uid){
   await savePlan(p);
   document.querySelector('.overlay')?.remove();
   await reloadAll();
-  alert('✅ 已储存');
+  alert('✅ Saved');
 }
 async function deletePlan(uid){
   const p=getPlan(uid); if(!p)return;
-  if(!confirm(`删掉 ${p.teacherName} 的整份计划？\n日报与打勾会一起删掉，无法复原。`))return;
+  if(!confirm(`Delete ${p.teacherName}'s whole plan?\nDay reports and task checks go with it. This cannot be undone.`))return;
   const {error}=await sb.from('traingo_plan').delete().eq('client_uid',uid);
-  if(error){alert('删不掉：'+error.message);return;}
+  if(error){alert('Could not delete: '+error.message);return;}
   S.planUid=null;
   await reloadAll();
   goPage('mgmt');
 }
 
-const HANDBOOK = JSON.parse("[\n  {\n    \"id\": \"about\",\n    \"num\": \"1.1\",\n    \"title\": \"About Us\",\n    \"icon\": \"🏫\",\n    \"subtitle\": \"Who We Are — Our Story & Departments\",\n    \"sections\": [\n      {\n        \"heading\": \"Welcome to Academee\",\n        \"body\": \"We are more than just an education centre — we are a family dedicated to nurturing star students who are independent, confident, and shine brightly wherever they go.\\n\\nFounded in Muar, Academee has grown to become a trusted name in quality education, consistently ranking in the Top 10 nationally among 200+ Smart Reader Kids centres. Over the years we have educated approximately 10,000 students, many of whom have achieved admissions to prestigious universities and scholarship programmes.\"\n      },\n      {\n        \"heading\": \"Our Four Departments\",\n        \"departments\": [\n          {\n            \"code\": \"SRK/GAK\",\n            \"full\": \"Smart Reader Kids / Genius Academic Kids\",\n            \"age\": \"Ages 3–6\",\n            \"theme\": \"Gentle but Firm 温柔而坚定\",\n            \"focus\": \"Nurture independent, confident, shining little stars who are proud to be Smart Reader students\"\n          },\n          {\n            \"code\": \"ATC\",\n            \"full\": \"After-school Tuition Centre\",\n            \"age\": \"Ages 7–12\",\n            \"theme\": \"Strict but Not Fierce 严而不凶\",\n            \"focus\": \"Nurture independent, proactive, high-achieving primary students who take pride in being Smart Reader students\"\n          },\n          {\n            \"code\": \"SRT\",\n            \"full\": \"Smart Reader Tuition\",\n            \"age\": \"Ages 5–15\",\n            \"theme\": \"Solid & Interesting 扎实而有趣\",\n            \"focus\": \"Build solid English foundation and transform students into English masters who proudly represent Smart Reader\"\n          },\n          {\n            \"code\": \"CIY\",\n            \"full\": \"Coding It Yourself\",\n            \"age\": \"Ages 6–15\",\n            \"theme\": \"Interesting & Substantial 有趣而有料\",\n            \"focus\": \"Open a tech window to the future, nurturing logical thinking and creativity through coding\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Our Core Values\",\n        \"bullets\": [\n          \"⭐ NURTURE STAR STUDENTS — Students who are independent, confident, and shine brightly\",\n          \"🏆 BUILD BRAND PRIDE — Students proudly say: I am a Smart Reader student\",\n          \"📚 EXCELLENCE IN TEACHING — Follow established methods while maintaining quality standards\",\n          \"🔄 CONTINUOUS IMPROVEMENT — Always learning, always growing, always striving for better\",\n          \"🤝 COLLABORATIVE SPIRIT — Teachers, management, and parents working together for student success\",\n          \"❤️ CARING & PROFESSIONAL — Genuine care for each child combined with high professional standards\"\n        ]\n      }\n    ]\n  },\n  {\n    \"id\": \"core\",\n    \"num\": \"1.2\",\n    \"title\": \"Core Message to All Teachers\",\n    \"icon\": \"💬\",\n    \"subtitle\": \"Being Firm, Not Fierce, Is a Teacher's Strongest Presence\",\n    \"sections\": [\n      {\n        \"heading\": \"The Core Message\",\n        \"body\": \"As teachers, we must be firm, but never fierce.\\nFierceness only makes students fear you.\\nFirmness earns their respect, trust, and cooperation.\\n\\nWhat students truly fear is not your volume or facial expression — but this:\\n• Promises must be kept: Do you keep your word?\\n• Rules apply equally to everyone: Are you fair?\\n• Correct behaviour, guide improvement: Are you firm yet kind?\"\n      },\n      {\n        \"heading\": \"In the Classroom\",\n        \"twoCol\": [\n          {\n            \"good\": [\n              \"✅ Rules matter more than emotions\",\n              \"✅ Methods work better than raised voices\",\n              \"✅ Stability is more powerful than intimidation\"\n            ],\n            \"bad\": [\n              \"❌ No crazy shouting\",\n              \"❌ No sarcasm or mocking\",\n              \"❌ No handling problems when emotions are high\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"Three Core Principles (Must Follow)\",\n        \"numbered\": [\n          {\n            \"title\": \"① Be Firm in Rules, Not in Emotions\",\n            \"body\": \"No banging tables, no shouting, no sarcasm. Do not change how you handle issues based on mood. Handle all matters according to rules.\\n\\n👉 Teachers enforce rules, not emotions.\"\n          },\n          {\n            \"title\": \"② Address the Behaviour, Not the Person\",\n            \"body\": \"Do not label students. Do not attack character or personality.\\n\\n❌ Why are you so lazy?\\n✅ Please complete your tasks now.\\n\\n👉 Correct the behaviour. Get straight to the point.\"\n          },\n          {\n            \"title\": \"③ Say It — and Do It. Be Consistent.\",\n            \"body\": \"What applies today applies tomorrow. Same standard for everyone — class leaders, high achievers, and struggling students alike.\\n\\n👉 Students fear double standards, not strict rules.\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Standard Procedures for Handling Student Issues\",\n        \"numbered\": [\n          {\n            \"title\": \"1. When Setting Rules\",\n            \"body\": \"Calm tone, firm attitude. Rules and execution steps must be clear. No emotional explanation. No bargaining.\"\n          },\n          {\n            \"title\": \"2. When a Rule Is Broken\",\n            \"body\": \"Always follow this order:\\n👉 Reminder once → Rule broken → Enforce immediately (but remain calm)\\n\\n⚠️ CRITICAL: When the FIRST student breaks the rule, stop immediately. If you wait until the situation worsens, you lose control.\\n\\nDo not argue or negotiate. State the rule once, clearly. State what they need to do. Do not tolerate.\"\n          },\n          {\n            \"title\": \"3. When Giving Correction\",\n            \"body\": \"IMPORTANT: No aggressive criticism, no intimidation — speak directly to the point.\\n\\nFor MINOR issues: Speak privately. Listen first, then guide with care.\\nFor SERIOUS issues affecting the class: Address publicly. Explain the reason. Focus on behaviour, not person.\"\n          },\n          {\n            \"title\": \"4. Always Leave a Way Forward After Mistakes\",\n            \"body\": \"Allow correction, but require responsibility. Find any opportunity to praise the corrected student.\\n\\nProcess: Mistake → Reflection → Improvement\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"The Most Important Message\",\n        \"highlight\": \"A calm attitude does not mean low expectations. Firm action is true kindness.\\n\\nEducation is not about who is fiercer. It is about who can turn rules into students habits.\"\n      }\n    ]\n  },\n  {\n    \"id\": \"special\",\n    \"num\": \"1.3\",\n    \"title\": \"What Makes Us Special\",\n    \"icon\": \"✨\",\n    \"subtitle\": \"Our Common DNA — What Every Teacher Must Know\",\n    \"sections\": [\n      {\n        \"heading\": \"Our Common DNA\",\n        \"bullets\": [\n          \"❤️ Make students LOVE coming to Smart Reader classes\",\n          \"❤️ Make students LOVE their teachers\",\n          \"❤️ Make students LOVE learning\",\n          \"🏆 Make students PROUD to say: I am a Smart Reader student\"\n        ]\n      },\n      {\n        \"heading\": \"Three Core Principles\",\n        \"numbered\": [\n          {\n            \"title\": \"① Rules Before Emotions 规则在前，情绪在后\",\n            \"body\": \"Use rules to manage students, not emotions. Stay calm when handling problems. Be consistent: say it and do it.\\n\\n👉 Students fear double standards, not strict rules.\"\n          },\n          {\n            \"title\": \"② Criticise the Behaviour, Protect the Person\",\n            \"body\": \"Correct what they DID, not who they ARE. Never label students. Separate action from identity.\\n\\n👉 You forgot your homework — not You are lazy.\"\n          },\n          {\n            \"title\": \"③ Be Consistent 保持一致\",\n            \"body\": \"Same rules apply to everyone. Today standard is tomorrow standard. No favourites, no exceptions.\\n\\n👉 Consistency builds trust and security.\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Teacher Red Lines 🚫 (Absolutely Prohibited)\",\n        \"redlines\": [\n          \"NO shouting, table-banging, or throwing things\",\n          \"NO sarcasm or mockery\",\n          \"NO personal attacks or labelling\",\n          \"NO bringing up past mistakes\",\n          \"NO public humiliation\",\n          \"NO treating students differently based on your mood\"\n        ]\n      },\n      {\n        \"heading\": \"The Most Important Message\",\n        \"highlight\": \"Education is not about MANAGEMENT. It is about RELATIONSHIP.\\n\\nWhen students like you, they will:\\n• Listen to you   • Want to learn\\n• Actively improve   • Become your pride\\n\\nMake students love coming, love you, love learning.\\nThis is the essence of great teaching.\"\n      }\n    ]\n  },\n  {\n    \"id\": \"conduct\",\n    \"num\": \"2.1\",\n    \"title\": \"Code of Conduct\",\n    \"icon\": \"📋\",\n    \"subtitle\": \"Guided by Rules, United by Standards\",\n    \"sections\": [\n      {\n        \"heading\": \"A. Attendance & Working Time\",\n        \"subsections\": [\n          {\n            \"sub\": \"Access Card\",\n            \"bullets\": [\n              \"One (1) access card issued upon joining\",\n              \"Replacement fee: RM50 per lost card\"\n            ]\n          },\n          {\n            \"sub\": \"Punch In (Clock In)\",\n            \"bullets\": [\n              \"Arrive and clock in 15 minutes before official working time (8:00am)\",\n              \"Avoid being late — lateness affects attendance records\",\n              \"If technical issue with attendance system, report to MGMT immediately and record time manually\",\n              \"After signing in, go directly to ready class and duty\",\n              \"If eating at school, finish meal 10 minutes before official working time\"\n            ]\n          },\n          {\n            \"sub\": \"Punch Out (Clock Out)\",\n            \"bullets\": [\n              \"Complete all classes and duties before official clock-out time\",\n              \"Ensure classroom is prepared for next day, materials neatly arranged\",\n              \"Do not clock out early without prior MGMT approval\",\n              \"If technical issue, report to MGMT and record time manually\"\n            ]\n          },\n          {\n            \"sub\": \"Leave Application\",\n            \"bullets\": [\n              \"Request and fill Leave Application Form from MGMT\",\n              \"Arrange reliever for duties and classes\",\n              \"Submit form and attach supporting evidence\",\n              \"Follow up to confirm approval or rejection\",\n              \"One day before: remind reliever and pass all teaching materials and lesson plans\"\n            ]\n          },\n          {\n            \"sub\": \"Emergency / Last-Minute Absence\",\n            \"bullets\": [\n              \"Notify and obtain approval from MGMT before 8:00am\",\n              \"Inform MGMT of: (1) Lesson Plan (2) Materials (3) Student Issues (4) Urgent Tasks (5) Additional Notes\",\n              \"Submit leave form after returning, with supporting evidence if any\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"B. Workplace Conduct\",\n        \"subsections\": [\n          {\n            \"sub\": \"Dress Code\",\n            \"bullets\": [\n              \"Dress neatly, clothing must be clean and well maintained, maintain good personal hygiene\",\n              \"Shorts and skirts above the knee are not allowed\",\n              \"One (1) pinafore provided FREE upon confirmation. Extra pinafores must be purchased from MGMT\"\n            ]\n          },\n          {\n            \"sub\": \"Shoes\",\n            \"bullets\": [\n              \"Slippers are not allowed. Sandals are permitted\",\n              \"Place shoes neatly on the shoe rack — not on the floor\"\n            ]\n          },\n          {\n            \"sub\": \"Lunch Arrangements\",\n            \"bullets\": [\n              \"30 minutes for lunch daily, taken according to schedule\",\n              \"May bring own meals, eat school-provided meals, or order food to go\",\n              \"If unsure about meal arrangements, ask MGMT for guidance\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"C. Mobile Phone & Digital Use\",\n        \"subsections\": [\n          {\n            \"sub\": \"Mobile Phone During Working Hours\",\n            \"bullets\": [\n              \"Set mobile phone to silent mode during working hours\",\n              \"Must NOT be used during teaching sessions (except work-related purposes)\",\n              \"Do not share personal mobile numbers or social media accounts with students or parents\",\n              \"Refrain from personal use: casual calls, browsing, social media, gaming, online shopping\",\n              \"Emergency calls: use designated private areas only (e.g. reception room)\"\n            ]\n          },\n          {\n            \"sub\": \"Photo, Video & Social Media\",\n            \"bullets\": [\n              \"Must not photograph or record students, parents, or colleagues without permission\",\n              \"Student photos and videos are strictly for internal or approved school use only\",\n              \"May not post or discuss content related to students or parents on personal platforms\",\n              \"Must comply with the Personal Data Protection Act (PDPA)\",\n              \"May identify as Company staff on social media but must maintain professionalism\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"D. Communication & Reporting\",\n        \"subsections\": [\n          {\n            \"sub\": \"Reporting Line\",\n            \"bullets\": [\n              \"For HR matters: contact ADMIN directly\",\n              \"For work-related issues: report to MGMT and work together to find solutions\"\n            ]\n          },\n          {\n            \"sub\": \"Parents Communication\",\n            \"bullets\": [\n              \"⚠️ Teachers are NOT permitted to communicate directly with parents — to prevent dissemination of inaccurate information\",\n              \"All parent communication must go through MGMT\"\n            ]\n          },\n          {\n            \"sub\": \"Issue Reporting & Incident Handling\",\n            \"bullets\": [\n              \"Immediately report any accidents, incidents, or unusual situations to MGMT or Admin\",\n              \"Urgent matters must be escalated immediately and followed up until fully resolved\",\n              \"Maintain professionalism and confidentiality — report only relevant facts\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]");
+const HANDBOOK = JSON.parse("[\n  {\n    \"id\": \"about\",\n    \"num\": \"1.1\",\n    \"title\": \"About Us\",\n    \"icon\": \"🏫\",\n    \"subtitle\": \"Who We Are — Our Story & Departments\",\n    \"sections\": [\n      {\n        \"heading\": \"Welcome to Academee\",\n        \"body\": \"We are more than just an education centre — we are a family dedicated to nurturing star students who are independent, confident, and shine brightly wherever they go.\\n\\nFounded in Muar, Academee has grown to become a trusted name in quality education, consistently ranking in the Top 10 nationally among 200+ Smart Reader Kids centres. Over the years we have educated approximately 10,000 students, many of whom have achieved admissions to prestigious universities and scholarship programmes.\"\n      },\n      {\n        \"heading\": \"Our Four Departments\",\n        \"departments\": [\n          {\n            \"code\": \"SRK/GAK\",\n            \"full\": \"Smart Reader Kids / Genius Academic Kids\",\n            \"age\": \"Ages 3–6\",\n            \"theme\": \"Gentle but Firm\",\n            \"focus\": \"Nurture independent, confident, shining little stars who are proud to be Smart Reader students\"\n          },\n          {\n            \"code\": \"ATC\",\n            \"full\": \"After-school Tuition Centre\",\n            \"age\": \"Ages 7–12\",\n            \"theme\": \"Strict but Not Fierce\",\n            \"focus\": \"Nurture independent, proactive, high-achieving primary students who take pride in being Smart Reader students\"\n          },\n          {\n            \"code\": \"SRT\",\n            \"full\": \"Smart Reader Tuition\",\n            \"age\": \"Ages 5–15\",\n            \"theme\": \"Solid and Interesting\",\n            \"focus\": \"Build solid English foundation and transform students into English masters who proudly represent Smart Reader\"\n          },\n          {\n            \"code\": \"CIY\",\n            \"full\": \"Coding It Yourself\",\n            \"age\": \"Ages 6–15\",\n            \"theme\": \"Interesting and Substantial\",\n            \"focus\": \"Open a tech window to the future, nurturing logical thinking and creativity through coding\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Our Core Values\",\n        \"bullets\": [\n          \"⭐ NURTURE STAR STUDENTS — Students who are independent, confident, and shine brightly\",\n          \"🏆 BUILD BRAND PRIDE — Students proudly say: I am a Smart Reader student\",\n          \"📚 EXCELLENCE IN TEACHING — Follow established methods while maintaining quality standards\",\n          \"🔄 CONTINUOUS IMPROVEMENT — Always learning, always growing, always striving for better\",\n          \"🤝 COLLABORATIVE SPIRIT — Teachers, management, and parents working together for student success\",\n          \"❤️ CARING & PROFESSIONAL — Genuine care for each child combined with high professional standards\"\n        ]\n      }\n    ]\n  },\n  {\n    \"id\": \"core\",\n    \"num\": \"1.2\",\n    \"title\": \"Core Message to All Teachers\",\n    \"icon\": \"💬\",\n    \"subtitle\": \"Being Firm, Not Fierce, Is a Teacher's Strongest Presence\",\n    \"sections\": [\n      {\n        \"heading\": \"The Core Message\",\n        \"body\": \"As teachers, we must be firm, but never fierce.\\nFierceness only makes students fear you.\\nFirmness earns their respect, trust, and cooperation.\\n\\nWhat students truly fear is not your volume or facial expression — but this:\\n• Promises must be kept: Do you keep your word?\\n• Rules apply equally to everyone: Are you fair?\\n• Correct behaviour, guide improvement: Are you firm yet kind?\"\n      },\n      {\n        \"heading\": \"In the Classroom\",\n        \"twoCol\": [\n          {\n            \"good\": [\n              \"✅ Rules matter more than emotions\",\n              \"✅ Methods work better than raised voices\",\n              \"✅ Stability is more powerful than intimidation\"\n            ],\n            \"bad\": [\n              \"❌ No crazy shouting\",\n              \"❌ No sarcasm or mocking\",\n              \"❌ No handling problems when emotions are high\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"Three Core Principles (Must Follow)\",\n        \"numbered\": [\n          {\n            \"title\": \"① Be Firm in Rules, Not in Emotions\",\n            \"body\": \"No banging tables, no shouting, no sarcasm. Do not change how you handle issues based on mood. Handle all matters according to rules.\\n\\n👉 Teachers enforce rules, not emotions.\"\n          },\n          {\n            \"title\": \"② Address the Behaviour, Not the Person\",\n            \"body\": \"Do not label students. Do not attack character or personality.\\n\\n❌ Why are you so lazy?\\n✅ Please complete your tasks now.\\n\\n👉 Correct the behaviour. Get straight to the point.\"\n          },\n          {\n            \"title\": \"③ Say It — and Do It. Be Consistent.\",\n            \"body\": \"What applies today applies tomorrow. Same standard for everyone — class leaders, high achievers, and struggling students alike.\\n\\n👉 Students fear double standards, not strict rules.\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Standard Procedures for Handling Student Issues\",\n        \"numbered\": [\n          {\n            \"title\": \"1. When Setting Rules\",\n            \"body\": \"Calm tone, firm attitude. Rules and execution steps must be clear. No emotional explanation. No bargaining.\"\n          },\n          {\n            \"title\": \"2. When a Rule Is Broken\",\n            \"body\": \"Always follow this order:\\n👉 Reminder once → Rule broken → Enforce immediately (but remain calm)\\n\\n⚠️ CRITICAL: When the FIRST student breaks the rule, stop immediately. If you wait until the situation worsens, you lose control.\\n\\nDo not argue or negotiate. State the rule once, clearly. State what they need to do. Do not tolerate.\"\n          },\n          {\n            \"title\": \"3. When Giving Correction\",\n            \"body\": \"IMPORTANT: No aggressive criticism, no intimidation — speak directly to the point.\\n\\nFor MINOR issues: Speak privately. Listen first, then guide with care.\\nFor SERIOUS issues affecting the class: Address publicly. Explain the reason. Focus on behaviour, not person.\"\n          },\n          {\n            \"title\": \"4. Always Leave a Way Forward After Mistakes\",\n            \"body\": \"Allow correction, but require responsibility. Find any opportunity to praise the corrected student.\\n\\nProcess: Mistake → Reflection → Improvement\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"The Most Important Message\",\n        \"highlight\": \"A calm attitude does not mean low expectations. Firm action is true kindness.\\n\\nEducation is not about who is fiercer. It is about who can turn rules into students habits.\"\n      }\n    ]\n  },\n  {\n    \"id\": \"special\",\n    \"num\": \"1.3\",\n    \"title\": \"What Makes Us Special\",\n    \"icon\": \"✨\",\n    \"subtitle\": \"Our Common DNA — What Every Teacher Must Know\",\n    \"sections\": [\n      {\n        \"heading\": \"Our Common DNA\",\n        \"bullets\": [\n          \"❤️ Make students LOVE coming to Smart Reader classes\",\n          \"❤️ Make students LOVE their teachers\",\n          \"❤️ Make students LOVE learning\",\n          \"🏆 Make students PROUD to say: I am a Smart Reader student\"\n        ]\n      },\n      {\n        \"heading\": \"Three Core Principles\",\n        \"numbered\": [\n          {\n            \"title\": \"① Rules Before Emotions\",\n            \"body\": \"Use rules to manage students, not emotions. Stay calm when handling problems. Be consistent: say it and do it.\\n\\n👉 Students fear double standards, not strict rules.\"\n          },\n          {\n            \"title\": \"② Criticise the Behaviour, Protect the Person\",\n            \"body\": \"Correct what they DID, not who they ARE. Never label students. Separate action from identity.\\n\\n👉 You forgot your homework — not You are lazy.\"\n          },\n          {\n            \"title\": \"③ Be Consistent\",\n            \"body\": \"Same rules apply to everyone. Today standard is tomorrow standard. No favourites, no exceptions.\\n\\n👉 Consistency builds trust and security.\"\n          }\n        ]\n      },\n      {\n        \"heading\": \"Teacher Red Lines 🚫 (Absolutely Prohibited)\",\n        \"redlines\": [\n          \"NO shouting, table-banging, or throwing things\",\n          \"NO sarcasm or mockery\",\n          \"NO personal attacks or labelling\",\n          \"NO bringing up past mistakes\",\n          \"NO public humiliation\",\n          \"NO treating students differently based on your mood\"\n        ]\n      },\n      {\n        \"heading\": \"The Most Important Message\",\n        \"highlight\": \"Education is not about MANAGEMENT. It is about RELATIONSHIP.\\n\\nWhen students like you, they will:\\n• Listen to you   • Want to learn\\n• Actively improve   • Become your pride\\n\\nMake students love coming, love you, love learning.\\nThis is the essence of great teaching.\"\n      }\n    ]\n  },\n  {\n    \"id\": \"conduct\",\n    \"num\": \"2.1\",\n    \"title\": \"Code of Conduct\",\n    \"icon\": \"📋\",\n    \"subtitle\": \"Guided by Rules, United by Standards\",\n    \"sections\": [\n      {\n        \"heading\": \"A. Attendance & Working Time\",\n        \"subsections\": [\n          {\n            \"sub\": \"Access Card\",\n            \"bullets\": [\n              \"One (1) access card issued upon joining\",\n              \"Replacement fee: RM50 per lost card\"\n            ]\n          },\n          {\n            \"sub\": \"Punch In (Clock In)\",\n            \"bullets\": [\n              \"Arrive and clock in 15 minutes before official working time (8:00am)\",\n              \"Avoid being late — lateness affects attendance records\",\n              \"If technical issue with attendance system, report to MGMT immediately and record time manually\",\n              \"After signing in, go directly to ready class and duty\",\n              \"If eating at school, finish meal 10 minutes before official working time\"\n            ]\n          },\n          {\n            \"sub\": \"Punch Out (Clock Out)\",\n            \"bullets\": [\n              \"Complete all classes and duties before official clock-out time\",\n              \"Ensure classroom is prepared for next day, materials neatly arranged\",\n              \"Do not clock out early without prior MGMT approval\",\n              \"If technical issue, report to MGMT and record time manually\"\n            ]\n          },\n          {\n            \"sub\": \"Leave Application\",\n            \"bullets\": [\n              \"Request and fill Leave Application Form from MGMT\",\n              \"Arrange reliever for duties and classes\",\n              \"Submit form and attach supporting evidence\",\n              \"Follow up to confirm approval or rejection\",\n              \"One day before: remind reliever and pass all teaching materials and lesson plans\"\n            ]\n          },\n          {\n            \"sub\": \"Emergency / Last-Minute Absence\",\n            \"bullets\": [\n              \"Notify and obtain approval from MGMT before 8:00am\",\n              \"Inform MGMT of: (1) Lesson Plan (2) Materials (3) Student Issues (4) Urgent Tasks (5) Additional Notes\",\n              \"Submit leave form after returning, with supporting evidence if any\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"B. Workplace Conduct\",\n        \"subsections\": [\n          {\n            \"sub\": \"Dress Code\",\n            \"bullets\": [\n              \"Dress neatly, clothing must be clean and well maintained, maintain good personal hygiene\",\n              \"Shorts and skirts above the knee are not allowed\",\n              \"One (1) pinafore provided FREE upon confirmation. Extra pinafores must be purchased from MGMT\"\n            ]\n          },\n          {\n            \"sub\": \"Shoes\",\n            \"bullets\": [\n              \"Slippers are not allowed. Sandals are permitted\",\n              \"Place shoes neatly on the shoe rack — not on the floor\"\n            ]\n          },\n          {\n            \"sub\": \"Lunch Arrangements\",\n            \"bullets\": [\n              \"30 minutes for lunch daily, taken according to schedule\",\n              \"May bring own meals, eat school-provided meals, or order food to go\",\n              \"If unsure about meal arrangements, ask MGMT for guidance\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"C. Mobile Phone & Digital Use\",\n        \"subsections\": [\n          {\n            \"sub\": \"Mobile Phone During Working Hours\",\n            \"bullets\": [\n              \"Set mobile phone to silent mode during working hours\",\n              \"Must NOT be used during teaching sessions (except work-related purposes)\",\n              \"Do not share personal mobile numbers or social media accounts with students or parents\",\n              \"Refrain from personal use: casual calls, browsing, social media, gaming, online shopping\",\n              \"Emergency calls: use designated private areas only (e.g. reception room)\"\n            ]\n          },\n          {\n            \"sub\": \"Photo, Video & Social Media\",\n            \"bullets\": [\n              \"Must not photograph or record students, parents, or colleagues without permission\",\n              \"Student photos and videos are strictly for internal or approved school use only\",\n              \"May not post or discuss content related to students or parents on personal platforms\",\n              \"Must comply with the Personal Data Protection Act (PDPA)\",\n              \"May identify as Company staff on social media but must maintain professionalism\"\n            ]\n          }\n        ]\n      },\n      {\n        \"heading\": \"D. Communication & Reporting\",\n        \"subsections\": [\n          {\n            \"sub\": \"Reporting Line\",\n            \"bullets\": [\n              \"For HR matters: contact ADMIN directly\",\n              \"For work-related issues: report to MGMT and work together to find solutions\"\n            ]\n          },\n          {\n            \"sub\": \"Parents Communication\",\n            \"bullets\": [\n              \"⚠️ Teachers are NOT permitted to communicate directly with parents — to prevent dissemination of inaccurate information\",\n              \"All parent communication must go through MGMT\"\n            ]\n          },\n          {\n            \"sub\": \"Issue Reporting & Incident Handling\",\n            \"bullets\": [\n              \"Immediately report any accidents, incidents, or unusual situations to MGMT or Admin\",\n              \"Urgent matters must be escalated immediately and followed up until fully resolved\",\n              \"Maintain professionalism and confidentiality — report only relevant facts\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]");
 
 
 // ── Handbook renderer ──────────────────────────────────────────
@@ -4195,7 +4196,7 @@ function renderHandbook(){
 
   // Tab bar
   let html=`<div style="margin-bottom:12px">
-    <div class="card-title" style="margin-bottom:10px">🏫 员工手册</div>
+    <div class="card-title" style="margin-bottom:10px">🏫 Staff Handbook</div>
     <div class="itab-row">
       ${HANDBOOK.map(h=>{
         const t=HB_THEME[h.id];
@@ -4352,14 +4353,14 @@ function importData(){
 
 function handleImportFile(input){
   const file=input.files[0];if(!file)return;
-  if(!(S.me&&S.me.isAdmin)){alert('只有管理层可以汇入。');input.value='';return;}
+  if(!(S.me&&S.me.isAdmin)){alert('Only management can import.');input.value='';return;}
   const reader=new FileReader();
   reader.onload=async function(e){
     try{
       const data=JSON.parse(e.target.result);
-      if(!data.cohorts){alert('档案格式不对，请用 TrainGo 汇出的 JSON。');return;}
-      const dept=(prompt('这份旧备份属于哪个部门？输入 SRK / GAK / ATC / SRT','SRK')||'').toUpperCase().trim();
-      if(!['SRK','GAK','ATC','SRT'].includes(dept)){alert('部门代号不对，已取消。');return;}
+      if(!data.cohorts){alert('Wrong file format — use a JSON exported from TrainGo.');return;}
+      const dept=(prompt('Which department does this old backup belong to? Enter SRK / GAK / ATC / SRT','SRK')||'').toUpperCase().trim();
+      if(!['SRK','GAK','ATC','SRT'].includes(dept)){alert('That department code is not valid — cancelled.');return;}
 
       // 旧档只有名字没有代号，尽量对回老师名册
       const byName=n=>{
@@ -4377,10 +4378,10 @@ function handleImportFile(input){
                 note:(c.notes||'')+(c.ageGroup?' · '+c.ageGroup:''), currentDay:c.currentDay||1};
       }).filter(p=>p.teacher_code);
 
-      if(!plans.length){alert('一个老师都对不上名册，没有汇入任何东西。\n对不上的：'+unmatched.join('、'));return;}
-      if(!confirm(`汇入 ${dept}？\n\n计划 ${plans.length} 笔`
-        +(unmatched.length?`（${unmatched.length} 笔对不上名册，会略过：${unmatched.join('、')}）`:'')
-        +`\n日报 ${(data.reports||[]).length} 笔\n打勾 ${Object.keys(data.taskChecks||{}).length} 笔\n\n同 id 会被覆盖，其余资料不动。`))return;
+      if(!plans.length){alert('No teacher matched the roster, so nothing was imported.\nNo match for: '+unmatched.join(', '));return;}
+      if(!confirm(`Import ${dept}?\n\nPlans: ${plans.length}`
+        +(unmatched.length?` (${unmatched.length} did not match the roster and will be skipped: ${unmatched.join(', ')})`:'')
+        +`\nDay reports: ${(data.reports||[]).length}\nTask checks: ${Object.keys(data.taskChecks||{}).length}\n\nRows with the same id are overwritten; everything else is left alone.`))return;
 
       let r=await sb.from('traingo_plan').upsert(plans.map(p=>({
         client_uid:p.uid, teacher_code:p.teacher_code, mentor_code:p.mentor_code,
@@ -4411,9 +4412,9 @@ function handleImportFile(input){
 
       await reloadAll();
       goPage('mgmt');
-      alert(`✅ 汇入完成：计划 ${plans.length} · 日报 ${rpts.length} · 打勾 ${ck.length}`
-        +(unmatched.length?`\n略过 ${unmatched.length} 笔（名字对不上老师名册）`:''));
-    }catch(err){alert('汇入失败：'+(err.message||err));}
+      alert(`✅ Import done — plans ${plans.length} · reports ${rpts.length} · checks ${ck.length}`
+        +(unmatched.length?`\nSkipped ${unmatched.length} (name did not match the teacher roster)`:''));
+    }catch(err){alert('Import failed: '+(err.message||err));}
   };
   reader.readAsText(file);
   input.value='';
