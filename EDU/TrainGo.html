@@ -168,17 +168,17 @@ label.lbl:first-child{margin-top:0;}
     <span class="topbar-brand">🎯 TrainGo</span>
     <span class="topbar-ver" id="topbarVer"></span>
     <span id="syncStatus" style="font-size:10px;margin-left:2px;opacity:.7" title="Cloud sync status"></span>
-    <button class="ntab on" onclick="goPage('dashboard')">🏠 Home</button>
-    <button class="ntab" onclick="goPage('tasks')">📋 Tasks</button>
-    <button class="ntab" onclick="goPage('report')">📝 Day Report</button>
-    <button class="ntab" onclick="goPage('progress')">📊 Progress</button>
-    <button class="ntab" onclick="goPage('comp')">✅ Checklist</button>
-    <button class="ntab" onclick="goPage('sop')">📖 SOP</button>
-    <button class="ntab" onclick="goPage('handbook')">🏫 Handbook</button>
-    <button class="ntab" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ Settings</button>
+    <button class="ntab on" data-pg="dashboard" onclick="goPage('dashboard')">🏠 Home</button>
+    <button class="ntab" data-pg="tasks" onclick="goPage('tasks')">📋 Today</button>
+    <button class="ntab" data-pg="sop" onclick="goPage('sop')">📖 SOP</button>
+    <button class="ntab" data-pg="report" onclick="goPage('report')">📝 Day Report</button>
+    <button class="ntab" data-pg="comp" onclick="goPage('comp')">✅ Job Checklist</button>
+    <button class="ntab" data-pg="progress" onclick="goPage('progress')">📊 Progress</button>
+    <button class="ntab" data-pg="handbook" onclick="goPage('handbook')">🏫 Handbook</button>
+    <button class="ntab" data-pg="mgmt" id="tab-mgmt" style="display:none" onclick="goPage('mgmt')">⚙️ Settings</button>
     <span id="roleBadgeTop" class="role-badge" style="margin-left:auto"></span>
-    <button class="btn btn-sm" onclick="exportData()" style="margin-left:8px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">↑ Export</button>
-    <button class="btn btn-sm" onclick="importData()" style="margin-left:4px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">↓ Import</button>
+    <button class="btn btn-sm" id="btnExport" style="display:none;margin-left:8px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportData()">↑ Export</button>
+    <button class="btn btn-sm" id="btnImport" style="display:none;margin-left:4px;flex-shrink:0;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="importData()">↓ Import</button>
   </div>
   <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(this)">
   <div class="page on" id="page-dashboard"><div id="dashboard-content"></div></div>
@@ -607,7 +607,7 @@ const SRK_TASKS={
   },
   mentee:{
     1:[
-      {id:'t1_0',tag:'must',text:'READ Staff Handbook — About Us, Core Message, What Makes Us Special, Code of Conduct. Tap 🏫 Handbook in the menu.',sops:[],handbook:true},
+      {id:'t1_0',tag:'must',text:'READ Staff Handbook — About Us, Core Message, What Makes Us Special, Code of Conduct.',sops:[],go:'handbook',goLabel:'Open the Handbook'},
       {id:'t1_1',tag:'obs',text:'OBSERVE mentor demo — both slots. Watch EVERY detail of teaching strategies and classroom management.',sops:['flash','book','attendance','washroom']},
       {id:'t1_2',tag:'doc',text:'RECORD everything in Activity Log — all lesson steps, what mentor says/does, student reactions.',sops:[]},
       {id:'t1_3',tag:'obs',text:'LEARN standard lesson plan structure — read SOP, study structure, ask about unclear parts.',sops:['flash','book','spelling']},
@@ -638,12 +638,12 @@ const SRK_TASKS={
       {id:'t6_2',tag:'teach',text:'2nd Slot MIRROR TEACH: FULL teaching responsibility — copy mentor EXACTLY (same words, tone, methods).',sops:['flash','book','copyboard','indread']},
       {id:'t6_3',tag:'must',text:'⚠️ Mirror teaching = ABSOLUTE FIDELITY. No improvisation — not yet!',sops:[]},
       {id:'t6_4',tag:'teach',text:'Try marking (ask if unsure — mentor double-checks everything).',sops:['spelling']},
-      {id:'t6_5',tag:'doc',text:'LEARN MISC whiteboard recording — learn to report incidents in group chat.',sops:[]},
+      {id:'t6_5',tag:'doc',text:'LEARN MISC whiteboard recording — every incident is filed in MiscGo, nothing else.',sops:['escalation']},
     ],
     7:[
       {id:'t7_1',tag:'obs',text:'1st Slot OBSERVE: Watch mentor. Take notes. Continue routine management.',sops:[]},
       {id:'t7_2',tag:'teach',text:'2nd Slot MIRROR TEACH: Full class independently — maintain classroom management.',sops:['activity','summary','dismissal']},
-      {id:'t7_3',tag:'doc',text:'Record MISC on whiteboard correctly — report any incidents in group chat.',sops:[]},
+      {id:'t7_3',tag:'doc',text:'Record MISC on whiteboard correctly — file any incident in MiscGo the same day.',sops:['escalation']},
       {id:'t7_4',tag:'doc',text:'Activity Log: note own performance, what went well, areas to improve.',sops:[]},
     ],
     8:[
@@ -651,7 +651,7 @@ const SRK_TASKS={
       {id:'t8_2',tag:'teach',text:'2nd Slot MIRROR TEACH: Full responsibility — apply lesson planning knowledge.',sops:['flash','book','spelling','copyboard']},
       {id:'t8_3',tag:'doc',text:'WRITE your first Lesson Plan (guided) — use mentor\'s structure and format.',sops:[]},
       {id:'t8_4',tag:'doc',text:'WRITE your first Day Report (guided) — all 5 sections complete.',sops:[]},
-      {id:'t8_5',tag:'doc',text:'Report MISC in group chat using proper incident reporting format.',sops:[]},
+      {id:'t8_5',tag:'doc',text:'File MISC in MiscGo — pick the right report type, then Send to WhatsApp so MGMT sees it.',sops:['escalation']},
     ],
     9:[
       {id:'t9_1',tag:'obs',text:'1st Slot OBSERVE: Watch mentor. Set personal growth goals for today.',sops:[]},
@@ -663,7 +663,7 @@ const SRK_TASKS={
       {id:'t11_1',tag:'teach',text:'BOTH SLOTS: Full teaching responsibility — prepare lesson plans INDEPENDENTLY.',sops:['flash','book','spelling','copyboard','indread']},
       {id:'t11_2',tag:'teach',text:'Manage ALL classroom activities. Mark student work properly.',sops:['activity','summary']},
       {id:'t11_3',tag:'doc',text:'Write Day Report — all 5 sections. Submit on time.',sops:[]},
-      {id:'t11_4',tag:'doc',text:'Record MISC accurately — report in group chat if any incidents.',sops:['dismissal']},
+      {id:'t11_4',tag:'doc',text:'Record MISC accurately — file every incident in MiscGo, never verbally or in a group chat.',sops:['escalation','dismissal']},
     ],
     12:[{id:'t12_1',tag:'teach',text:'BOTH SLOTS full responsibility — quality must match mentor level.',sops:[]},{id:'t12_2',tag:'teach',text:'Handle problems independently first — seek help only when truly needed.',sops:[]},{id:'t12_3',tag:'doc',text:'Complete lesson plan in advance. Submit Day Report on time.',sops:[]},],
     13:[{id:'t13_1',tag:'teach',text:'BOTH SLOTS full responsibility — maintain all standards consistently.',sops:[]},{id:'t13_2',tag:'doc',text:'All documentation complete: lesson plans, day report, MISC recording.',sops:[]},{id:'t13_3',tag:'teach',text:'Build student relationships — students should recognise and respond to you as their teacher.',sops:[]},],
@@ -802,7 +802,7 @@ const SRK_STAGE_SOPS={
 const SRK_SUCCESS_CRITERIA={
   1:{mentor:'Mentee completes detailed activity logs, understands lesson structure, asks relevant questions',mentee:'Complete all observation logs, understand lesson plan structure, identify key teaching steps'},
   2:{mentor:'Mentee independently manages ALL routines, leads Group Reading effectively',mentee:'Independently manage all daily routines, lead Group Reading effectively'},
-  3:{mentor:'Mentee mirrors teaching with ABSOLUTE FIDELITY in 2nd slot, understands MISC recording',mentee:'Mirror teach with ABSOLUTE FIDELITY in 2nd slot, manage classroom independently'},
+  3:{mentor:'Mentee mirrors teaching with ABSOLUTE FIDELITY in 2nd slot, files MISC in MiscGo correctly',mentee:'Mirror teach with ABSOLUTE FIDELITY in 2nd slot, manage classroom independently'},
   4:{mentor:'Mentee writes basic lesson plan & day report, teaches independently in 2nd slot',mentee:'Write basic lesson plan & day report, teach independently in 2nd slot'},
   5:{mentor:'Both slots taught independently, lesson plans & day reports meet quality standards',mentee:'Teach both slots independently, meet quality standards, effective classroom management'},
 };
@@ -1213,7 +1213,7 @@ function getStageForDay(d){return D.STAGES.find(s=>s.days.includes(d))||D.STAGES
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v30';
+const APP_VERSION='v31';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -1479,7 +1479,7 @@ function compErrMsg(m){
   m=String(m||'');
   if(m.includes('L4_NEEDS_MGMT'))return'Level 4 has to be signed by management (MGMT / TOP_MGMT / ADMIN / OWNER).';
   if(m.includes('L23_NEEDS_MENTOR'))return'Levels 2 and 3 have to be signed by the Mentor.';
-  if(m.includes('L1_NOT_YOURS'))return'Level 1 can only be signed by her, her Mentor, or management.';
+  if(m.includes('L1_NOT_YOURS'))return'Level 1 can only be signed by the new teacher, their Mentor, or management.';
   if(m.includes('SAFETY_NEEDS_SECOND'))return'This is safety-critical — reaching Level 3 needs a second signer.';
   if(m.includes('SAFETY_SAME_SIGNER'))return'The second signer cannot be the same person as you.';
   return'Could not save: '+m;
@@ -1656,6 +1656,24 @@ function canRelease(){
   if(!S.me)return false;
   return ['OWNER','TOP_MGMT'].includes(S.me.role)||(S.releasers||[]).includes(S.me.code);
 }
+// 我在这个计划上签得到第几级 —— 跟 private.traingo_competency_guard() 同一套规矩。
+// 0 = 一级都签不了。UI 照这个画，才不会让人填完才被资料库挡掉。
+function maxSignableLevel(plan){
+  if(!S.me||!plan)return 0;
+  if(canCertifyMentor())return 4;                       // 管理层：到 4
+  const isMentor = plan.mentorCode===S.me.code ||
+                   (plan.mentorHistory||[]).some(e=>e.mentor_code===S.me.code);
+  if(isMentor)return 3;                                 // Mentor：到 3
+  if(plan.teacherCode===S.me.code)return 1;             // 本人：只到 1（自己说「我知道了」）
+  return 0;
+}
+function signerHint(plan){
+  const m=maxSignableLevel(plan);
+  if(m>=4)return'You can sign any level, including Level 4.';
+  if(m===3)return'As the Mentor you can sign up to Level 3. Level 4 is management only.';
+  if(m===1)return'You can mark Level 1 (“I know it”) yourself. Levels 2 and 3 are your Mentor’s to sign, Level 4 is management.';
+  return'You cannot sign on this plan — view only.';
+}
 function canCertifyMentor(){
   return !!(S.me&&['OWNER','ADMIN','TOP_MGMT','MGMT'].includes(S.me.role));
 }
@@ -1710,6 +1728,8 @@ function applyRole(){
   const b=document.getElementById('roleBadgeTop');
   if(b){b.textContent=(labels[S.role]||'')+' · '+(m.name||m.code);b.className='role-badge '+(cls[S.role]||'');}
   const t=document.getElementById('tab-mgmt'); if(t)t.style.display=(S.role==='mgmt')?'':'none';
+  // 备份／还原是管理层的事。新老师看到只会点下去然后被挡掉。
+  ['btnExport','btnImport'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=(S.role==='mgmt')?'':'none';});
   const vEl=document.getElementById('topbarVer'); if(vEl)vEl.textContent=APP_VERSION;
 }
 
@@ -1730,15 +1750,15 @@ function logout(){ location.href='../index.html'; }   // 登出在平台层，�
 // ══════════════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════════════
-const PAGE_MAP={dashboard:0,tasks:1,report:2,progress:3,comp:4,sop:5,handbook:6,mgmt:7};
+// v31：以前用索引对位（PAGE_MAP），一改选单顺序高亮就跑掉。改成认 data-pg。
 function goPage(p){
   // Access control — only MGMT can access Admin page
   if(p==='mgmt'&&S.role!=='mgmt'){goPage('dashboard');return;}
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
   const pg=document.getElementById('page-'+p);if(pg)pg.classList.add('on');
-  const tabs=document.querySelectorAll('.ntab');
-  if(tabs[PAGE_MAP[p]])tabs[PAGE_MAP[p]].classList.add('on');
+  const tab=document.querySelector('.ntab[data-pg="'+p+'"]');
+  if(tab)tab.classList.add('on');
   if(p==='dashboard')renderDashboard();
   if(p==='tasks')renderTasks();
   if(p==='report')renderReport();
@@ -1769,16 +1789,56 @@ function getDayDate(startDate,dayNum,schedule){
   return d.__zhDate();
 }
 function genId(p){return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);}
+// 看的是不是自己的训练计划。是 → 用「你」；不是 → 用名字。不要预设性别。
+function isMine(p){return !!(S.me&&p&&p.teacherCode===S.me.code);}
+function whoName(p){return p?esc(p.teacherName||p.teacherCode||'this teacher'):'this teacher';}
+function reportSubmitted(uid,role,day,dept){
+  const r=getReport(uid,role,day,dept);
+  return !!(r&&r.state==='submitted');
+}
+// 新老师首页专用：不管 ClassGo 今天有没有排她的课，都把当天的任务拿出来，
+// 只是多带一个 offDuty 旗标。todayDeptTasks 保持原样，别动到 Mentor 那几页。
+function menteeDayBlocks(plan){
+  const iso=todayISO();
+  const onDuty=deptsOnDay(plan.teacherCode,iso);
+  const out=[];
+  const ordered=[...(plan.depts||[])].sort((a,b)=>
+    deptFirstSession(plan.teacherCode,iso,a.dept).localeCompare(
+    deptFirstSession(plan.teacherCode,iso,b.dept)));
+  ordered.forEach(pd=>{
+    if(pd.status!=='active')return;
+    const day=pd.currentDay||1;
+    if(isRestDate(plan,pd.dept,iso)){out.push({dept:pd.dept,day,rest:true,offDuty:false,tasks:[]});return;}
+    setRD(pd.dept);
+    const mine=(D.TASKS.mentee||{})[day]||[];
+    out.push({dept:pd.dept,day,rest:false,offDuty:!onDuty.includes(pd.dept),tasks:mine});
+  });
+  return out;
+}
+// 没课那天也能先做掉的：CRITICAL 与 RECORD。OBSERVE / TEACH 要有课才算数。
+function doableOffDuty(tasks){return (tasks||[]).filter(t=>t.tag==='must'||t.tag==='doc');}
 function getReport(uid,role,day,dept){
   const dp=dept||S.dept;
   return S.reports.find(r=>r.planUid===uid&&r.role===role&&r.day===day&&r.dept===dp);
 }
-function getDayLabel(d){const m={1:'D1',2:'D2',3:'D3',4:'D4',6:'D6',7:'D7',8:'D8',9:'D9',11:'D11',12:'D12',13:'D13',14:'D14'};return m[d]||'D'+d;}
+// v31：以前这里自己写死一套 D1..D14，跟 dayLabel() 的「第 N 个训练日」对不上 ——
+// 同一天在首页叫 Day 5，在天数条却叫 D6。一律以 dayNo() 为准。
+function getDayLabel(d){return 'D'+dayNo(d);}
 function stageProgress(cohort){
   if(!cohort)return{stage:1,pct:0};
   const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const idx=ALL_DAYS.indexOf(day);const pct=Math.round(((idx+1)/ALL_DAYS.length)*100);
   return{stage:stage.id,pct};
+}
+// 任务本来就带 sops[] 和 go，之前一个都没画出来，只好在文字里写「Tap X in the menu」。
+function taskLinks(t){
+  if(!t)return'';
+  const bits=[];
+  if(t.go)bits.push(`<button class="btn btn-sm" style="padding:3px 9px;font-size:11px" onclick="event.preventDefault();goPage('${t.go}')">${esc(t.goLabel||'Open')} ›</button>`);
+  (t.sops||[]).forEach(k=>{const sop=D.SOP&&D.SOP[k];if(!sop)return;
+    bits.push(`<button class="btn btn-sm" style="padding:3px 9px;font-size:11px" onclick="event.preventDefault();openSopModal('${k}')">📖 ${esc(sop.name)}</button>`);});
+  if(!bits.length)return'';
+  return`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${bits.join('')}</div>`;
 }
 function tagBadge(tag){
   const m={must:'tag-must',doc:'tag-doc',obs:'tag-obs',teach:'tag-teach'};
@@ -2007,7 +2067,7 @@ function renderDashboard(){
   const role=S.role;const day=cohort.currentDay||1;const stage=getStageForDay(day);
   const{pct}=stageProgress(cohort);const tasks=(D.TASKS[role]||{})[day]||[];
   const checked=countChecked(cohort.id,role,day);
-  const reportDone=getReport(cohort.id,role,day);
+  const reportDone=reportSubmitted(cohort.id,role,day);
   const partnerRole=role==='mentor'?'mentee':'mentor';
   const partnerReport=getReport(cohort.id,partnerRole,day);
   const name=role==='mentor'?getMentorForDay(cohort,cohort.currentDay||1):cohort.menteeName;
@@ -2132,13 +2192,13 @@ function renderMentorActionItems(cohort,day,stage){
   if(!items.length&&!menteeRpt){
     return`<div class="card" style="border-left:3px solid var(--bdr)">
       <div class="card-hdr"><span class="card-title">📌 Follow-ups</span></div>
-      <div style="font-size:12px;color:var(--mut)">Waiting for her day report…</div>
+      <div style="font-size:12px;color:var(--mut)">Waiting for the day report…</div>
     </div>`;
   }
   if(!items.length){
     return`<div class="card" style="border-left:3px solid var(--grn)">
       <div class="card-hdr"><span class="card-title">📌 Follow-ups</span><span class="chip chip-grn">All clear ✅</span></div>
-      <div style="font-size:12px;color:var(--grn)">Nothing to follow up on — she is on track.</div>
+      <div style="font-size:12px;color:var(--grn)">Nothing to follow up on — they are on track.</div>
     </div>`;
   }
   return`<div class="card" style="border-left:3px solid ${items.some(i=>i.urgent)?'var(--red)':'var(--gold)'}">
@@ -2344,21 +2404,22 @@ function renderMiniTimeline(cohort){
 // D.TASKS PAGE
 // ══════════════════════════════════════════════════════════════
 function renderQuickReference(){
-  return`<div class="card" style="border:.5px solid #F9CB42">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  return`<details class="card" style="border:.5px solid #F9CB42">
+    <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <div><div class="card-title">⚡ Quick reference</div>
-      <div style="font-size:10px;color:var(--mut);margin-top:2px">Training Guide 3_2 — check once a day</div></div>
+      <div style="font-size:10px;color:var(--mut);margin-top:2px">Training Guide 3_2 — tap to open</div></div>
       <span class="chip" style="background:#FFF8E1;color:#9C6500">At a glance</span>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    </summary>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
       <div style="background:#F0F7FF;border-radius:8px;padding:11px;border:.5px solid #AABDD4">
-        <div style="font-size:10px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">📝 Daily Checklist</div>
+        <div style="font-size:10px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">🕐 Rhythm of the day</div>
+        <div style="font-size:10px;color:var(--mut);margin-bottom:7px;line-height:1.5">Habits to build — nothing to tick here. The things you tick are at the top of this page.</div>
         <div style="font-size:10px;font-weight:600;color:var(--mut);margin-bottom:4px">Before class</div>
-        ${["Review lesson plan","Prepare all materials","Arrive 15 min early","Set up the classroom"].map(i=>'<div style="font-size:11px;line-height:1.7">☐ '+i+'</div>').join('')}
+        ${["Review lesson plan","Prepare all materials","Arrive 15 min early","Set up the classroom"].map(i=>'<div style="font-size:11px;line-height:1.7">· '+i+'</div>').join('')}
         <div style="font-size:10px;font-weight:600;color:var(--mut);margin-top:7px;margin-bottom:4px">During class</div>
-        ${["Follow lesson plan exactly","Record activity log","Mirror teaching — no improvisation","Handle MISC on whiteboard"].map(i=>'<div style="font-size:11px;line-height:1.7">☐ '+i+'</div>').join('')}
+        ${["Follow lesson plan exactly","Record activity log","Mirror teaching — no improvisation","Handle MISC on whiteboard"].map(i=>'<div style="font-size:11px;line-height:1.7">· '+i+'</div>').join('')}
         <div style="font-size:10px;font-weight:600;color:var(--mut);margin-top:7px;margin-bottom:4px">After class</div>
-        ${["Submit day report on time","Update activity log","Report MISC in group chat"].map(i=>'<div style="font-size:11px;line-height:1.7">☐ '+i+'</div>').join('')}
+        ${["Submit day report on time","Update activity log","File any MISC in MiscGo — then Send to WhatsApp"].map(i=>'<div style="font-size:11px;line-height:1.7">· '+i+'</div>').join('')}
       </div>
       <div style="display:flex;flex-direction:column;gap:9px">
         <div style="background:#E1F5EE;border-radius:8px;padding:11px;border:.5px solid #9FE1CB">
@@ -2367,7 +2428,7 @@ function renderQuickReference(){
         </div>
         <div style="background:#FFF8E1;border-radius:8px;padding:11px;border:.5px solid #F9CB42">
           <div style="font-size:10px;font-weight:700;color:#9C6500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">🆘 Who to Ask</div>
-          ${[["Teaching, lesson plans, classroom mgmt","MENTOR"],["MISC recording, incident reporting","Mentor → MGMT"],["Urgent issues, emergencies","MGMT immediately"],["Policies, SRK procedures","MGMT only"]].map(([q,a])=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:.5px solid #F9CB42;gap:6px"><span style="flex:1;line-height:1.5">${q}</span><span style="font-weight:700;color:#9C6500;white-space:nowrap">${a}</span></div>`).join('')}
+          ${[["Teaching, lesson plans, classroom mgmt","MENTOR"],["MISC, incidents, anything a parent said","MiscGo only"],["Urgent issues, emergencies","MGMT immediately"],["Policies, SRK procedures","MGMT only"]].map(([q,a])=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:.5px solid #F9CB42;gap:6px"><span style="flex:1;line-height:1.5">${q}</span><span style="font-weight:700;color:#9C6500;white-space:nowrap">${a}</span></div>`).join('')}
         </div>
         <div style="background:#FCEBEB;border-radius:8px;padding:11px;border:.5px solid #F09595">
           <div style="font-size:10px;font-weight:700;color:#7a1f1f;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">⚡ Mistakes to Avoid</div>
@@ -2375,7 +2436,7 @@ function renderQuickReference(){
         </div>
       </div>
     </div>
-  </div>`;
+  </details>`;
 }
 
 function renderStageSopBadges(stageId){
@@ -2419,15 +2480,19 @@ function renderTasks(){
       </div>
       <div class="prog-bar" style="margin-bottom:12px"><div class="prog-fill ${checked===tasks.length&&tasks.length>0?'grn':''}" style="width:${tasks.length?Math.round(checked/tasks.length*100):0}%"></div></div>
       ${tasks.map(t=>`
-        <div class="task-item ${S.taskChecks[checkKey(cohort.id,S.dept,role,day,t.id)]?'done':''}" id="ti_${t.id}">
+        <div class="task-item ${S.taskChecks[checkKey(cohort.id,S.dept,role,day,t.id)]?'done':''}" id="ti_${t.id}" style="align-items:flex-start">
           <input type="checkbox" id="cb_${t.id}" ${S.taskChecks[checkKey(cohort.id,S.dept,role,day,t.id)]?'checked':''}
             onchange="toggleTask('${cohort.id}','${role}',${day},'${t.id}',this.checked)">
-          <label class="task-label" for="cb_${t.id}">${tagBadge(t.tag)}${t.text}</label>
+          <div style="flex:1;min-width:0">
+            <label class="task-label" for="cb_${t.id}">${tagBadge(t.tag)}${t.text}</label>
+            ${taskLinks(t)}
+          </div>
         </div>`).join('')}
     </div>
 
     <div class="card">
-      <div class="card-title" style="margin-bottom:9px">Other days</div>
+      <div class="card-title" style="margin-bottom:3px">Other days</div>
+      <div style="font-size:11px;color:var(--mut);margin-bottom:9px">12 training days in total. Catch-up days sit in between and are not numbered — they do not count as training days.</div>
       <div class="day-grid">
         ${ALL_DAYS.map(d=>{
           const s=getStageForDay(d);const c2=countChecked(cohort.id,role,d);
@@ -2491,7 +2556,9 @@ function renderSkillConfirm(cohort,role,day,stage,existing){
       <div style="font-size:12px;font-weight:700">🎯 Skill confirmation — Stage ${stage.id} ${meta.label}</div>
       <span class="chip chip-blue">${roleLabel}</span>
     </div>
-    ${meta.risk?`<div style="font-size:10px;color:var(--mut);margin-bottom:10px;font-style:italic">Risk this stage: ${meta.risk}</div>`:'<div style="margin-bottom:10px"></div>'}`;
+    ${meta.risk?`<div style="font-size:10px;color:var(--mut);margin-bottom:6px;font-style:italic">Risk this stage: ${meta.risk}</div>`:''}
+    <div style="background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:10px">
+      This is your own read of today, and your Mentor reads it. It does <b>not</b> sign anything off — the Job Checklist only moves when your Mentor signs it there.</div>`;
 
   sops.forEach(sopId=>{
     const sop=D.SOP[sopId];if(!sop)return;
@@ -2604,7 +2671,7 @@ function renderReport(){
       <div class="card-hdr">
         <div><div class="card-title">📝 Day Report — Day ${day}</div>
         <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'New Teacher'} · Stage ${stage.id} ${stage.nameZh}</div></div>
-        ${existing?`<span class="chip chip-grn">✅ Submitted ${existing.submitTime||''}</span>`:`<span class="chip chip-amb">⏳ Not submitted</span>`}
+        ${existing&&existing.state==='submitted'?`<span class="chip chip-grn">✅ Submitted ${existing.submitTime||''}</span>`:(existing?`<span class="chip chip-amb">📝 Draft saved — not submitted yet</span>`:`<span class="chip chip-amb">⏳ Not submitted</span>`)}
       </div>
 
       <!-- TASK COMPLETION -->
@@ -2963,7 +3030,7 @@ async function advanceDay(planUid,dept){
     await savePlanDept(p.uid,dp,day,'completed');
     await reloadAll();
     const allDone=(getPlan(p.uid).depts||[]).every(x=>x.status==='completed');
-    alert(allDone?'🎉 Every department checklist is complete. A releaser now decides whether she can take a class on her own.':`✅ ${dp} checklist is complete. Other departments are still running.`);
+    alert(allDone?'🎉 Every department checklist is complete. A releaser now decides whether they can take a class on their own.':`✅ ${dp} checklist is complete. Other departments are still running.`);
   }
 }
 
@@ -3317,12 +3384,12 @@ function openCompletionModal(planUid){
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--mut);margin-bottom:10px">
-        She has finished — someone should say something to her. She can read this.</div>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">What she went through</div>
+        ${whoName(p)} has finished — someone should say something. They can read this.</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">What they went through</div>
       <textarea id="cpSum" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.summary||'')}</textarea>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">What she did well</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">What they did well</div>
       <textarea id="cpStr" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.strengths||'')}</textarea>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">What to watch once she is on her own</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">What to watch once they are on their own</div>
       <textarea id="cpWatch" rows="3" style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(cur.watch||'')}</textarea>
     </div>
     <div class="modal-foot">
@@ -3357,6 +3424,7 @@ function renderCompetency(){
   const depts=(p.depts||[]).map(x=>x.dept);
   if(!depts.includes(S.dept))S.dept=depts[0]||'SRK';
   setRD(S.dept);
+  const _maxSign=maxSignableLevel(p);
 
   let h='';
   if(plans.length>1){
@@ -3381,20 +3449,24 @@ function renderCompetency(){
       Complete means every item on this checklist has reached its required level. The day count is only progress, not the completion test.</div>
     <div class="prog-bar"><div class="prog-fill ${r.done?'grn':''}" style="width:${pct}%"></div></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
-      <span>${r.ok}／${r.total} at required level</span>
-      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ This department is complete':(r.total-r.ok)+' still short'}</span>
+      <span>${r.ok}／${r.total} signed off</span>
+      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ This department is complete':(r.ok===0?'This is the target list for the whole training — nothing is signed yet':(r.total-r.ok)+' still to go')}</span>
     </div>
     ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">Whole plan: ${whole.ok}／${whole.total}${whole.done?' · all complete':''}</div>`:''}
+    <div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px 10px;font-size:11.5px;color:var(--txt);line-height:1.6">
+      <b>Who signs what.</b> ${signerHint(p)}<br>
+      <b>Your day report does not move this list.</b> The ✅ you tick in the day report is your own read of how it went — useful, and your Mentor reads it. This list only moves when someone with the authority above signs the item here.
+    </div>
   </div>`;
 
   const misc=miscCountOf(p.teacherCode);
   h+=`<div class="card" style="background:var(--sur2)">
     <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">Objective evidence</div>
     <div style="font-size:13px;margin-top:5px">
-      MiscGo reports she filed herself: <b>${misc===null?'cannot read':misc}</b>
+      ${isMine(p)?'MiscGo reports you filed yourself':'MiscGo reports '+whoName(p)+' filed'}: <b>${misc===null?'cannot read':misc}</b>
     </div>
     <div style="font-size:11.5px;color:var(--mut);margin-top:4px">
-      ${misc===null?'Your account has no MiscGo access, so this cannot be read. It does not mean she filed none.'
+      ${misc===null?('Your account has no MiscGo access, so this cannot be read. It does not mean '+(isMine(p)?'you filed':whoName(p)+' filed')+' none.')
                   :'For the Mentor\'s reference only — it does not block signing.'}
     </div>
   </div>`;
@@ -3419,7 +3491,9 @@ function renderCompetency(){
         </div>
         ${levelPill(lv,it.level_required||3,it.is_safety)}
         ${it.sop_key&&D.SOP[it.sop_key]?`<button class="btn btn-sm" onclick="openSopModal('${it.sop_key}')">SOP</button>`:''}
-        <button class="btn btn-sm" onclick="openCompModal('${it.id}')">Edit</button>
+        ${_maxSign>0
+          ? `<button class="btn btn-sm" onclick="openCompModal('${it.id}')">${_maxSign===1?(lv>=1?'Change':'I know it'):'Sign'}</button>`
+          : `<button class="btn btn-sm" onclick="openCompModal('${it.id}')">View</button>`}
       </div>`;
     });
     h+=`</div>`;
@@ -3445,7 +3519,9 @@ function openCompModal(compId){
   const lv=compLevel(p.uid,it.id);
   const ck=compCheck(p.uid,it.id);
   const req=it.level_required||3;
-  const opts=[0,1,2,3,4].map(n=>`<option value="${n}" ${n===lv?'selected':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}</option>`).join('');
+  const maxSign=maxSignableLevel(p);
+  const opts=[0,1,2,3,4].filter(n=>n<=maxSign||n===lv)
+    .map(n=>`<option value="${n}" ${n===lv?'selected':''} ${n>maxSign?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${n>maxSign?'　(not yours to sign)':''}</option>`).join('');
   const people=(S.teachers||[]).filter(t=>t.id!==(S.me&&S.me.code))
     .map(t=>`<option value="${esc(t.id)}" ${ck&&ck.second_by_code===t.id?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
   const ov=document.createElement('div');
@@ -3457,12 +3533,13 @@ function openCompModal(compId){
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">What level is she at now</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">${isMine(p)?'What level are you at now':'What level is '+whoName(p)+' at now'}</div>
       <select id="cmLevel" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${opts}</select>
       <div style="font-size:11px;color:var(--mut);margin-top:6px">
         1 Knows · 2 Can do with supervision · 3 Can do independently · 4 Can teach others (= can mentor this item)<br>
-        Level 1 she signs herself · Levels 2 and 3 the Mentor signs · Level 4 management signs
+        ${isMine(p)?'Level 1 you sign yourself':'Level 1 the new teacher signs'} · Levels 2 and 3 the Mentor signs · Level 4 management signs
       </div>
+      <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p)}${maxSign<req?`<br><b>This item needs Level ${req}</b>, which is above what you can sign — someone else has to close it.`:''}</div>
       ${it.is_safety?`<div style="margin-top:14px">
         <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · reaching Level 3 needs a second signer</div>
         <select id="cmSecond" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
@@ -3474,8 +3551,8 @@ function openCompModal(compId){
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
-      <button class="btn btn-pri" onclick="submitCompLevel('${it.id}',this)">Save</button>
+      <button class="btn" onclick="this.closest('.overlay').remove()">${maxSign>0?'Cancel':'Close'}</button>
+      ${maxSign>0?`<button class="btn btn-pri" onclick="submitCompLevel('${it.id}',this)">Save</button>`:''}
     </div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
@@ -3485,7 +3562,10 @@ function openCompModal(compId){
 async function submitCompLevel(compId,btn){
   const p=getPlan(); if(!p)return;
   const it=(S.comp||[]).find(x=>x.id===compId); if(!it)return;
+  const maxSign=maxSignableLevel(p);
+  if(maxSign<=0){alert('You cannot sign on this training plan — this page is view only for you.');return;}
   const lv=parseInt(document.getElementById('cmLevel').value,10);
+  if(lv>maxSign){alert(signerHint(p));return;}
   const secEl=document.getElementById('cmSecond');
   const sec=secEl?secEl.value:'';
   const note=(document.getElementById('cmNote')||{}).value||'';
@@ -3603,7 +3683,7 @@ function renderPasswordMgmt(){
     <div style="font-size:12px;line-height:1.8;color:var(--mut);margin-top:6px">
       This system <b>no longer has its own password</b>. Sign-in, role and department access all come from the Academee platform
       (permission codes <code>EDU-TrainGo-SRK / GAK / ATC / SRT</code>).<br>
-      To let a teacher in, or change which departments she can see, use the platform permission settings.
+      To let a teacher in, or change which departments they can see, use the platform permission settings.
     </div>
     <div style="margin-top:10px;font-size:12px">
       You are signed in as: <b>${S.me?(S.me.name||S.me.code):'—'}</b> ·
@@ -3640,7 +3720,7 @@ function renderMentorHome(){
     el.innerHTML=`<div class="card" style="text-align:center;padding:36px">
       <div style="font-size:30px;margin-bottom:10px">👨‍🏫</div>
       <div style="font-weight:600;margin-bottom:5px">You are not mentoring anyone right now</div>
-      <div style="color:var(--mut);font-size:12px">Once management assigns a new teacher to you, she will appear here.</div>
+      <div style="color:var(--mut);font-size:12px">Once management assigns a new teacher to you, they will appear here.</div>
     </div>`;return;
   }
 
@@ -3669,8 +3749,8 @@ function renderMentorHome(){
   if(restAll){
     h+=`<div class="card" style="border:2px solid var(--gold)">
       <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">Today is a catch-up day</div>
-      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Help her close the gaps</div>
-      <div style="font-size:12px;color:var(--mut)">No tasks are issued today. Look at where she got stuck this week and walk her through it.</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Help them close the gaps</div>
+      <div style="font-size:12px;color:var(--mut)">No tasks are issued today. Look at where they got stuck this week and walk them through it.</div>
     </div>`;
   }else if(first){
     h+=`<div class="card" style="border:2px solid var(--acc)">
@@ -3749,7 +3829,7 @@ function renderMentorHome(){
           <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} at required level</span></div>
         <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
         <div style="font-size:11px;color:var(--mut);margin-top:5px">
-          MiscGo reports she filed: ${mc===null?'cannot read (you have no MiscGo access)':'<b>'+mc+'</b> · reference only, does not block signing'}</div>
+          MiscGo reports they filed: ${mc===null?'cannot read (you have no MiscGo access)':'<b>'+mc+'</b> · reference only, does not block signing'}</div>
         <div style="margin-top:8px"><button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">Sign checklist ›</button></div>
       </div>`;
     }
@@ -3769,12 +3849,12 @@ function renderMentorHome(){
     if(allDone){
       h+= p.released
         ? `<div class="alert alert-grn" style="margin-top:10px">🎉 She has been released.</div>`
-        : `<div class="alert alert-amb" style="margin-top:10px">She has finished training — waiting for management to release her.</div>`;
+        : `<div class="alert alert-amb" style="margin-top:10px">Training is finished — waiting for management to release them.</div>`;
       const cp=completionOf(p.uid);
       h+=`<div style="margin-top:8px"><button class="btn btn-sm" onclick="openCompletionModal('${p.uid}')">${cp?'Edit completion note':'✍️ Write completion note'}</button>
         ${cp&&cp.acknowledged_at?'<span style="font-size:11px;color:var(--grn);margin-left:7px">She has read it</span>':(cp?'<span style="font-size:11px;color:var(--mut);margin-left:7px">She has not read it yet</span>':'')}</div>`;
     }
-    h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">See her whole plan ›</button></div>
+    h+=`<div style="margin-top:10px"><button class="btn btn-sm" onclick="openMentorPlan('${p.uid}','${(p.depts[0]||{}).dept||'SRK'}','progress')">See their whole plan ›</button></div>
     </div>`;
   });
 
@@ -3801,19 +3881,48 @@ function renderMenteeHome(){
     <div style="color:var(--mut);font-size:12px">Ask management to set one up for you.</div></div>`;return;}
 
   const iso=todayISO();
-  const blocks=todayDeptTasks(p);
+  const blocks=menteeDayBlocks(p);
   const onDuty=deptsOnDay(p.teacherCode,iso);
+  const active=blocks.filter(b=>!b.rest);
+  const duty  =active.filter(b=>!b.offDuty);
+  const off   =active.filter(b=>b.offDuty);
 
-  // ── 第一层：今天这一件 ──
+  // ── 第一层：今天这一件（只从今天有课的部门挑）──
   let first=null, firstDept=null, firstDay=null;
-  for(const b of blocks){
-    if(b.rest)continue;
+  for(const b of duty){
     const t=b.tasks.find(x=>!S.taskChecks[checkKey(p.uid,b.dept,'mentee',b.day,x.id)]);
     if(t){first=t;firstDept=b.dept;firstDay=b.day;break;}
   }
+  // 今天没课，但当天还是有不用上课就能做掉的事（读手册、写纪录…）
+  let offFirst=null, offBlock=null;
+  if(!first){
+    for(const b of off){
+      const t=doableOffDuty(b.tasks).find(x=>!S.taskChecks[checkKey(p.uid,b.dept,'mentee',b.day,x.id)]);
+      if(t){offFirst=t;offBlock=b;break;}
+    }
+  }
+  const dutyAllDone = duty.length>0 && duty.every(b=>b.tasks.every(t=>S.taskChecks[checkKey(p.uid,b.dept,'mentee',b.day,t.id)]));
+  const dutyRepsIn  = duty.length>0 && duty.every(b=>reportSubmitted(p.uid,'mentee',b.day,b.dept));
   const restToday=blocks.length&&blocks.every(b=>b.rest);
 
-  let h='';
+  const _d1=active.length?Math.min(...active.map(b=>dayNo(b.day))):1;
+  let h=`<details class="card" ${_d1<=1?'open':''} style="border:1.5px solid var(--acc)">
+    <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="card-title">👋 How this training works</div>
+      <span class="chip chip-blue">Start here</span>
+    </summary>
+    <div style="font-size:12.5px;line-height:1.75;margin-top:10px">
+      <b>${esc(p.teacherName)}</b> — welcome. Your Mentor is <b>${esc(mentorOnDay(p,(active[0]||{}).day||1)||p.mentorName||'—')}</b>. Ask them anything; asking is never the problem.
+      <div style="margin-top:9px"><b>How long.</b> 12 training days${p.targetDate?`, target <b>${fmtDate(p.targetDate)}</b>`:''}. Catch-up days sit in between and are not numbered. Your day number only moves when your Mentor confirms it — not automatically at midnight.</div>
+      <div style="margin-top:9px"><b>What finishes it.</b> Not the day count — the <b>Job Checklist</b>. Training is done when every item on it has been signed at its required level, and then management releases you to take a class on your own.</div>
+      <div style="margin-top:9px"><b>Your day.</b> Home shows the one next thing → <b>Today</b> has the full list and the SOP for each → teach → <b>Day Report</b> before you go home. That is the whole loop.</div>
+      <div style="margin-top:9px"><b>Where things are.</b> 📖 SOP = how every step is done, open it any time. ✅ Job Checklist = what you still have to be signed off on. 📊 Progress = the calendar view. 🏫 Handbook = who we are and the Code of Conduct.</div>
+      <div style="margin-top:9px;background:#FCEBEB;border:.5px solid #F09595;border-radius:6px;padding:9px 10px">
+        <b style="color:#7a1f1f">One rule from day one.</b> If a parent asks you anything — at the door, by phone, by message — you say one line: <i>“I will pass this to management and they will contact you.”</i> Then you file it in <b>MiscGo</b>. Never handle it yourself, never promise anything, never report it verbally or in a group chat. Everything goes into MiscGo so nothing gets missed.
+      </div>
+      <div style="margin-top:9px;color:var(--mut)">Stuck, or a step never came up today? Use the two buttons at the bottom of this page. Neither one counts against you.</div>
+    </div>
+  </details>`;
   if(restToday){
     const ct=catchupsOf(p.uid,iso);
     const weak=(()=>{const m=[];(p.depts||[]).forEach(d=>{compDone(p.uid,d.dept).missing.forEach(x=>m.push(x));});return m;})();
@@ -3847,21 +3956,64 @@ function renderMenteeHome(){
       <div style="font-size:19px;font-weight:700;margin:8px 0 4px;line-height:1.35">${esc(first.text)}</div>
       <div style="font-size:12px;color:var(--mut)">${deptShort(firstDept)} · ${dayLabel(firstDay)} · ${tagBadge(first.tag)}</div>
       <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-pri" onclick="goPage('tasks')">Start</button>
+        ${first.go?`<button class="btn btn-pri" onclick="goPage('${first.go}')">${esc(first.goLabel||'Open')} ›</button>`
+                  :((first.sops||[]).length&&D.SOP&&D.SOP[first.sops[0]]
+                    ?`<button class="btn btn-pri" onclick="openSopModal('${first.sops[0]}')">📖 Open the SOP</button>`
+                    :'')}
+        <button class="btn" onclick="goPage('tasks')">All of today's tasks</button>
         <button class="btn" onclick="goPage('report')">Write today's report</button>
       </div>
     </div>
     <div style="text-align:center;color:var(--mut);font-size:11px;margin:-4px 0 10px">One thing at a time.</div>`;
-  }else if(blocks.length){
+  }else if(dutyAllDone&&dutyRepsIn){
+    // ── B2：她该做的都做完、日报也交了。接下来是 Mentor 的事，讲清楚。──
+    const nx=duty.map(b=>{const i=ALL_DAYS.indexOf(b.day);return{dept:b.dept,day:b.day,next:ALL_DAYS[i+1]};});
+    h+=`<div class="card" style="border:2px solid var(--grn)">
+      <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">Your day is complete</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Tasks done and report submitted</div>
+      <div style="font-size:12.5px;color:var(--mut);line-height:1.6">Nothing else is waiting on you today. ${nx.map(x=>
+        x.next?`Your Mentor reads your ${deptShort(x.dept)} report and confirms before <b>${dayLabel(x.next)}</b> opens — that is why you are still on ${dayLabel(x.day)}.`
+              :`Your Mentor reviews your ${deptShort(x.dept)} report and then decides on sign-off.`).join(' ')}</div>
+      <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="goPage('report')">See what I submitted</button>
+        <button class="btn" onclick="goPage('comp')">Work on my checklist</button>
+      </div>
+    </div>`;
+  }else if(duty.length){
     h+=`<div class="card" style="border:2px solid var(--grn)">
       <div style="font-size:11px;font-weight:700;color:var(--grn);letter-spacing:.6px">Everything for today is done</div>
       <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Just the day report left</div>
       <div style="margin-top:12px"><button class="btn btn-pri" onclick="goPage('report')">Write today's report</button></div>
     </div>`;
+  }else if(offFirst){
+    // ── A2：今天没排到课，但当天还是有不用上课就能做的事。不可以整批藏起来。──
+    h+=`<div class="card" style="border:2px solid var(--acc)">
+      <div style="font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.6px">No class for you today — but this one you can still do</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px;line-height:1.35">${esc(offFirst.text)}</div>
+      <div style="font-size:12px;color:var(--mut)">${deptShort(offBlock.dept)} · ${dayLabel(offBlock.day)} · ${tagBadge(offFirst.tag)}</div>
+      <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap">
+        ${offFirst.go?`<button class="btn btn-pri" onclick="goPage('${offFirst.go}')">${esc(offFirst.goLabel||'Open')} ›</button>`
+                     :((offFirst.sops||[]).length&&D.SOP&&D.SOP[offFirst.sops[0]]
+                       ?`<button class="btn btn-pri" onclick="openSopModal('${offFirst.sops[0]}')">📖 Open the SOP</button>`:'')}
+        <button class="btn" onclick="goPage('tasks')">All of today's tasks</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--mut);margin-top:10px;line-height:1.55">
+        The OBSERVE and TEACH items for ${dayLabel(offBlock.day)} need a real class — they wait for your next class day. Your day number does not move today.</div>
+    </div>`;
+  }else if(off.length){
+    h+=`<div class="card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">No class for you today</div>
+      <div style="font-size:12px;color:var(--mut);line-height:1.6">Everything on ${off.map(b=>dayLabel(b.day)).join(' / ')} that can be done without a class is already ticked. The rest needs a real class, so your day number stays where it is. Good time to re-read an SOP.</div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="goPage('tasks')">See today's tasks</button>
+        <button class="btn" onclick="goPage('sop')">Open SOP library</button>
+      </div>
+    </div>`;
   }else{
     h+=`<div class="card">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">No training class scheduled today</div>
-      <div style="font-size:12px;color:var(--mut)">None of the departments you are training in are on your timetable today. You can review the SOPs on your own.</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">No training scheduled today</div>
+      <div style="font-size:12px;color:var(--mut)">Your training plan has no active department today. Good time to re-read an SOP.</div>
+      <div style="margin-top:12px"><button class="btn" onclick="goPage('sop')">Open SOP library</button></div>
     </div>`;
   }
 
@@ -3896,8 +4048,8 @@ function renderMenteeHome(){
       <div class="card-title" style="margin-bottom:6px">Job checklist</div>
       <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
-        <span>${cw.ok}／${cw.total} at required level</span>
-        <span style="color:var(--mut)">${cw.done?'All complete':'Completion is judged on this checklist, not the day count'}</span></div>
+        <span>${cw.ok}／${cw.total} signed off</span>
+        <span style="color:var(--mut)">${cw.done?'All complete':(cw.ok===0?'Your target list for the whole training':'Completion is judged on this list, not the day count')}</span></div>
       <div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">See checklist ›</button></div>
     </div>`;
   }
@@ -4005,7 +4157,7 @@ function renderReleaserCard(){
 
 async function doRelease(uid){
   const p=getPlan(uid); if(!p)return;
-  const note=prompt(`Release ${p.teacherName}?\n\nOnce released she can take a class on her own. This action is recorded (who and when).\n\nNote (optional):`,'');
+  const note=prompt(`Release ${p.teacherName}?\n\nOnce released they can take a class on their own. This action is recorded (who and when).\n\nNote (optional):`,'');
   if(note===null)return;
   await setReleased(uid,true,note);
   alert('✅ Released. The record has been kept.');
@@ -4025,7 +4177,7 @@ function openNewPlan(){
       <select id="np_teacher"><option value="">— Choose —</option>${tOpts}</select>
       <label class="lbl">Mentor *</label>
       <select id="np_mentor"><option value="">— Choose —</option>${tOpts}</select>
-      <label class="lbl">Which departments she trains in * (choose one or more)</label>
+      <label class="lbl">Which departments they train in * (choose one or more)</label>
       <div class="chk" id="np_depts">${dChips}</div>
       <label class="lbl" style="margin-top:10px">Start date *</label>
       <input type="date" id="np_start" value="${getTodayISO()}" onchange="npPreview()">
@@ -4104,7 +4256,7 @@ function openPlanEdit(uid){
         <div style="font-size:12px;font-weight:700;margin-bottom:3px">📅 Mark a day</div>
         <div style="font-size:10px;color:var(--mut);margin-bottom:8px">
           <b>Skip</b>: school event, class cancelled — that day does not count as a training day and everything shifts back.<br>
-          <b>Catch-up day</b>: she works on her own weak spots and you can assign her tasks. No training tasks are issued.</div>
+          <b>Catch-up day</b>: they work on their own weak spots and you can assign them tasks. No training tasks are issued.</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <input type="date" id="pe_ex_date" style="flex:1;min-width:120px">
           <select id="pe_ex_kind" style="width:auto">
