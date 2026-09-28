@@ -352,7 +352,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v40';
+const APP_VERSION='v41';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -584,6 +584,25 @@ function compCheck(planUid,compId){
 function compLevel(planUid,compId){
   const x=compCheck(planUid,compId); return x?(x.level_now||0):0;
 }
+// v41：三方看法 —— 自评（SELF）· 正式等级（Mentor／管理层签）· 管理层看法（MGMT）。
+// 自评与管理层看法只新增不改写，最新一笔为准；都不算过关。
+function opinionOf(planUid,compId,kind){
+  return (S.opinions||[]).find(x=>x.plan_uid===planUid&&x.competency_id===compId&&x.kind===kind)||null;
+}
+function canGiveMgmtView(p){ return canCertifyMentor()&&!isMine(p); }
+async function saveOpinion(planUid,compId,kind,level,note){
+  if(!sb)return false;
+  const {error}=await sb.from('traingo_opinion').insert({plan_uid:planUid,competency_id:compId,kind:kind,level:level,note:note||null});
+  if(error){ alert('Could not save: '+error.message); return false; }
+  return true;
+}
+function viewsLine(p,itId){
+  const sv=opinionOf(p.uid,itId,'SELF'), mv=opinionOf(p.uid,itId,'MGMT');
+  const parts=[];
+  parts.push(isMine(p)?'You: '+(sv?sv.level+' · '+(LEVEL_LABEL[sv.level]||''):'not rated yet'):'Self: '+(sv?sv.level:'—'));
+  if(canCertifyMentor()&&!isMine(p)) parts.push('MGMT: '+(mv?mv.level:'—'));
+  return parts.join(' · ');
+}
 // 完成 ＝ 清单上每一项都到了要求的级数（架构正本 §4.1）。天数只是进度显示。
 function compDone(planUid,dept){
   const list=compFor(dept);
@@ -721,7 +740,7 @@ async function reloadAll(){
   if(!sb)return;
   setSyncStatus('…');
   try{
-    const [t,p,pd,mh,dx,r,k,tt,cal,rel,cmp,cchk,hlp,nop,cat,cpl]=await Promise.all([
+    const [t,p,pd,mh,dx,r,k,tt,cal,rel,cmp,cchk,hlp,nop,cat,cpl,opn]=await Promise.all([
       sb.from('teachers').select('id,name,status,resigned').order('id'),
       sb.from('traingo_plan').select('*'),
       sb.from('traingo_plan_dept').select('*'),
@@ -738,8 +757,10 @@ async function reloadAll(){
       sb.from('traingo_no_practice').select('*').order('on_date',{ascending:false}),
       sb.from('traingo_catchup_task').select('*').order('on_date',{ascending:false}),
       sb.from('traingo_completion').select('*'),
+      sb.from('traingo_opinion').select('*').order('created_at',{ascending:false}),   // v41：自评／管理层看法
     ]);
     for(const x of [t,p,pd,mh,dx,r,k,tt,cal,rel,cmp,cchk,hlp,nop,cat,cpl]) if(x.error) throw x.error;
+    S.opinions=(opn&&!opn.error&&opn.data)||[];   // v41：读不到就当没有，不挡整页
     S.comp=cmp.data||[]; S.compChecks=cchk.data||[];
     S.helps=hlp.data||[]; S.noPractice=nop.data||[];
     S.catchups=cat.data||[]; S.completions=cpl.data||[];
@@ -884,7 +905,7 @@ function signerHint(plan,dept){
     return'Management signs <b>Level 4</b> here. Level 1 is the new teacher’s, Levels 2–3 are the Mentor’s. You can also set an item back to 0.';
   if(m>=4)return'You can sign any level, including Level 4.';
   if(m===3)return'As a '+esc(dept)+' Mentor you can sign '+esc(dept)+' items up to Level 3. Level 4 is management only.';
-  if(m===1)return'You can mark Level 1 (“I know it”) yourself. Levels 2 and 3 are your Mentor’s to sign, Level 4 is management.';
+  if(m===1)return'Rate yourself on each item — your honest view helps your Mentor know how to support you.';
   return'You cannot sign on this plan — view only.';
 }
 function canCertifyMentor(){
@@ -2963,23 +2984,20 @@ function renderCompetency(){
   h+=`<div class="card">
     <div class="card-title">${esc(p.teacherName)} · ${deptShort(S.dept)} Job Checklist</div>
     <div style="font-size:12px;color:var(--mut);margin:4px 0 10px">
-      Complete means every item on this checklist has reached its required level. The day count is only progress, not the completion test.</div>
+      ${isMine(p)?'Every skill you build here brings you closer to leading your own class. Keep going!':'Sign each item once you have seen them do it.'}</div>
     <div class="prog-bar"><div class="prog-fill ${r.done?'grn':''}" style="width:${pct}%"></div></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
       <span>${r.ok}／${r.total} signed off</span>
-      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ This department is complete':(r.ok===0?'This is the target list for the whole training — nothing is signed yet':(r.total-r.ok)+' still to go')}</span>
+      <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ This department is complete':(r.ok===0?(isMine(p)?'Your journey starts here — one step at a time':'Not signed yet'):(r.total-r.ok)+' still to go')}</span>
     </div>
     ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">Whole plan: ${whole.ok}／${whole.total}${whole.done?' · all complete':''}</div>`:''}
-    <div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px 10px;font-size:11.5px;color:var(--txt);line-height:1.6">
-      <b>Who signs what.</b> ${signerHint(p)}<br>
-      <b>The day report does not move this list.</b> ${isMine(p)
-        ? 'The ✅ you tick in the day report is your own read of how it went — useful, and your Mentor reads it. This list only moves when someone with the authority above signs the item here.'
-        : 'The ✅ ticked in the day report is their own read of how it went. Nothing is signed off until you sign it here.'}
-    </div>
+    ${isMine(p)?'':`<div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px 10px;font-size:11.5px;color:var(--txt);line-height:1.6">${signerHint(p)}</div>`}
   </div>`;
 
   const misc=miscCountOf(p.teacherCode);
-  h+=`<div class="card" style="background:var(--sur2)">
+  // v41：新老师本人只看一句鼓励；Mentor／管理层照旧看「客观证据」
+  if(isMine(p)){ if(misc) h+=`<div class="card" style="background:var(--sur2);font-size:13px">📝 You have filed <b>${misc}</b> MiscGo report${misc===1?'':'s'} — thank you for keeping everyone informed!</div>`; }
+  else h+=`<div class="card" style="background:var(--sur2)">
     <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">Objective evidence</div>
     <div style="font-size:13px;margin-top:5px">
       ${isMine(p)?'MiscGo reports you filed yourself':'MiscGo reports '+whoName(p)+' filed'}: <b>${misc===null?'cannot read':misc}</b>
@@ -2989,6 +3007,32 @@ function renderCompetency(){
                   :'For the Mentor\'s reference only — it does not block signing.'}
     </div>
   </div>`;
+
+  // v41：看法不一样的项目（自评 vs 正式 vs 管理层）—— 给 Mentor／管理层看，新老师本人不显示
+  if(!isMine(p)){
+    const showMg=canCertifyMentor();
+    const rows=list.map(it=>{
+      const sv=opinionOf(p.uid,it.id,'SELF'), mv=showMg?opinionOf(p.uid,it.id,'MGMT'):null;
+      const off=compLevel(p.uid,it.id);
+      if(!sv&&!mv)return null;
+      const vals=[off]; if(sv)vals.push(sv.level); if(mv)vals.push(mv.level);
+      const spread=Math.max(...vals)-Math.min(...vals);
+      return spread>0?{it,sv,mv,off,spread,dir:sv?sv.level-off:0}:null;
+    }).filter(Boolean).sort((a,b)=>b.spread-a.spread);
+    const rated=list.filter(it=>opinionOf(p.uid,it.id,'SELF')).length;
+    h+=`<div class="card">
+      <div class="card-title" style="margin-bottom:4px">Views that differ</div>
+      <div style="font-size:11.5px;color:var(--mut);margin-bottom:8px">${whoName(p)} has rated ${rated} of ${list.length} items. Self ${showMg?'· Official · Management':'· Official'} — only the official level counts.</div>
+      ${rows.length?rows.map(r=>`<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:.5px solid var(--bdr);font-size:12.5px">
+          <div style="flex:1;min-width:0">${esc(r.it.name)}
+            <div style="font-size:11px;color:var(--mut);margin-top:2px">${r.sv&&r.dir>0?'Self view is higher than the official level':(r.sv&&r.dir<0?'Self view is lower than the official level':'Management sees it differently')}</div></div>
+          <span class="chip">Self ${r.sv?r.sv.level:'—'}</span>
+          <span class="chip">Official ${r.off}</span>
+          ${showMg?`<span class="chip">MGMT ${r.mv?r.mv.level:'—'}</span>`:''}
+          <button class="btn btn-sm" onclick="openCompModal('${r.it.id}')">Open</button>
+        </div>`).join(''):`<div style="font-size:12px;color:var(--mut)">${rated?'No differences — everyone sees it the same way.':'Nothing rated yet.'}</div>`}
+    </div>`;
+  }
 
   ['A','B'].forEach(g=>{
     const items=list.filter(x=>x.grp===g);
@@ -3005,13 +3049,14 @@ function renderCompetency(){
           <div style="font-size:13px;font-weight:${ok?'400':'500'};line-height:1.35">${esc(it.name)}
             ${it.is_safety?'<span class="chip chip-red" style="margin-left:5px">Safety</span>':''}</div>
           <div style="font-size:11px;color:var(--mut);margin-top:3px">
-            ${esc(LEVEL_LABEL[lv]||'')}${ck&&ck.signed_by_code?' · signed by '+esc(ck.signed_by_code):''}${ck&&ck.second_by_code?' ＋ '+esc(ck.second_by_code):''}
+            ${isMine(p)?'Mentor: '+esc(LEVEL_LABEL[lv]||''):'Official: '+esc(LEVEL_LABEL[lv]||'')+(ck&&ck.signed_by_code?' · signed by '+esc(ck.signed_by_code):'')+(ck&&ck.second_by_code?' ＋ '+esc(ck.second_by_code):'')}
           </div>
+          <div style="font-size:11px;color:var(--mut);margin-top:2px">${viewsLine(p,it.id)}</div>
         </div>
         ${levelPill(lv,it.level_required||3,it.is_safety)}
         ${it.sop_key&&D.SOP[it.sop_key]?`<button class="btn btn-sm" onclick="openSopModal('${it.sop_key}')">SOP</button>`:''}
         ${_maxSign>0
-          ? `<button class="btn btn-sm" onclick="openCompModal('${it.id}')">${_maxSign===1?(lv>=1?'Change':'I know it'):'Sign'}</button>`
+          ? `<button class="btn btn-sm" onclick="openCompModal('${it.id}')">${_maxSign===1?(opinionOf(p.uid,it.id,'SELF')?'Change':'Rate myself'):'Sign'}</button>`
           : `<button class="btn btn-sm" onclick="openCompModal('${it.id}')">View</button>`}
       </div>`;
     });
@@ -3032,62 +3077,124 @@ function renderCompetency(){
   el.innerHTML=h;
 }
 
+// v41：三方看法。新老师：只问「你觉得自己在哪一级」（0–4，不算过关；选 1 以上顺便打正式的 Level 1）。
+// Mentor／管理层：上方先看新老师的自评，再签正式等级；管理层另外可留「管理层看法」。
+// 第二签名人一栏：只有签得到 3 级的人、而且选到 3 级以上才出现。
+function lvlOptions(sel,withKeep){
+  return (withKeep?'<option value="">— No change —</option>':'')+[0,1,2,3,4].map(n=>`<option value="${n}" ${(!withKeep&&n===sel)?'selected':''}>${n} · ${LEVEL_LABEL[n]}</option>`).join('');
+}
+function opinionBox(label,o,emptyText){
+  if(!o)return `<div style="font-size:12px;color:var(--mut)">${label}: <i>${emptyText}</i></div>`;
+  const d=String(o.created_at||'').slice(0,10);
+  return `<div style="font-size:12px;line-height:1.5">${label}: <b>${o.level} · ${esc(LEVEL_LABEL[o.level]||'')}</b>
+    <span style="color:var(--mut)"> · ${esc(d)}${o.by_code?' · '+esc(o.by_code):''}</span>
+    ${o.note?`<div style="color:var(--mut);margin-top:2px">“${esc(o.note)}”</div>`:''}</div>`;
+}
 function openCompModal(compId){
   const p=getPlan(); if(!p)return;
   const it=(S.comp||[]).find(x=>x.id===compId); if(!it)return;
   const lv=compLevel(p.uid,it.id);
   const ck=compCheck(p.uid,it.id);
   const req=it.level_required||3;
-  const maxSign=maxSignableLevel(p,it.dept);
-  const _can=signableLevels(p,lv,it.dept);
-  const opts=[0,1,2,3,4].filter(n=>_can.has(n)||n===lv||n<=maxSign)
-    .map(n=>{const no=!_can.has(n)&&n!==lv;return `<option value="${n}" ${n===lv?'selected':''} ${no?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${no?'　(not yours to sign)':''}</option>`;}).join('');
-  // v32：以前只排除「我自己」，学员本人还留在选单里 ——
-  // 安全类项目让被评核的人替自己背书，等於没有第二签名。
-  // 现在也排除：被评核的学员，以及任何还在受训中的人。
-  const _stillTraining=new Set((S.plans||[])
-    .filter(x=>(x.depts||[]).some(d=>d.status==='active'))
-    .map(x=>x.teacherCode));
-  const people=(S.teachers||[]).filter(t=>
-        t.id!==(S.me&&S.me.code)
-     && t.id!==p.teacherCode
-     && !_stillTraining.has(t.id)
-     && !t.resigned)
-    .map(t=>`<option value="${esc(t.id)}" ${ck&&ck.second_by_code===t.id?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
+  const sv=opinionOf(p.uid,it.id,'SELF'), mv=opinionOf(p.uid,it.id,'MGMT');
   const ov=document.createElement('div');
   ov.className='overlay';
-  ov.innerHTML=`<div class="modal">
-    <div class="modal-hdr">
+  const hdr=`<div class="modal-hdr">
       <div class="modal-hdr-title">${esc(it.name)}<br>
         <span style="font-size:11px;font-weight:400;color:var(--mut)">${esc(p.teacherName)} · ${deptShort(it.dept)} · requires Level ${req}${it.is_safety?' · safety-critical':''}</span></div>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button>
-    </div>
+    </div>`;
+  const legend=`<div style="font-size:11px;color:var(--mut);margin-top:6px">1 Knows · 2 Can do with supervision · 3 Can do independently · 4 Can teach others</div>`;
+
+  if(isMine(p)){
+    ov.innerHTML=`<div class="modal">${hdr}
     <div class="modal-body">
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">${isMine(p)?'What level are you at now':'What level is '+whoName(p)+' at now'}</div>
-      <select id="cmLevel" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${opts}</select>
-      <div style="font-size:11px;color:var(--mut);margin-top:6px">
-        1 Knows · 2 Can do with supervision · 3 Can do independently · 4 Can teach others (= can mentor this item)<br>
-        ${isMine(p)?'Level 1 you sign yourself':'Level 1 the new teacher signs'} · Levels 2 and 3 the Mentor signs · Level 4 management signs
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Where do you think you are now?</div>
+      <select id="cmSelf" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${sv?'':'<option value="" selected disabled>— Choose your level —</option>'}${lvlOptions(sv?sv.level:-1,false)}</select>
+      ${legend}
+      <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">
+        There is no wrong answer. Your honest view helps your Mentor know how to support you. 💪
       </div>
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Why? (optional)</div>
+        <textarea id="cmNote" rows="2" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit" placeholder="e.g. I have done it twice with help"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-pri" onclick="submitSelfView('${it.id}',this)">Save</button>
+    </div></div>`;
+  } else {
+    const maxSign=maxSignableLevel(p,it.dept);
+    const _can=signableLevels(p,lv,it.dept);
+    const mg=canGiveMgmtView(p);
+    const opts=[0,1,2,3,4].filter(n=>_can.has(n)||n===lv||n<=maxSign)
+      .map(n=>{const no=!_can.has(n)&&n!==lv;return `<option value="${n}" ${n===lv?'selected':''} ${no?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${no?'　(not yours to sign)':''}</option>`;}).join('');
+    const _stillTraining=new Set((S.plans||[])
+      .filter(x=>(x.depts||[]).some(d=>d.status==='active'))
+      .map(x=>x.teacherCode));
+    const people=(S.teachers||[]).filter(t=>
+          t.id!==(S.me&&S.me.code) && t.id!==p.teacherCode && !_stillTraining.has(t.id) && !t.resigned)
+      .map(t=>`<option value="${esc(t.id)}" ${ck&&ck.second_by_code===t.id?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
+    const showSecond=it.is_safety&&maxSign>=3;
+    ov.innerHTML=`<div class="modal">${hdr}
+    <div class="modal-body">
+      <div style="background:var(--sur2);border-radius:6px;padding:8px 9px;margin-bottom:12px">
+        ${opinionBox(esc(p.teacherName)+'’s own view',sv,'has not rated this yet')}
+        ${mg?`<div style="margin-top:6px">${opinionBox('Management view',mv,'none yet')}</div>`:''}
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Official level ${maxSign>0?'(this is what counts)':''}</div>
+      <select id="cmLevel" ${maxSign>0?'':'disabled'} onchange="toggleSecond(this)" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${opts}</select>
+      ${legend}
       <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p,it.dept)}${maxSign<req?`<br><b>This item needs Level ${req}</b>, which is above what you can sign — someone else has to close it.`:''}</div>
-      ${it.is_safety?`<div style="margin-top:14px">
-        <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · reaching Level 3 needs a second signer</div>
-        <div style="font-size:11px;color:var(--mut);margin-bottom:5px">Someone who watched them do it — not you, not ${esc(p.teacherName)}, and not another teacher still in training.</div>
+      ${showSecond?`<div id="cmSecondWrap" style="margin-top:14px;${lv>=3?'':'display:none'}">
+        <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · Level 3 needs a second signer</div>
+        <div style="font-size:11px;color:var(--mut);margin-bottom:5px">Someone who watched ${whoName(p)} do it — not you, and not another teacher still in training.</div>
         <select id="cmSecond" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">
           <option value="">— Choose a second signer —</option>${people}</select>
       </div>`:''}
-      <div style="margin-top:14px">
+      ${maxSign>0?`<div style="margin-top:14px">
         <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Note (optional)</div>
         <textarea id="cmNote" rows="2" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(ck&&ck.note||'')}</textarea>
-      </div>
+      </div>`:''}
+      ${mg?`<div style="margin-top:16px;border-top:.5px solid var(--bdr);padding-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Your management view (does not sign anything off)</div>
+        <select id="cmMgmt" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${lvlOptions(null,true)}</select>
+        <textarea id="cmMgmtNote" rows="2" placeholder="Why? (optional)" style="width:100%;margin-top:6px;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px">Only management can see this. The new teacher and the Mentor cannot.</div>
+      </div>`:''}
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="this.closest('.overlay').remove()">${maxSign>0?'Cancel':'Close'}</button>
       ${maxSign>0?`<button class="btn btn-pri" onclick="submitCompLevel('${it.id}',this)">Save</button>`:''}
-    </div>
-  </div>`;
+    </div></div>`;
+  }
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
+  const _se=document.getElementById('cmSecond'); if(_se)_se.dataset.init=_se.value;
+}
+function toggleSecond(sel){
+  const w=document.getElementById('cmSecondWrap'); if(!w)return;
+  w.style.display=parseInt(sel.value,10)>=3?'':'none';
+}
+
+async function submitSelfView(compId,btn){
+  const p=getPlan(); if(!p||!isMine(p))return;
+  const it=(S.comp||[]).find(x=>x.id===compId); if(!it)return;
+  const _sv=document.getElementById('cmSelf').value;
+  if(_sv===''){alert('Please choose a level first.');return;}
+  const s=parseInt(_sv,10);
+  const note=((document.getElementById('cmNote')||{}).value||'').trim();
+  btn.disabled=true;btn.textContent='Saving…';
+  const ok=await saveOpinion(p.uid,compId,'SELF',s,note);
+  if(!ok){btn.disabled=false;btn.textContent='Save';return;}
+  // 正式 Level 1 ＝「我知道了」本来就是新老师自己签的：跟着自评走（只在 0 与 1 之间动）
+  const cur=compLevel(p.uid,compId);
+  const _ck=compCheck(p.uid,compId), _keepNote=_ck?_ck.note:null;
+  if(s>=1&&cur===0) await setCompLevel(p.uid,compId,it.dept,1,null,_keepNote);
+  else if(s===0&&cur===1) await setCompLevel(p.uid,compId,it.dept,0,null,_keepNote);
+  else await reloadAll();
+  const ov=btn.closest('.overlay');if(ov)ov.remove();renderCompetency();
 }
 
 async function submitCompLevel(compId,btn){
@@ -3097,14 +3204,28 @@ async function submitCompLevel(compId,btn){
   if(maxSign<=0){alert('You cannot sign on this training plan — this page is view only for you.');return;}
   const lv=parseInt(document.getElementById('cmLevel').value,10);
   const _cur=compLevel(p.uid,compId);
-  if(lv!==_cur&&!signableLevels(p,_cur,it.dept).has(lv)){alert(signerHint(p,it.dept).replace(/<[^>]+>/g,''));return;}
+  const ck=compCheck(p.uid,compId);
   const secEl=document.getElementById('cmSecond');
-  const sec=secEl?secEl.value:'';
+  const sec=(secEl&&lv>=3)?(secEl.value||((ck&&ck.second_by_code)||'')):'';
   const note=(document.getElementById('cmNote')||{}).value||'';
-  if(it.is_safety&&lv>=3&&!sec){alert('This is safety-critical — reaching Level 3 needs a second signer.');return;}
-  if(it.is_safety&&lv>=3&&sec===p.teacherCode){alert('The second signer cannot be the person being assessed.');return;}
+  const mgEl=document.getElementById('cmMgmt');
+  const mgVal=mgEl?mgEl.value:'';
+  const secChanged = !!(secEl&&lv>=3&&secEl.value!==(secEl.dataset.init||''));
+  const officialChanged = lv!==_cur || (note||'')!==((ck&&ck.note)||'') || secChanged;
+  if(officialChanged){
+    if(lv!==_cur&&!signableLevels(p,_cur,it.dept).has(lv)){alert(signerHint(p,it.dept).replace(/<[^>]+>/g,''));return;}
+    if(it.is_safety&&lv>=3&&!sec){alert('This is safety-critical — reaching Level 3 needs a second signer.');return;}
+    if(it.is_safety&&lv>=3&&sec===p.teacherCode){alert('The second signer cannot be the person being assessed.');return;}
+  }
+  if(!officialChanged&&mgVal===''){const ov=btn.closest('.overlay');if(ov)ov.remove();return;}
   btn.disabled=true;btn.textContent='Saving…';
-  const ok=await setCompLevel(p.uid,compId,it.dept,lv,sec,note);
+  if(mgVal!==''){
+    const ok=await saveOpinion(p.uid,compId,'MGMT',parseInt(mgVal,10),((document.getElementById('cmMgmtNote')||{}).value||'').trim());
+    if(!ok){btn.disabled=false;btn.textContent='Save';return;}
+  }
+  let ok=true;
+  if(officialChanged) ok=await setCompLevel(p.uid,compId,it.dept,lv,sec,note);
+  else await reloadAll();
   if(ok){const ov=btn.closest('.overlay');if(ov)ov.remove();renderCompetency();}
   else{btn.disabled=false;btn.textContent='Save';}
 }
@@ -3601,7 +3722,7 @@ function renderMenteeHome(){
       <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
         <span>${cw.ok}／${cw.total} signed off</span>
-        <span style="color:var(--mut)">${cw.done?'All complete':(cw.ok===0?'Your target list for the whole training':'Completion is judged on this list, not the day count')}</span></div>
+        <span style="color:var(--mut)">${cw.done?'All complete — well done! 🎉':(cw.ok===0?'Your journey starts here':'Great progress — keep going!')}</span></div>
       <div style="margin-top:10px"><button class="btn btn-sm" onclick="goPage('comp')">See checklist ›</button></div>
     </div>`;
   }
