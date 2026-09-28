@@ -352,7 +352,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v39';
+const APP_VERSION='v40';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -522,6 +522,7 @@ async function savePlanDept(planUid,dept,currentDay,status){
 async function saveReport(rpt,state){
   if(!sb)return;
   const p=getPlan(rpt.planUid)||{};
+  if(rpt.role==='mentor'&&S.me&&!S.preview)rpt.by=S.me.code;   // v40：一组 Mentor 共写一份，记最後是谁写的
   const row={client_uid:rpt.id, plan_uid:rpt.planUid, dept:rpt.dept, role:rpt.role, day:rpt.day,
              state:state||rpt.state||'draft', payload:rpt};
   if(row.state==='submitted')row.submitted_at=new Date().toISOString();
@@ -802,17 +803,41 @@ function getCohort(uid){
   setRD(S.dept||((p.depts[0]||{}).dept)||'SRK');
   return cohortOf(p);
 }
-// 那一天是谁带的 —— 跟资料库 private.traingo_mentor_on_day() 同一套算法（部门相符或 dept 为空、from_day ≤ 那一天、取最新）
-function mentorCodeOnDay(plan,day,dept){
-  const d=dept||S.dept;
-  const h=(plan.mentorHistory||[])
-    .filter(e=>(e.dept==null||e.dept===d)&&(e.from_day||1)<=day)
-    .sort((a,b)=>((b.from_day||1)-(a.from_day||1))||String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
-  return h?h.mentor_code:plan.mentorCode;
+// v40：每个部门一组 Mentor（Owner 裁示「同一部门也要多位」「一起带，谁带到谁写」）。
+// 名单 = mentorHistory 里 部门相符（或 dept 空）、from_day ≤ 那一天 ≤ until_day（空＝还在带）。
+// 这个部门一行名单都没有 → 退回 plan.mentorCode（旧计划照常）。跟资料库 private.traingo_is_mentor_on_day() 同一套。
+function deptRows(plan,dept){return (plan.mentorHistory||[]).filter(e=>e.dept==null||e.dept===dept);}
+function mentorsOnDay(plan,day,dept){
+  const d=dept||S.dept; const rows=deptRows(plan,d);
+  if(!rows.length)return plan.mentorCode?[plan.mentorCode]:[];
+  return [...new Set(rows.filter(e=>(e.from_day||1)<=day&&(e.until_day==null||e.until_day>=day)).map(e=>e.mentor_code))];
 }
-function mentorOnDay(plan,day,dept){
-  const c=mentorCodeOnDay(plan,day,dept);
-  return c?teacherName(c):(plan.mentorName||'—');
+function deptDay(plan,dept){const pd=(plan.depts||[]).find(x=>x.dept===dept);return (pd&&pd.currentDay)||1;}
+function mentorsNow(plan,dept){return mentorsOnDay(plan,deptDay(plan,dept),dept);}
+function amMentorOf(plan,dept){const me=S.me&&S.me.code;return !!me&&mentorsNow(plan,dept).includes(me);}
+function amMentorOnDay(plan,dept,day){const me=S.me&&S.me.code;return !!me&&mentorsOnDay(plan,day,dept).includes(me);}
+function myMentorDepts(plan){return (plan.depts||[]).filter(d=>amMentorOf(plan,d.dept)).map(d=>d.dept);}
+function everMentorOf(plan){const me=S.me&&S.me.code;if(!me||plan.teacherCode===me)return false;
+  return plan.mentorCode===me||(plan.mentorHistory||[]).some(e=>e.mentor_code===me);}
+// v40：Mentor 打开不是自己名单上的部门／日子 → 只能看（否则打了字资料库会拒收，画面却像断线）
+function mentorViewOnly(cohort,day){return S.role==='mentor'&&!!cohort&&!amMentorOnDay(cohort._plan,cohort.dept,day);}
+function applyMentorViewOnly(el,cohort,day){
+  el.oninput=null; el.onchange=null;
+  el.querySelectorAll('textarea,input,select').forEach(x=>{if(!x.closest('.filter'))x.disabled=true;});
+  el.querySelectorAll('button[onclick*="submitReport"],button[onclick*="deleteReport"]').forEach(b=>b.remove());
+  const who=mentorsOnDay(cohort._plan,day,cohort.dept).map(teacherName).join(' & ')||'—';
+  const card=el.querySelector('.card'); const note=`<div class="alert alert-amb" style="margin-bottom:10px">👀 View only — you are not on the <b>${esc(cohort.dept)}</b> Mentor list for ${esc(dayLabel(day))}. Mentors for that day: <b>${esc(who)}</b>.</div>`;
+  if(card)card.insertAdjacentHTML('beforebegin',note); else el.insertAdjacentHTML('afterbegin',note);
+}
+// 这份计划目前所有 Mentor（跨部门去重）；某位 Mentor 负责哪些部门
+function allMentorCodes(plan){return [...new Set((plan.depts||[]).flatMap(d=>mentorsNow(plan,d.dept)))];}
+function mentorDeptsOf(plan,code){return (plan.depts||[]).filter(d=>mentorsNow(plan,d.dept).includes(code)).map(d=>d.dept);}
+function mentorCodeOnDay(plan,day,dept){return mentorsOnDay(plan,day,dept)[0]||null;}   // 旧呼叫相容：取第一位
+function mentorOnDay(plan,day,dept){const cs=mentorsOnDay(plan,day,dept);return cs.length?cs.map(teacherName).join(' & '):'—';}
+// 计划卡用：「SRK · Bella & Chan ／ ATC · Lim」
+function mentorSummary(plan){
+  const ds=plan.depts||[]; if(!ds.length)return esc(plan.mentorName||'—');
+  return ds.map(d=>esc(d.dept)+' · '+esc(mentorsNow(plan,d.dept).map(teacherName).join(' & ')||'—')).join(' ／ ');
 }
 function getMentorForDay(cohort,day){return cohort&&cohort._plan?mentorOnDay(cohort._plan,day,cohort.dept):'—';}
 function canRelease(){
@@ -821,23 +846,22 @@ function canRelease(){
 }
 // 我在这个计划上签得到第几级 —— 跟 private.traingo_competency_guard() 同一套规矩。
 // 0 = 一级都签不了。UI 照这个画，才不会让人填完才被资料库挡掉。
-function maxSignableLevel(plan){
+function maxSignableLevel(plan,dept){
   if(!S.me||!plan)return 0;
   if(canCertifyMentor())return 4;                       // 管理层：到 4
-  const isMentor = plan.mentorCode===S.me.code ||
-                   (plan.mentorHistory||[]).some(e=>e.mentor_code===S.me.code);
+  const isMentor = amMentorOf(plan,dept||S.dept);      // v40：只算这个部门当前名单
   if(isMentor)return 3;                                 // Mentor：到 3
   if(plan.teacherCode===S.me.code)return 1;             // 本人：只到 1（自己说「我知道了」）
   return 0;
 }
 // v35：跟 private.traingo_competency_guard() 一格一格对齐（含「调低」的规矩）。
 // 以前 MGMT 画面可选 1–4，资料库却只收 4 与 0 —— 按了才被挡。
-function signableLevels(plan,cur){
+function signableLevels(plan,cur,dept){
   const out=new Set(); if(!S.me||!plan)return out;
   cur=cur||0;
   const me=S.me.code;
   const adm=isAdminRole(), mg=canCertifyMentor();
-  const mentor=plan.mentorCode===me||(plan.mentorHistory||[]).some(e=>e.mentor_code===me);
+  const mentor=amMentorOf(plan,dept||S.dept);          // v40：只算这个部门当前名单
   const mentee=plan.teacherCode===me;
   const lowerOK=n=>n>=cur||mentor||mg||(mentee&&cur<=1);
   [0,1,2,3,4].forEach(n=>{
@@ -851,12 +875,15 @@ function signableLevels(plan,cur){
   if(!(adm||mentor||mg||mentee))out.clear();
   return out;
 }
-function signerHint(plan){
-  const m=maxSignableLevel(plan);
-  if(canCertifyMentor()&&!isAdminRole()&&!(plan.mentorCode===S.me.code||(plan.mentorHistory||[]).some(e=>e.mentor_code===S.me.code)))
+function signerHint(plan,dept){
+  dept=dept||S.dept;
+  const m=maxSignableLevel(plan,dept);
+  if(!canCertifyMentor()&&everMentorOf(plan)&&!amMentorOf(plan,dept))
+    return'You are not on the '+esc(dept)+' Mentor list for this plan, so you cannot sign '+esc(dept)+' items — view only. Only that department’s Mentors sign Levels 2–3.';
+  if(canCertifyMentor()&&!isAdminRole()&&!amMentorOf(plan,dept))
     return'Management signs <b>Level 4</b> here. Level 1 is the new teacher’s, Levels 2–3 are the Mentor’s. You can also set an item back to 0.';
   if(m>=4)return'You can sign any level, including Level 4.';
-  if(m===3)return'As the Mentor you can sign up to Level 3. Level 4 is management only.';
+  if(m===3)return'As a '+esc(dept)+' Mentor you can sign '+esc(dept)+' items up to Level 3. Level 4 is management only.';
   if(m===1)return'You can mark Level 1 (“I know it”) yourself. Levels 2 and 3 are your Mentor’s to sign, Level 4 is management.';
   return'You cannot sign on this plan — view only.';
 }
@@ -981,9 +1008,7 @@ function settleRole(){
   if(!S.me)return;
   const my=S.me.code;
   // 中途接手的 Mentor（写在 mentorHistory 里）也要升成 Mentor 身份
-  S.role = S.plans.some(p=>p.teacherCode!==my &&
-            (p.mentorCode===my || (p.mentorHistory||[]).some(e=>e.mentor_code===my)))
-          ? 'mentor' : 'mentee';
+  S.role = S.plans.some(p=>everMentorOf(p)) ? 'mentor' : 'mentee';   // v40：任一部门名单
   applyRole();
 }
 
@@ -1021,10 +1046,10 @@ function openPreviewPicker(){
     const done=p.status==='completed'||((p.depts||[]).length&&(p.depts||[]).every(x=>x.status==='completed'));
     return `<div style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px">
       <div style="font-weight:600;font-size:13px">${esc(p.teacherName)} <span style="font-weight:400;color:var(--mut);font-size:11.5px">· ${d}${done?' · completed':''}</span></div>
-      <div style="font-size:11.5px;color:var(--mut);margin:2px 0 8px">Mentor: ${esc(p.mentorName||'—')}</div>
+      <div style="font-size:11.5px;color:var(--mut);margin:2px 0 8px">Mentors: ${mentorSummary(p)}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-sm btn-pri" onclick="startPreview('${p.uid}','mentee')">🎓 See it as ${esc(p.teacherName)}</button>
-        ${p.mentorCode&&p.mentorCode!==p.teacherCode?`<button class="btn btn-sm" onclick="startPreview('${p.uid}','mentor')">👨‍🏫 See it as the Mentor (${esc(p.mentorName)})</button>`:''}
+        ${allMentorCodes(p).filter(c=>c!==p.teacherCode).map(c=>`<button class="btn btn-sm" onclick="startPreview('${p.uid}','mentor','${esc(c)}')">👨‍🏫 See it as ${esc(teacherName(c))} (${mentorDeptsOf(p,c).join(' · ')||'Mentor'})</button>`).join('')}
       </div></div>`;}).join('');
   const ov=document.createElement('div'); ov.className='overlay';
   ov.innerHTML=`<div class="modal"><div class="modal-hdr"><div class="modal-hdr-title">👁 Preview as…<br>
@@ -1035,11 +1060,11 @@ function openPreviewPicker(){
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
   document.body.appendChild(ov);
 }
-function startPreview(uid,as){
+function startPreview(uid,as,who){
   const p=getPlan(uid); if(!p||!canPreview())return;
   document.querySelectorAll('.overlay').forEach(o=>o.remove());
   flushDraft(); clearTimeout(_draftT); _draftT=null; _draftDirty=false;
-  const code=as==='mentor'?p.mentorCode:p.teacherCode;
+  const code=as==='mentor'?(who||allMentorCodes(p)[0]||p.mentorCode):p.teacherCode;
   if(!S.realMe){S.realMe=S.me;S.realRole=S.role;}
   S.preview={uid,as,code,name:teacherName(code)};
   const _rm=S.realMe||{};
@@ -1173,6 +1198,7 @@ function roleDayBlocks(plan,role){
     deptFirstSession(plan.teacherCode,iso,b.dept)));
   ordered.forEach(pd=>{
     if(pd.status!=='active')return;
+    if(role==='mentor'&&!amMentorOf(plan,pd.dept))return;   // v40：不是我这个部门的，不出现在我的「今天」
     const day=pd.currentDay||1;
     if(isRestDate(plan,pd.dept,iso)){out.push({dept:pd.dept,day,rest:true,offDuty:false,tasks:[]});return;}
     setRD(pd.dept);
@@ -1892,6 +1918,7 @@ function renderTasks(){
     </div>
     ${renderStageSopBadges(stage.id)}
     ${renderQuickReference()}`;
+  if(mentorViewOnly(cohort,day))applyMentorViewOnly(el,cohort,day);
 }
 
 function viewDay(day,cohortId,role){
@@ -2065,7 +2092,7 @@ function renderReport(){
     <div class="card">
       <div class="card-hdr">
         <div><div class="card-title">📝 Day Report — ${dayLabel(day)}${role==='mentor'?' · about '+esc(cohort.menteeName):''}</div>
-        <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'New Teacher'} · ${deptShort(cohort.dept)} · Stage ${stage.id} ${stage.nameZh}</div></div>
+        <div style="font-size:11px;color:var(--mut)">${role==='mentor'?'Mentor':'New Teacher'} · ${deptShort(cohort.dept)} · Stage ${stage.id} ${stage.nameZh}${role==='mentor'&&existing&&existing.by?' · last written by <b>'+esc(teacherName(existing.by))+'</b>':''}</div></div>
         ${existing&&existing.state==='submitted'?`<span class="chip chip-grn">✅ Submitted ${existing.submitTime||''}</span>`:(existing?`<span class="chip chip-amb">📝 Draft saved — not submitted yet</span>`:`<span class="chip chip-amb">⏳ Not submitted</span>`)}
       </div>
 
@@ -2121,6 +2148,7 @@ function renderReport(){
     if(!e.target.matches('textarea,input,select'))return;
     scheduleDraft(cohort.id,role,day,cohort.dept);};
   el.oninput=_h; el.onchange=_h;
+  if(mentorViewOnly(cohort,day)){applyMentorViewOnly(el,cohort,day);return;}
   if(_restored){_draftCtx=[cohort.id,role,day,cohort.dept];_draftDirty=true;saveDraft(cohort.id,role,day,cohort.dept);}
 }
 
@@ -2671,7 +2699,10 @@ function contextChoices(){
   if(S.role==='mentor')plans=mentorPlans();
   else if(S.role==='mentee'){const m=myPlan();plans=m?[m]:[];}
   const out=[];
-  plans.forEach(p=>(p.depts||[]).forEach(d=>{if(d.status==='active')out.push({uid:p.uid,dept:d.dept,name:p.teacherName,day:d.currentDay||1});}));
+  plans.forEach(p=>(p.depts||[]).forEach(d=>{
+    if(d.status!=='active')return;
+    if(S.role==='mentor'&&!amMentorOf(p,d.dept))return;   // v40：只列我在名单里的部门
+    out.push({uid:p.uid,dept:d.dept,name:p.teacherName,day:d.currentDay||1});}));
   return out;
 }
 function contextBar(page){
@@ -3007,8 +3038,8 @@ function openCompModal(compId){
   const lv=compLevel(p.uid,it.id);
   const ck=compCheck(p.uid,it.id);
   const req=it.level_required||3;
-  const maxSign=maxSignableLevel(p);
-  const _can=signableLevels(p,lv);
+  const maxSign=maxSignableLevel(p,it.dept);
+  const _can=signableLevels(p,lv,it.dept);
   const opts=[0,1,2,3,4].filter(n=>_can.has(n)||n===lv||n<=maxSign)
     .map(n=>{const no=!_can.has(n)&&n!==lv;return `<option value="${n}" ${n===lv?'selected':''} ${no?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${no?'　(not yours to sign)':''}</option>`;}).join('');
   // v32：以前只排除「我自己」，学员本人还留在选单里 ——
@@ -3038,7 +3069,7 @@ function openCompModal(compId){
         1 Knows · 2 Can do with supervision · 3 Can do independently · 4 Can teach others (= can mentor this item)<br>
         ${isMine(p)?'Level 1 you sign yourself':'Level 1 the new teacher signs'} · Levels 2 and 3 the Mentor signs · Level 4 management signs
       </div>
-      <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p)}${maxSign<req?`<br><b>This item needs Level ${req}</b>, which is above what you can sign — someone else has to close it.`:''}</div>
+      <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p,it.dept)}${maxSign<req?`<br><b>This item needs Level ${req}</b>, which is above what you can sign — someone else has to close it.`:''}</div>
       ${it.is_safety?`<div style="margin-top:14px">
         <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · reaching Level 3 needs a second signer</div>
         <div style="font-size:11px;color:var(--mut);margin-bottom:5px">Someone who watched them do it — not you, not ${esc(p.teacherName)}, and not another teacher still in training.</div>
@@ -3062,11 +3093,11 @@ function openCompModal(compId){
 async function submitCompLevel(compId,btn){
   const p=getPlan(); if(!p)return;
   const it=(S.comp||[]).find(x=>x.id===compId); if(!it)return;
-  const maxSign=maxSignableLevel(p);
+  const maxSign=maxSignableLevel(p,it.dept);
   if(maxSign<=0){alert('You cannot sign on this training plan — this page is view only for you.');return;}
   const lv=parseInt(document.getElementById('cmLevel').value,10);
   const _cur=compLevel(p.uid,compId);
-  if(lv!==_cur&&!signableLevels(p,_cur).has(lv)){alert(signerHint(p).replace(/<[^>]+>/g,''));return;}
+  if(lv!==_cur&&!signableLevels(p,_cur,it.dept).has(lv)){alert(signerHint(p,it.dept).replace(/<[^>]+>/g,''));return;}
   const secEl=document.getElementById('cmSecond');
   const sec=secEl?secEl.value:'';
   const note=(document.getElementById('cmNote')||{}).value||'';
@@ -3209,8 +3240,7 @@ function mentorPlans(){
   return S.plans.filter(p=>{
     if(p.teacherCode===me)return false;                 // 自己的训练计划不算
     if(p.status==='completed'&&!(p.depts||[]).some(x=>x.status==='active'))return false;
-    if(p.mentorCode===me)return true;
-    return (p.mentorHistory||[]).some(e=>e.mentor_code===me);   // 中途接手的也算
+    return everMentorOf(p);                              // v40：任一部门名单（含已移出的，可回看）
   });
 }
 
@@ -3434,7 +3464,7 @@ function renderMenteeHome(){
       <span class="chip chip-blue">Read first</span>
     </summary>
     <div style="font-size:12.5px;line-height:1.75;margin-top:10px">
-      <b>${esc(p.teacherName)}</b> — welcome. Your Mentor is <b>${esc(mentorOnDay(p,(active[0]||{}).day||1,(active[0]||{}).dept)||p.mentorName||'—')}</b>. Ask them anything; asking is never the problem.
+      <b>${esc(p.teacherName)}</b> — welcome. Your Mentor${allMentorCodes(p).length>1?'s':''}: <b>${mentorSummary(p)}</b>. Ask them anything; asking is never the problem.
       <div style="margin-top:9px"><b>How long.</b> 12 training days${p.targetDate?`, target <b>${fmtDate(p.targetDate)}</b>`:''}. Catch-up days sit in between and are not numbered. Your day number only moves when your Mentor confirms it — not automatically at midnight.</div>
       <div style="margin-top:9px"><b>What finishes it.</b> Not the day count — the <b>Job Checklist</b>. Training is done when every item on it has been signed at its required level, and then management releases you to take a class on your own.</div>
       <div style="margin-top:9px"><b>Your day.</b> <b>Today</b> shows the one next thing and the full list, with the SOP for each → teach → <b>Day Report</b> before you go home. That is the whole loop.</div>
@@ -3647,7 +3677,7 @@ function renderMgmt(){
         </div>`:''}
       </div>
       <div style="margin-top:6px">${deptChips}</div>
-      <div class="cohort-meta">Mentor: ${esc(p.mentorName)} · started ${fmtDate(p.startDate)}${tgt?' · target '+fmtDate(tgt):''}</div>
+      <div class="cohort-meta">Mentors: ${mentorSummary(p)} · started ${fmtDate(p.startDate)}${tgt?' · target '+fmtDate(tgt):''}</div>
       ${(p.exceptions||[]).length?`<div class="cohort-meta">${p.exceptions.length} day(s) marked: ${p.exceptions.slice(0,2).map(e=>(e.kind==='consolidate'?'Catch-up ':'Skipped ')+fmtDate(e.on_date)).join(', ')}${p.exceptions.length>2?' …':''}</div>`:''}
       ${allDone?(p.released
         ? `<div class="cohort-meta" style="color:var(--grn)">Released${p.releasedAt?' · '+fmtDate(String(p.releasedAt).slice(0,10)):''}</div>`
@@ -3700,12 +3730,12 @@ function openNewPlan(){
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <label class="lbl">New teacher *</label>
-      <select id="np_teacher"><option value="">— Choose —</option>${tOpts}</select>
-      <label class="lbl">Mentor *</label>
-      <select id="np_mentor"><option value="">— Choose —</option>${tOpts}</select>
+      <select id="np_teacher" onchange="npRenderMentors()"><option value="">— Choose —</option>${tOpts}</select>
       <label class="lbl">Which departments they train in * (choose one or more)</label>
       <div class="chk" id="np_depts">${dChips}</div>
       <div style="font-size:11px;color:var(--mut);margin-top:4px">GAK and SRT are not offered yet — they will appear here once their training content and job checklist are ready.</div>
+      <label class="lbl" style="margin-top:10px">Mentors for each department * <span style="font-weight:400;color:var(--mut)">(tap to pick one or more)</span></label>
+      <div id="np_mentors"></div>
       <label class="lbl" style="margin-top:10px">Start date *</label>
       <input type="date" id="np_start" value="${getTodayISO()}" onchange="npPreview()">
       <div id="np_preview" style="font-size:11px;color:var(--mut);margin-top:6px;line-height:1.7"></div>
@@ -3716,12 +3746,35 @@ function openNewPlan(){
       <button class="btn btn-pri" onclick="createPlan()">✅ Create</button></div>
   </div>`;
   document.body.appendChild(ov);
+  _npPicked={}; npRenderMentors();
   npPreview();
 }
 function npToggle(e){
   e.classList.toggle('on');
   e.firstElementChild.textContent=e.classList.contains('on')?'✓':'＋';
-  npPreview();
+  npPreview(); npRenderMentors();
+}
+// v40：每个部门一组 Mentor。已选的记在 _npPicked，切换部门或换学员时不会丢
+let _npPicked={};
+function npRenderMentors(){
+  const box=document.getElementById('np_mentors'); if(!box)return;
+  const trainee=document.getElementById('np_teacher')?.value||'';
+  const depts=npSelectedDepts();
+  if(!depts.length){box.innerHTML='<div style="font-size:11px;color:var(--mut)">Pick a department first.</div>';return;}
+  box.innerHTML=depts.map(d=>{
+    const picked=(_npPicked[d]=(_npPicked[d]||[]).filter(c=>c!==trainee));
+    const chips=(S.teachers||[]).filter(t=>t.id!==trainee).map(t=>{
+      const on=picked.includes(t.id);
+      return `<span class="cb${on?' on':''}" style="margin:2px" onclick="npPickMentor('${d}','${esc(t.id)}')"><span>${on?'✓':'＋'}</span> ${esc(t.name||t.id)}</span>`;}).join('');
+    return `<div style="border:1px solid var(--bdr);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(d)} Mentors <span style="font-weight:400;color:var(--mut)">· ${picked.length?picked.length+' picked':'none yet'}</span></div>
+      <div class="chk" style="flex-wrap:wrap">${chips}</div></div>`;}).join('')
+    +'<div style="font-size:11px;color:var(--mut)">Any Mentor on a department’s list can write that day’s Mentor report and sign that department’s checklist items. The same person can be on more than one list.</div>';
+}
+function npPickMentor(d,code){
+  const a=_npPicked[d]=_npPicked[d]||[]; const i=a.indexOf(code);
+  if(i>=0)a.splice(i,1); else a.push(code);
+  npRenderMentors();
 }
 function npSelectedDepts(){
   return [...document.querySelectorAll('#np_depts .cb.on')].map(x=>x.dataset.d);
@@ -3748,17 +3801,23 @@ function npPreview(){
 }
 async function createPlan(){
   const tc=document.getElementById('np_teacher')?.value;
-  const mc=document.getElementById('np_mentor')?.value;
   const st=document.getElementById('np_start')?.value;
   const depts=npSelectedDepts();
-  if(!tc||!mc||!st||!depts.length){alert('New teacher, Mentor, departments and start date are all required.');return;}
-  if(tc===mc){alert('The new teacher and the Mentor cannot be the same person.');return;}
+  if(!tc||!st||!depts.length){alert('New teacher, departments and start date are all required.');return;}
+  const groups={}; depts.forEach(d=>{groups[d]=(_npPicked[d]||[]).filter(c=>c!==tc);});
+  const empty=depts.filter(d=>!groups[d].length);
+  if(empty.length){alert('Pick at least one Mentor for: '+empty.join(', '));return;}
+  const mc=groups[depts[0]][0];   // 计划上的「主 Mentor」只为相容旧资料；真正的名单在 mentor history
   const uid='plan_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
   const plan={uid:uid,teacherCode:tc,mentorCode:mc,startDate:st,
     note:document.getElementById('np_note')?.value||'',status:'active',depts:depts.map(d=>({dept:d}))};
   plan.targetDate=targetDateOf(plan)||null;
   await savePlan(plan);
   for(const d of depts) await savePlanDept(uid,d,1,'active');
+  // v40：把每个部门的名单写进 traingo_mentor_history（from_day 1、until_day 空＝还在带）
+  const rows=[]; depts.forEach(d=>groups[d].forEach(c=>rows.push({plan_uid:uid,dept:d,mentor_code:c,from_day:1,from_date:st,reason:'initial'})));
+  if(sb&&rows.length){const {error}=await sb.from('traingo_mentor_history').insert(rows);
+    if(error)alert('The plan was created, but the Mentor lists could not be saved: '+error.message+'\n\nOpen the plan (✏️) and add the Mentors again.');}
   document.querySelector('.overlay')?.remove();
   await reloadAll();
   goPage('mgmt');
@@ -3769,14 +3828,14 @@ async function createPlan(){
 function openPlanEdit(uid){
   if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
   const p=getPlan(uid); if(!p)return;
-  const tOpts=S.teachers.map(t=>`<option value="${esc(t.id)}" ${t.id===p.mentorCode?'selected':''}>${esc(t.name||t.id)}</option>`).join('');
   const dOpts=['<option value="">All departments</option>'].concat((p.depts||[]).map(d=>`<option value="${d.dept}">${d.dept}</option>`)).join('');
   const ov=document.createElement('div');ov.className='overlay';
   ov.innerHTML=`<div class="modal" style="max-width:460px;max-height:90vh;overflow-y:auto">
     <div class="modal-hdr"><span class="modal-hdr-title">${esc(p.teacherName)}'s plan</span>
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
-      <label class="lbl">Mentor</label><select id="pe_mentor">${tOpts}</select>
+      <label class="lbl">Mentors by department</label>
+      <div id="pe_mentors">${peMentorBlocks(p)}</div>
       <label class="lbl">Start date</label><input type="date" id="pe_start" value="${p.startDate}">
       <label class="lbl">Note</label><textarea id="pe_note" rows="2">${esc(p.note||'')}</textarea>
 
@@ -3803,10 +3862,10 @@ function openPlanEdit(uid){
       </div>
 
       <div style="margin-top:14px;border-top:.5px solid var(--bdr);padding-top:12px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:3px">👨‍🏫 Mentor handover history</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">👨‍🏫 Mentor list history</div>
         <div style="margin-top:6px">
           ${(p.mentorHistory||[]).map(e=>`<div style="font-size:11px;color:var(--mut);padding:3px 0">
-            ${esc(teacherName(e.mentor_code))} — from day ${e.from_day||'?'}${e.dept?' · '+e.dept:''}</div>`).join('')||'<span style="font-size:11px;color:var(--mut)">No handover</span>'}
+            ${esc(teacherName(e.mentor_code))}${e.dept?' · '+e.dept:''} — from day ${e.from_day||'?'}${e.until_day!=null?' to day '+e.until_day:' (still on the list)'}</div>`).join('')||'<span style="font-size:11px;color:var(--mut)">No changes yet</span>'}
         </div>
       </div>
     </div>
@@ -3826,27 +3885,61 @@ async function addExceptionFromForm(uid){
   document.querySelector('.overlay')?.remove();
   openPlanEdit(uid);
 }
+// v40：改计划里每个部门的 Mentor 名单
+function peMentorBlocks(p){
+  return (p.depts||[]).map(d=>{
+    const day=d.currentDay||1, now=mentorsNow(p,d.dept);
+    const opts=(S.teachers||[]).filter(t=>t.id!==p.teacherCode&&!now.includes(t.id))
+      .map(t=>`<option value="${esc(t.id)}">${esc(t.name||t.id)}</option>`).join('');
+    return `<div style="border:1px solid var(--bdr);border-radius:8px;padding:8px 10px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(d.dept)} <span style="font-weight:400;color:var(--mut)">· now on ${esc(dayLabel(day))}</span></div>
+      ${now.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:3px 0">
+        <span>👨‍🏫 ${esc(teacherName(c))}</span>
+        ${now.length>1?`<button class="btn btn-sm" onclick="peRemoveMentor('${p.uid}','${d.dept}','${esc(c)}')">Remove from today</button>`:'<span style="font-size:10.5px;color:var(--mut)">last one — add someone before removing</span>'}
+      </div>`).join('')||'<div style="font-size:12px;color:var(--mut)">No Mentor</div>'}
+      <div style="display:flex;gap:6px;margin-top:6px"><select id="pe_add_${d.dept}" style="flex:1"><option value="">— Add a Mentor —</option>${opts}</select>
+        <button class="btn btn-sm btn-pri" onclick="peAddMentor('${p.uid}','${d.dept}')">+ Add</button></div>
+    </div>`;}).join('');
+}
+// 这个部门还没有名单（旧计划只有一位主 Mentor）→ 先把那一位写成名单第一笔，再做变动
+async function peEnsureRows(p,dept){
+  if(deptRows(p,dept).length||!p.mentorCode)return true;
+  const {error}=await sb.from('traingo_mentor_history').insert([{plan_uid:p.uid,dept,mentor_code:p.mentorCode,from_day:1,reason:'original Mentor'}]);
+  if(error){alert('Could not update the Mentor list, nothing was changed.\n\n'+error.message);return false;}
+  return true;
+}
+async function peRefresh(uid){await reloadAll();const p=getPlan(uid);const box=document.getElementById('pe_mentors');if(p&&box)box.innerHTML=peMentorBlocks(p);}
+async function peAddMentor(uid,dept){
+  if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
+  const p=getPlan(uid); if(!p||!sb)return;
+  const code=document.getElementById('pe_add_'+dept)?.value; if(!code){alert('Choose a Mentor to add first.');return;}
+  if(!(await peEnsureRows(p,dept)))return;
+  const day=deptDay(p,dept);
+  const {error}=await sb.from('traingo_mentor_history').insert([{plan_uid:uid,dept,mentor_code:code,from_day:day,from_date:todayISO(),reason:'added'}]);
+  if(error){alert('Could not add the Mentor.\n\n'+error.message);return;}
+  await peRefresh(uid);
+}
+async function peRemoveMentor(uid,dept,code){
+  if(!isAdminRole()){alert(ADMIN_ONLY_MSG);return;}
+  const p=getPlan(uid); if(!p||!sb)return;
+  if(mentorsNow(p,dept).length<=1){alert('Add another Mentor first — a department cannot be left without one.');return;}
+  if(!confirm('Remove '+teacherName(code)+' from the '+dept+' Mentor list from today?\n\nWhat they already wrote and signed stays.'))return;
+  if(!(await peEnsureRows(p,dept)))return;
+  await reloadAll();
+  const q=getPlan(uid), day=deptDay(q,dept);
+  const rows=deptRows(q,dept).filter(e=>e.mentor_code===code&&e.until_day==null&&e.id);
+  for(const r of rows){
+    const {error}=await sb.from('traingo_mentor_history').update({until_day:day-1}).eq('id',r.id);
+    if(error){alert('Could not remove the Mentor.\n\n'+error.message);return;}
+  }
+  // 计划上的主 Mentor 被移走 → 换成还在名单上的第一位（给旧逻辑与显示用）
+  if(q.mentorCode===code){const rest=allMentorCodes(getPlan(uid)).filter(c=>c!==code);
+    if(rest.length){q.mentorCode=rest[0];await savePlan(q);} }
+  await peRefresh(uid);
+}
 async function savePlanEdit(uid){
   const p=getPlan(uid); if(!p)return;
-  const oldMentor=p.mentorCode;
-  const newMentor=document.getElementById('pe_mentor')?.value||p.mentorCode;
-  // v32：以前换 Mentor 只改计划上的名字，traingo_mentor_history 从来没有人写 ——
-  // Progress 会把前几天也显示成新 Mentor 带的，而且新 Mentor 可以改写前一位写的日报。
-  // 现在先把「谁从哪一天开始带」写进 history（每个部门一笔），再改计划。
-  if(newMentor&&newMentor!==oldMentor){
-    const firstTime=!(p.mentorHistory||[]).length;
-    const rows=[];
-    (p.depts||[]).forEach(d=>{
-      if(firstTime&&oldMentor)rows.push({plan_uid:p.uid,dept:d.dept,mentor_code:oldMentor,from_day:1,reason:'original Mentor'});
-      rows.push({plan_uid:p.uid,dept:d.dept,mentor_code:newMentor,from_day:d.currentDay||1,
-                 from_date:todayISO(),reason:'Mentor changed on Settings'});
-    });
-    if(rows.length&&sb){
-      const {error}=await sb.from('traingo_mentor_history').insert(rows);
-      if(error){alert('Could not record the Mentor change, so nothing was changed.\n\n'+error.message);return;}
-    }
-  }
-  p.mentorCode=newMentor;
+  // v40：Mentor 名单在上面即时加／移，这里只存开始日期与备注
   p.startDate=document.getElementById('pe_start')?.value||p.startDate;
   p.note=document.getElementById('pe_note')?.value||'';
   p.targetDate=targetDateOf(p)||null;
