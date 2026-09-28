@@ -352,7 +352,7 @@ function getStageForDay(d){
 // ══════════════════════════════════════════════════════════════
 // STATE & PERSISTENCE
 // ══════════════════════════════════════════════════════════════
-const APP_VERSION='v41';
+const APP_VERSION='v42';
 const S={role:null, planUid:null, dept:null,
   plans:[], reports:[], taskChecks:{},
   teachers:[], timetable:[], holidays:[], releasers:[],
@@ -900,13 +900,13 @@ function signerHint(plan,dept){
   dept=dept||S.dept;
   const m=maxSignableLevel(plan,dept);
   if(!canCertifyMentor()&&everMentorOf(plan)&&!amMentorOf(plan,dept))
-    return'You are not on the '+esc(dept)+' Mentor list for this plan, so you cannot sign '+esc(dept)+' items — view only. Only that department’s Mentors sign Levels 2–3.';
+    return'The '+esc(dept)+' Mentors guide this part — you can follow along here.';
   if(canCertifyMentor()&&!isAdminRole()&&!amMentorOf(plan,dept))
-    return'Management signs <b>Level 4</b> here. Level 1 is the new teacher’s, Levels 2–3 are the Mentor’s. You can also set an item back to 0.';
-  if(m>=4)return'You can sign any level, including Level 4.';
-  if(m===3)return'As a '+esc(dept)+' Mentor you can sign '+esc(dept)+' items up to Level 3. Level 4 is management only.';
+    return'';
+  if(m>=4)return'';
+  if(m===3)return'';
   if(m===1)return'Rate yourself on each item — your honest view helps your Mentor know how to support you.';
-  return'You cannot sign on this plan — view only.';
+  return'You can follow along here.';
 }
 function canCertifyMentor(){
   return !!(S.me&&['OWNER','ADMIN','TOP_MGMT','MGMT'].includes(S.me.role));
@@ -1693,8 +1693,8 @@ function renderMgmtDashboard(el){
   active.forEach(c=>{
     const d=c.currentDay||1;
     const mr=getReport(c.id,'mentor',d);const tr=getReport(c.id,'mentee',d);
-    if(!mr)alerts.push({type:'report',msg:`${c.menteeName}: Mentor has NOT submitted ${dayLabel(d)} report`});
-    if(!tr)alerts.push({type:'report',msg:`${c.menteeName}: New Teacher has NOT submitted ${dayLabel(d)} report`});
+    if(!mr)alerts.push({type:'report',msg:`${c.menteeName}: ${dayLabel(d)} Mentor report not in yet`});
+    if(!tr)alerts.push({type:'report',msg:`${c.menteeName}: ${dayLabel(d)} New Teacher report not in yet`});
     // Skill intervention alerts
     const{skillFlags,mentorFlags}=getMgmtInterventions(c);
     skillFlags.forEach(f=>alerts.push({type:'skill',msg:`${c.menteeName}: ⚠️ ${f.icon} ${f.name} — uncleared for 2 consecutive days. MGMT may need to intervene.`,cohort:c}));
@@ -1756,7 +1756,7 @@ function renderMgmtCompBoard(){
     </div>`;}).join('');
   return `<div class="card">
     <div class="card-title" style="margin-bottom:6px">Job checklist progress</div>
-    <div style="font-size:11.5px;color:var(--mut);margin-bottom:6px">Completion is judged on this checklist, not on the day count. "Assign task" is homework for a catch-up day.</div>
+    <div style="font-size:11.5px;color:var(--mut);margin-bottom:6px">“Assign task” gives practice for a catch-up day.</div>
     ${rows}</div>`;
 }
 
@@ -1778,7 +1778,7 @@ function renderMgmtActionItems(active){
       if(pv==='poor'||pv==='major')items.push({icon:'🔴',type:'SOP needs re-demo',cohort:c.menteeName,note:`${sop.icon} ${sop.name} — Mentor flagged for re-demo`,urgent:true,action:null});
     });
     // Missing reports
-    if(!mr&&!tr)items.push({icon:'📋',type:'No reports submitted today',cohort:c.menteeName,note:`${dayLabel(d)} — neither Mentor nor New Teacher has submitted.`,urgent:false,action:null});
+    if(!mr&&!tr)items.push({icon:'📋',type:'No reports submitted today',cohort:c.menteeName,note:`${dayLabel(d)} reports not in yet.`,urgent:false,action:null});
   });
   if(!active.length||!items.length)return'';
   const urgent=items.filter(i=>i.urgent);const normal=items.filter(i=>!i.urgent);
@@ -1918,7 +1918,7 @@ function renderTasks(){
 
     <div class="card">
       <div class="card-title" style="margin-bottom:3px">Other days</div>
-      <div style="font-size:11px;color:var(--mut);margin-bottom:9px">12 training days in total. Catch-up days sit in between and are not numbered — they do not count as training days.</div>
+      <div style="font-size:11px;color:var(--mut);margin-bottom:9px">12 training days.</div>
       <div class="day-grid">
         ${ALL_DAYS.map(d=>{
           const s=getStageForDay(d);const c2=countChecked(cohort.id,role,d);
@@ -1992,8 +1992,8 @@ function renderSkillConfirm(cohort,role,day,stage,existing){
     ${meta.risk?`<div style="font-size:10px;color:var(--mut);margin-bottom:6px;font-style:italic">Risk this stage: ${meta.risk}</div>`:''}
     <div style="background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11px;color:var(--mut);line-height:1.55;margin-bottom:10px">
       ${role==='mentor'
-        ? 'This is your read of how they did today. It does <b>not</b> sign anything off — go to <b>Sign-off</b> to actually sign an item.'
-        : 'This is your own read of today, and your Mentor reads it. It does <b>not</b> sign anything off — the Job Checklist only moves when your Mentor signs it there.'}</div>`;
+        ? 'How did they do today? Your notes help them grow.'
+        : 'How did today go? Your reflection helps your Mentor support you. 💪'}</div>`;
 
   sops.forEach(sopId=>{
     const sop=D.SOP[sopId];if(!sop)return;
@@ -2775,7 +2775,7 @@ function openHelpModal(){
     </div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--mut);margin-bottom:8px">
-        Write down where you are stuck. Your Mentor and management can both see it. <b>Asking is not embarrassing — guessing is.</b></div>
+        Write down where you are stuck — your Mentor will help. <b>Asking is a strength!</b></div>
       <textarea id="hpBody" rows="4" placeholder="e.g. During Copy Whiteboard three children kept leaving their seats and I did not know who to handle first"
         style="width:100%;padding:10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
       <label style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12.5px;cursor:pointer">
@@ -2846,7 +2846,7 @@ function openNoPracticeModal(){
       <button class="modal-close" onclick="this.closest('.overlay').remove()">×</button></div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--mut);margin-bottom:9px">
-        Log it when something simply did not come up today. <b>Logging it means it will not look like slacking.</b></div>
+        Log it when something simply did not come up today — we will find another chance to practise.</div>
       <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Which item</div>
       <select id="npItem" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${items}</select>
       <div style="font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 5px">Why it did not come up</div>
@@ -2991,20 +2991,19 @@ function renderCompetency(){
       <span style="color:${r.done?'var(--grn)':'var(--mut)'}">${r.done?'✅ This department is complete':(r.ok===0?(isMine(p)?'Your journey starts here — one step at a time':'Not signed yet'):(r.total-r.ok)+' still to go')}</span>
     </div>
     ${(p.depts||[]).length>1?`<div style="font-size:11.5px;color:var(--mut);margin-top:8px">Whole plan: ${whole.ok}／${whole.total}${whole.done?' · all complete':''}</div>`:''}
-    ${isMine(p)?'':`<div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px 10px;font-size:11.5px;color:var(--txt);line-height:1.6">${signerHint(p)}</div>`}
+    ${isMine(p)||!signerHint(p)?'':`<div style="margin-top:10px;background:var(--sur2);border-radius:6px;padding:9px 10px;font-size:11.5px;color:var(--txt);line-height:1.6">${signerHint(p)}</div>`}
   </div>`;
 
   const misc=miscCountOf(p.teacherCode);
   // v41：新老师本人只看一句鼓励；Mentor／管理层照旧看「客观证据」
   if(isMine(p)){ if(misc) h+=`<div class="card" style="background:var(--sur2);font-size:13px">📝 You have filed <b>${misc}</b> MiscGo report${misc===1?'':'s'} — thank you for keeping everyone informed!</div>`; }
   else h+=`<div class="card" style="background:var(--sur2)">
-    <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">Objective evidence</div>
+    <div style="font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.5px">MiscGo</div>
     <div style="font-size:13px;margin-top:5px">
       ${isMine(p)?'MiscGo reports you filed yourself':'MiscGo reports '+whoName(p)+' filed'}: <b>${misc===null?'cannot read':misc}</b>
     </div>
     <div style="font-size:11.5px;color:var(--mut);margin-top:4px">
-      ${misc===null?('Your account has no MiscGo access, so this cannot be read. It does not mean '+(isMine(p)?'you filed':whoName(p)+' filed')+' none.')
-                  :'For the Mentor\'s reference only — it does not block signing.'}
+      ${misc===null?'Not available on your account.':''}
     </div>
   </div>`;
 
@@ -3022,10 +3021,10 @@ function renderCompetency(){
     const rated=list.filter(it=>opinionOf(p.uid,it.id,'SELF')).length;
     h+=`<div class="card">
       <div class="card-title" style="margin-bottom:4px">Views that differ</div>
-      <div style="font-size:11.5px;color:var(--mut);margin-bottom:8px">${whoName(p)} has rated ${rated} of ${list.length} items. Self ${showMg?'· Official · Management':'· Official'} — only the official level counts.</div>
+      <div style="font-size:11.5px;color:var(--mut);margin-bottom:8px">${whoName(p)} has rated themself on ${rated} of ${list.length} items.</div>
       ${rows.length?rows.map(r=>`<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:.5px solid var(--bdr);font-size:12.5px">
           <div style="flex:1;min-width:0">${esc(r.it.name)}
-            <div style="font-size:11px;color:var(--mut);margin-top:2px">${r.sv&&r.dir>0?'Self view is higher than the official level':(r.sv&&r.dir<0?'Self view is lower than the official level':'Management sees it differently')}</div></div>
+            <div style="font-size:11px;color:var(--mut);margin-top:2px">${r.sv&&r.dir>0?'Rates themself higher than the Mentor’s sign-off':(r.sv&&r.dir<0?'Rates themself lower than the Mentor’s sign-off — a chance to build confidence':'Management sees it differently')}</div></div>
           <span class="chip">Self ${r.sv?r.sv.level:'—'}</span>
           <span class="chip">Official ${r.off}</span>
           ${showMg?`<span class="chip">MGMT ${r.mv?r.mv.level:'—'}</span>`:''}
@@ -3072,7 +3071,7 @@ function renderCompetency(){
         <span style="color:var(--mut)"> · ${String(x.on_date).slice(0,10)}</span>
         <div style="color:var(--mut);margin-top:2px">${esc(x.reason||'')}</div></div>`;
     });
-    h+=`<div style="font-size:11px;color:var(--mut);margin-top:8px">These are not slacking — those items genuinely did not come up.</div></div>`;
+    h+=`<div style="font-size:11px;color:var(--mut);margin-top:8px">These simply did not come up yet — plan a chance to practise.</div></div>`;
   }
   el.innerHTML=h;
 }
@@ -3128,8 +3127,8 @@ function openCompModal(compId){
     const maxSign=maxSignableLevel(p,it.dept);
     const _can=signableLevels(p,lv,it.dept);
     const mg=canGiveMgmtView(p);
-    const opts=[0,1,2,3,4].filter(n=>_can.has(n)||n===lv||n<=maxSign)
-      .map(n=>{const no=!_can.has(n)&&n!==lv;return `<option value="${n}" ${n===lv?'selected':''} ${no?'disabled':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}${no?'　(not yours to sign)':''}</option>`;}).join('');
+    const opts=[0,1,2,3,4].filter(n=>_can.has(n)||n===lv)
+      .map(n=>`<option value="${n}" ${n===lv?'selected':''}>${n} · ${LEVEL_LABEL[n]}${n===req?'　← required':''}</option>`).join('');
     const _stillTraining=new Set((S.plans||[])
       .filter(x=>(x.depts||[]).some(d=>d.status==='active'))
       .map(x=>x.teacherCode));
@@ -3143,10 +3142,10 @@ function openCompModal(compId){
         ${opinionBox(esc(p.teacherName)+'’s own view',sv,'has not rated this yet')}
         ${mg?`<div style="margin-top:6px">${opinionBox('Management view',mv,'none yet')}</div>`:''}
       </div>
-      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Official level ${maxSign>0?'(this is what counts)':''}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">${maxSign>0?'Your sign-off':'Signed level'}</div>
       <select id="cmLevel" ${maxSign>0?'':'disabled'} onchange="toggleSecond(this)" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${opts}</select>
       ${legend}
-      <div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p,it.dept)}${maxSign<req?`<br><b>This item needs Level ${req}</b>, which is above what you can sign — someone else has to close it.`:''}</div>
+      ${signerHint(p,it.dept)?`<div style="margin-top:9px;background:var(--sur2);border-radius:6px;padding:8px 9px;font-size:11.5px;line-height:1.55">${signerHint(p,it.dept)}</div>`:''}
       ${showSecond?`<div id="cmSecondWrap" style="margin-top:14px;${lv>=3?'':'display:none'}">
         <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:5px">Safety-critical · Level 3 needs a second signer</div>
         <div style="font-size:11px;color:var(--mut);margin-bottom:5px">Someone who watched ${whoName(p)} do it — not you, and not another teacher still in training.</div>
@@ -3158,10 +3157,10 @@ function openCompModal(compId){
         <textarea id="cmNote" rows="2" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit">${esc(ck&&ck.note||'')}</textarea>
       </div>`:''}
       ${mg?`<div style="margin-top:16px;border-top:.5px solid var(--bdr);padding-top:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Your management view (does not sign anything off)</div>
+        <div style="font-size:11px;font-weight:600;color:var(--mut);margin-bottom:5px">Your view</div>
         <select id="cmMgmt" style="width:100%;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px">${lvlOptions(null,true)}</select>
         <textarea id="cmMgmtNote" rows="2" placeholder="Why? (optional)" style="width:100%;margin-top:6px;padding:9px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit"></textarea>
-        <div style="font-size:11px;color:var(--mut);margin-top:4px">Only management can see this. The new teacher and the Mentor cannot.</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px">Seen by management only.</div>
       </div>`:''}
     </div>
     <div class="modal-foot">
@@ -3213,7 +3212,7 @@ async function submitCompLevel(compId,btn){
   const secChanged = !!(secEl&&lv>=3&&secEl.value!==(secEl.dataset.init||''));
   const officialChanged = lv!==_cur || (note||'')!==((ck&&ck.note)||'') || secChanged;
   if(officialChanged){
-    if(lv!==_cur&&!signableLevels(p,_cur,it.dept).has(lv)){alert(signerHint(p,it.dept).replace(/<[^>]+>/g,''));return;}
+    if(lv!==_cur&&!signableLevels(p,_cur,it.dept).has(lv)){alert(signerHint(p,it.dept).replace(/<[^>]+>/g,'')||'Please choose another level.');return;}
     if(it.is_safety&&lv>=3&&!sec){alert('This is safety-critical — reaching Level 3 needs a second signer.');return;}
     if(it.is_safety&&lv>=3&&sec===p.teacherCode){alert('The second signer cannot be the person being assessed.');return;}
   }
@@ -3502,7 +3501,7 @@ function renderMentorHome(){
           <span style="color:${cw.done?'var(--grn)':'var(--mut)'}">${cw.ok}／${cw.total} signed off</span></div>
         <div class="prog-bar"><div class="prog-fill ${cw.done?'grn':''}" style="width:${Math.round(cw.ok/cw.total*100)}%"></div></div>
         <div style="font-size:11px;color:var(--mut);margin-top:5px">
-          MiscGo reports they filed: ${mc===null?'cannot read (you have no MiscGo access)':'<b>'+mc+'</b> · reference only, does not block signing'}</div>
+          MiscGo reports filed: ${mc===null?'—':'<b>'+mc+'</b>'}</div>
         <div style="margin-top:8px"><button class="btn btn-sm" onclick="openMentorComp('${p.uid}')">Sign checklist ›</button></div>
       </div>`;
     }
@@ -3586,14 +3585,14 @@ function renderMenteeHome(){
     </summary>
     <div style="font-size:12.5px;line-height:1.75;margin-top:10px">
       <b>${esc(p.teacherName)}</b> — welcome. Your Mentor${allMentorCodes(p).length>1?'s':''}: <b>${mentorSummary(p)}</b>. Ask them anything; asking is never the problem.
-      <div style="margin-top:9px"><b>How long.</b> 12 training days${p.targetDate?`, target <b>${fmtDate(p.targetDate)}</b>`:''}. Catch-up days sit in between and are not numbered. Your day number only moves when your Mentor confirms it — not automatically at midnight.</div>
-      <div style="margin-top:9px"><b>What finishes it.</b> Not the day count — the <b>Job Checklist</b>. Training is done when every item on it has been signed at its required level, and then management releases you to take a class on your own.</div>
+      <div style="margin-top:9px"><b>How long.</b> 12 training days${p.targetDate?`, target <b>${fmtDate(p.targetDate)}</b>`:''}. Your Mentor walks with you every step of the way.</div>
+      <div style="margin-top:9px"><b>Where it leads.</b> Every skill on your <b>Job Checklist</b> grows step by step. When they are all there, you are ready to lead your own class! 🎉</div>
       <div style="margin-top:9px"><b>Your day.</b> <b>Today</b> shows the one next thing and the full list, with the SOP for each → teach → <b>Day Report</b> before you go home. That is the whole loop.</div>
-      <div style="margin-top:9px"><b>Where things are.</b> 🧭 Start here = who we are and the Code of Conduct — read it in your first week. ✅ My Checklist = what you still have to be signed off on (the calendar is inside it). 📖 SOP = how every step is done, open it any time.</div>
+      <div style="margin-top:9px"><b>Where things are.</b> 🧭 Start here = who we are and the Code of Conduct — read it in your first week. ✅ My Checklist = your skills and how you are growing (the calendar is inside it). 📖 SOP = how every step is done, open it any time.</div>
       <div style="margin-top:9px;background:#FCEBEB;border:.5px solid #F09595;border-radius:6px;padding:9px 10px">
         <b style="color:#7a1f1f">One rule from day one.</b> If a parent asks you anything — at the door, by phone, by message — you say one line: <i>“I will pass this to management and they will contact you.”</i> Then you file it in <b>MiscGo</b>. Never handle it yourself, never promise anything, never report it verbally or in a group chat. Everything goes into MiscGo so nothing gets missed.
       </div>
-      <div style="margin-top:9px;color:var(--mut)">Stuck, or a step never came up today? Use the two buttons at the bottom of this page. Neither one counts against you.</div>
+      <div style="margin-top:9px;color:var(--mut)">Stuck, or a step never came up today? Use the two buttons at the bottom of this page — we are here to help.</div>
     </div>
   </details>`;
   if(restToday){
@@ -3601,8 +3600,8 @@ function renderMenteeHome(){
     const weak=(()=>{const m=[];(p.depts||[]).forEach(d=>{compDone(p.uid,d.dept).missing.forEach(x=>m.push(x));});return m;})();
     h+=`<div class="card" style="border:2px solid var(--gold)">
       <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.6px">Today is a catch-up day</div>
-      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Work on your weak spots</div>
-      <div style="font-size:12px;color:var(--mut)">No training tasks today, and it does not count as a training day.</div>
+      <div style="font-size:19px;font-weight:700;margin:8px 0 4px">Time to grow your skills</div>
+      <div style="font-size:12px;color:var(--mut)">A calmer day — use it to practise what you want to get better at.</div>
     </div>`;
     h+=`<div class="card"><div class="card-title" style="margin-bottom:8px">Assigned by management (${ct.length})</div>`;
     if(!ct.length){h+=`<div style="font-size:12px;color:var(--mut)">Nothing assigned to you today.</div>`;}
@@ -3733,7 +3732,7 @@ function renderMenteeHome(){
       <button class="btn btn-pri" onclick="openHelpModal()">🙋 I am stuck</button>
       <button class="btn" onclick="openNoPracticeModal()">🕳️ No chance to practise today</button>
     </div>
-    <div style="font-size:11.5px;color:var(--mut);margin-top:8px">Asking is not embarrassing — guessing is. Log anything that did not come up; it will not look like slacking.</div>`;
+    <div style="font-size:11.5px;color:var(--mut);margin-top:8px">Asking is a strength! If something did not come up today, just log it — we will find another chance.</div>`;
   const myHelps=helpsOf(p.uid).slice(0,4);
   if(myHelps.length){
     h+=`<div style="margin-top:12px;border-top:.5px solid var(--bdr);padding-top:9px">`;
@@ -3812,7 +3811,6 @@ function renderMgmt(){
     <div class="card">
       <div class="card-hdr"><span class="card-title">⚙️ Training plans</span>
         ${_adm?`<button class="btn btn-pri" onclick="openNewPlan()">+ New plan</button>`:''}</div>
-      <div style="font-size:12px;color:var(--mut);margin-bottom:10px">One plan per new teacher. Each department inside a plan runs its own progress line.${_adm?'':' <b>View only for you</b> — OWNER, TOP_MGMT or ADMIN create, change and advance plans.'}</div>
       ${S.plans.length?rows:`<div style="text-align:center;padding:28px;color:var(--mut)">No plans yet.${_adm?' Press <b>+ New plan</b> to start one.':''}</div>`}
     </div>`;
 }
