@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v11</title>
+<title>OPR-AttendanceGo v14</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -60,9 +60,21 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 /* STUDENT ROW */
 .stu-row{display:flex;align-items:center;padding:10px 14px;border-bottom:.5px solid var(--bdr);gap:10px}
 .stu-row:last-child{border-bottom:none}
-.stu-name{flex:1;font-size:12px}
+.stu-name{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}
 .stu-num{font-size:10px;color:var(--mut);width:24px;text-align:center;flex-shrink:0}
 .stu-cn{font-size:10px;color:var(--mut)}
+.fu-tag{display:inline-block;font-size:9px;font-weight:700;color:#8A5A00;background:#FFF0C2;border:.5px solid #F2D178;border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:middle;cursor:pointer;flex-shrink:0}
+.fu-tag.fu-ok{color:#1E6B4F;background:#E1F5EE;border-color:#9FE1CB}
+.fu-ov{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.fu-box{background:var(--sur);color:var(--txt);max-width:480px;width:100%;max-height:88vh;overflow:auto;border-radius:12px;padding:18px 20px;font-size:13px;line-height:1.5}
+.fu-item{border:.5px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.fu-item.fu-done{background:#E1F5EE;border-color:#9FE1CB}
+.fu-item.fu-issue{background:#FFF8E1;border-color:#F9CB42}
+.fu-item.fu-old{border-left:3px solid #C4622D}
+.fu-btn{padding:5px 14px;border-radius:7px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.fu-btn.on-done{background:#2D6A4F;color:#fff;border-color:transparent}
+.fu-btn.on-issue{background:#C4622D;color:#fff;border-color:transparent}
+.stu-paused{display:inline-block;font-size:9px;color:#5A6270;background:#E8EAEE;border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:middle;flex-shrink:0}
 
 /* STATUS TOGGLE */
 .status-btn{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.05;padding:4px 6px;border-radius:6px;font-weight:600;border:1.5px solid var(--bdr);background:var(--sur);cursor:pointer;font-family:inherit;min-width:30px;transition:all .1s;-webkit-tap-highlight-color:transparent}
@@ -166,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v11</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v13</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -235,12 +247,12 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=11;
+const APP_VERSION=14;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
 const STATUS_LABELS={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
-const STATUS_TX={present:'到',absent:'缺',late:'迟',early_leave:'退',mc:'病'};
+const STATUS_TX={present:'Present',absent:'Absent',late:'Late',early_leave:'Early',mc:'MC'};
 const DAY_MAP={0:'SUN',1:'MON',2:'TUE',3:'WED',4:'THU',5:'FRI',6:'SAT'};
 
 // ── State ──
@@ -295,11 +307,17 @@ async function initApp(){
   }
   try{
     const[stuRes, memRes, calRes]=await Promise.all([
-      _sb.from('hub_students').select('id,name,name_cn,status'),
+      _sb.from('hub_students').select('id,name,name_cn,status,status_note'),
       _sb.from('hub_student_memberships').select('student_id,dept,class_code,num,start_date,end_date'),
       _sb.from('calendar_events').select('type,name,start_date,end_date,depts')
     ]);
-    allStudents=(stuRes.data||[]).filter(s=>(s.status||'').toLowerCase()==='active');
+    /* v12 · 以前只收 active，行政把学生设成请假 → 那个孩子整个从点名名册消失，老师点不到他。
+       改成 Active ＋ Paused 两种都收（Owner 09-23 裁定第 5 项第 1 点）。
+       字面就是 'Paused'，见 AttendanceGo_请假字面_确认_20260923.md。 */
+    allStudents=(stuRes.data||[]).filter(s=>{
+      const st=(s.status||'').toLowerCase();
+      return st==='active'||st==='paused';
+    });
     allMemberships=memRes.data||[];
     allCalendar=calRes.data||[];
     // Load marker display names
@@ -309,6 +327,7 @@ async function initApp(){
     const{data:rulesData}=await _sb.from('attendance_rules').select('*').eq('is_active',true);
     allRules=rulesData||[];
     console.log('Loaded:',allStudents.length,'students,',allMemberships.length,'memberships,',allCalendar.length,'calendar events,',allRules.length,'rules');
+    await fuLoadTasks();                 /* v14 · Follow-Up 设定 */
     await loadAttendance(selectedDate);
   }catch(e){console.error('Init failed:',e);}
   document.getElementById('loading-screen').style.display='none';
@@ -321,6 +340,7 @@ async function loadAttendance(date){
   selectedDate=date;
   const{data,error}=await _sb.from('attendance').select('*').eq('date',date);
   if(!error) todayRecords=data||[];
+  await fuLoadRecords(date);           /* v14 · 本周的 Follow-Up 纪录 ＋ 未结待办 */
 }
 
 // ── Holiday check: returns matching holiday or null ──
@@ -398,6 +418,285 @@ function getClassStudents(dept,classCode){
   }).filter(Boolean).sort((a,b)=>(a.num??999)-(b.num??999));
 }
 
+/* ═══ v12 · 请假（Paused）学生 ═══════════════════════════════════
+   Owner 09-23 裁定第 5 项：名册照常列出、名字旁标「请假中」、不计缺席、
+   月报与出席率不进分子分母、老师真要标照样标得下去。
+
+   ⚠ 一个资料上的限制（不是 bug，是现在只能这样）：
+   hub_students.status 只说「现在是不是请假」，没有请假的起讫日，
+   所以「请假期间」只能用「现在是请假 ＋ 那一格没人点」来近似。
+   要真正按期间排除，得先有带日期的请假栏位 —— 那是 SSOT 的事，未做。 */
+function isPausedStu(s){ return String((s&&s.status)||'').toLowerCase()==='paused'; }
+function _escHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* 灰底小标签：「请假中 · 几时回来」。说明取自 status_note（学生页写的） */
+function pausedTag(s){
+  if(!isPausedStu(s)) return '';
+  const note=String((s&&s.status_note)||'').trim();
+  /* 标签本身保持短 —— 手机上一行放不下长备注（375px 会把整列撑出画面）。
+     完整备注放 tooltip，点名列另外用下面那行小字显示。 */
+  return '<span class="stu-paused" title="'+_escHtml(note||'On leave (paused)')+'">On leave</span>';
+}
+/* 「几时回来」独立一行小字，照这个档既有的缺席备注做法 */
+function pausedNote(s){
+  if(!isPausedStu(s)) return '';
+  const note=String((s&&s.status_note)||'').trim();
+  return note ? '<div style="font-size:9px;color:var(--mut);margin-top:2px">On leave · '+_escHtml(note)+'</div>' : '';
+}
+/* 该不该算进「还没点名」的分母：请假的不算 —— 除非今天真的已经有人帮他点了。
+   （第 5 项第 3 点：不自动算 absent、Dashboard 未点名不要把他算进去；
+     第 5 点：请假期间突然来了，照常点得下去，点了就算。） */
+function countsForMarking(s,dept,session){
+  return !isPausedStu(s) || getStatus(s.id,dept,session)!=='unmarked';
+}
+function expectedCount(list,dept,session){
+  return list.filter(s=>countsForMarking(s,dept,session)).length;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   v14 · 返校 Follow-Up（第一期：只做 SRK）
+   规则：这一轮，这个孩子做过了没有？没做过 ＋ 今天他来了 → 亮灯。
+   不是看他哪天缺席 —— 周一做过的人，周四回来不用再做。
+   ═══════════════════════════════════════════════════════════════ */
+let allFuTasks = [];     // followup_task（设定）
+let fuRecords  = [];      // followup_record（本周 ＋ 未结的待办）
+let fuBusy     = false;
+
+/* ── 这一周的上课日清单（周一起算，排除周末与假期） ── */
+function fuWeekMonday(dateStr){
+  const d = new Date(dateStr + 'T12:00:00');
+  const dow = d.getDay();                 // 0=Sun
+  const back = (dow === 0) ? 6 : dow - 1; // 回到周一
+  d.setDate(d.getDate() - back);
+  return d.toISOString().slice(0, 10);
+}
+function fuIsSchoolDay(dateStr, dept){
+  const dow = new Date(dateStr + 'T12:00:00').getDay();
+  if ((dow === 0 || dow === 6) && dept !== 'SRT') return false;
+  const hol = getHoliday(dateStr, dept);
+  if (hol && !hasExtraClass(dateStr, dept)) return false;
+  return true;
+}
+function fuSchoolDaysOfWeek(dateStr, dept){
+  const mon = fuWeekMonday(dateStr), out = [];
+  for (let i = 0; i < 7; i++){
+    const d = new Date(mon + 'T12:00:00'); d.setDate(d.getDate() + i);
+    const ds = d.toISOString().slice(0, 10);
+    if (fuIsSchoolDay(ds, dept)) out.push(ds);
+  }
+  return out;
+}
+/* ISO 週數 —— cycle_key 用它当「哪一周」 */
+function fuIsoWeek(dateStr){
+  const d = new Date(dateStr + 'T12:00:00');
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dn = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dn);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  const wk = Math.ceil(((t - y0) / 86400000 + 1) / 7);
+  return t.getUTCFullYear() + 'W' + String(wk).padStart(2, '0');
+}
+function fuCycleKey(dept, dateStr, nth, session){
+  return dept + '-' + fuIsoWeek(dateStr) + '-D' + nth + (session ? '-S' + session : '');
+}
+
+/* ── 今天该做哪几项（含补做） ──
+   任务的到期日 = 这周第 nth 个上课日。到期日 <= 今天 且今天是上课日 → 该做。
+   到期日已过而还没做 → 今天补做（Owner 裁定 1：整周没来的回来那天全补）。
+   那周上课日不够（长假）→ 全部挤在最后一个上课日（Owner 裁定 2：顺延到同一天）。 */
+function fuDueTasks(dept, dateStr, session){
+  if (!fuIsSchoolDay(dateStr, dept)) return [];
+  const days = fuSchoolDaysOfWeek(dateStr, dept);
+  const idx  = days.indexOf(dateStr);
+  if (idx < 0) return [];
+  const out = [];
+  allFuTasks.forEach(t => {
+    if (t.dept !== dept || !t.is_active) return;
+    if ((t.session ?? 0) !== (session ?? 0)) return;
+    /* 第一期只做 weekly_nth_day。after_absence 是 SRT 的路，排在第三期，
+       而且「MC 算不算缺席」Owner 还没裁示 —— 没定之前不猜，直接跳过。 */
+    if (t.trigger_type !== 'weekly_nth_day') return;
+    let due = days[(t.nth_day || 1) - 1];
+    if (!due) due = days[days.length - 1];   // 长假顺延
+    if (!due || due > dateStr) return;        // 还没到期
+    out.push(Object.assign({}, t, { due_date: due, cycle_key: fuCycleKey(dept, dateStr, t.nth_day || 1, t.session || 0) }));
+  });
+  return out.sort((a, b) => (a.nth_day - b.nth_day) || (a.sort_order - b.sort_order));
+}
+
+function fuRecOf(stuId, classCode, cycleKey, taskId){
+  return fuRecords.find(r => r.student_id === stuId && r.class_code === classCode
+    && r.cycle_key === cycleKey && r.task_id === taskId);
+}
+/* 未结的待办：以前按了「有问题」还没人结掉的，隔天继续亮 */
+function fuOpenIssues(stuId, classCode, exceptCycle){
+  return fuRecords.filter(r => r.student_id === stuId && r.class_code === classCode
+    && r.result === 'issue' && !r.resolved_at && r.cycle_key !== exceptCycle);
+}
+/* 这个学生今天还差几项（含旧待办） */
+function fuPending(stu, dept, classCode, dateStr, session){
+  const due = fuDueTasks(dept, dateStr, session);
+  let n = 0;
+  due.forEach(t => { if (!fuRecOf(stu.id, classCode, t.cycle_key, t.task_id ?? t.id)) n++; });
+  const cyc = due.length ? due[0].cycle_key : '';
+  n += fuOpenIssues(stu.id, classCode, cyc).length;
+  return n;
+}
+/* 这一班的 Follow-Up 全做完了没 —— 班级那个 ✓ 要看它（Owner 裁定：不做完点名不算完成） */
+function fuClassDone(students, dept, classCode, dateStr, session){
+  if (!fuDueTasks(dept, dateStr, session).length) return true;
+  return students.every(s => !countsForMarking(s, dept, session) || fuPending(s, dept, classCode, dateStr, session) === 0);
+}
+
+/* ── 载入 ── */
+async function fuLoadTasks(){
+  try{
+    const { data, error } = await _sb.from('followup_task').select('*').eq('is_active', true);
+    if (error) throw error;
+    allFuTasks = data || [];
+  }catch(e){ console.warn('[Follow-Up] 读不到设定表：', e.message); allFuTasks = []; }
+}
+async function fuLoadRecords(dateStr){
+  /* 分两次查，不用 .or() ——
+     or() 里塞 like ＋ and() 的字串语法很容易写错而且不会报错，
+     只会安静地回传错东西。两个单条件查询各自明确，合并去重就好。 */
+  try{
+    const wk = fuIsoWeek(dateStr);
+    const [thisWeek, openIssues] = await Promise.all([
+      _sb.from('followup_record').select('*').like('cycle_key', '%' + wk + '%'),
+      _sb.from('followup_record').select('*').eq('result', 'issue').is('resolved_at', null)
+    ]);
+    if (thisWeek.error) throw thisWeek.error;
+    if (openIssues.error) throw openIssues.error;
+    const seen = new Set(), merged = [];
+    [].concat(thisWeek.data || [], openIssues.data || []).forEach(r => {
+      if (seen.has(r.id)) return; seen.add(r.id); merged.push(r);
+    });
+    fuRecords = merged;
+  }catch(e){ console.warn('[Follow-Up] 读不到纪录：', e.message); fuRecords = []; }
+}
+
+/* ── 写入 ── */
+async function fuMark(stu, dept, classCode, session, task, result, note){
+  if (fuBusy) return false;
+  fuBusy = true;
+  try{
+    const row = {
+      student_id: stu.id, dept: dept, class_code: classCode, session: session ?? 0,
+      task_id: task.task_id ?? task.id, cycle_key: task.cycle_key,
+      due_date: task.due_date, done_date: selectedDate,
+      result: result, note: note || null,
+      marked_by: userEmail || null, marked_at: new Date().toISOString()
+    };
+    const { data, error } = await _sb.from('followup_record')
+      .upsert(row, { onConflict: 'student_id,class_code,cycle_key,task_id' }).select();
+    if (error) throw error;
+    const saved = (data && data[0]) ? data[0] : row;
+    const i = fuRecords.findIndex(r => r.student_id === row.student_id && r.class_code === row.class_code
+      && r.cycle_key === row.cycle_key && r.task_id === row.task_id);
+    if (i >= 0) fuRecords[i] = saved; else fuRecords.push(saved);
+    return true;
+  }catch(e){
+    console.error('[Follow-Up] 存不进云端：', e.message);
+    if (typeof toast === 'function') toast('❌ NOT SAVED — ' + (e.message || 'unknown'), 12000);
+    return false;
+  }finally{ fuBusy = false; }
+}
+/* 结掉旧待办 —— 任何老师都能结，但记是谁结的（Owner 裁定 4） */
+async function fuResolve(rec){
+  if (fuBusy) return false;
+  fuBusy = true;
+  try{
+    const { error } = await _sb.from('followup_record')
+      .update({ resolved_by: userEmail || null, resolved_at: new Date().toISOString() })
+      .eq('id', rec.id);
+    if (error) throw error;
+    rec.resolved_at = new Date().toISOString(); rec.resolved_by = userEmail || null;
+    return true;
+  }catch(e){
+    console.error('[Follow-Up] 结不掉：', e.message);
+    if (typeof toast === 'function') toast('❌ NOT SAVED — ' + (e.message || 'unknown'), 12000);
+    return false;
+  }finally{ fuBusy = false; }
+}
+
+/* ── 老师看到的清单 ── */
+function fuOpen(stuId, classCode){
+  const students = getClassStudents(currentDept, classCode);
+  const stu = students.find(x => x.id === stuId);
+  if (!stu) return;
+  const dept = currentDept, sess = currentSession, date = selectedDate;
+  const due = fuDueTasks(dept, date, sess);
+  const cyc = due.length ? due[0].cycle_key : '';
+  const olds = fuOpenIssues(stuId, classCode, cyc);
+
+  const ov = document.createElement('div'); ov.className = 'fu-ov'; ov.id = 'fu-ov';
+  function paint(){
+    let h = '<div class="fu-box"><div style="font-weight:700;font-size:15px;margin-bottom:2px">' + _escHtml(stu.name) + '</div>'
+      + '<div style="font-size:11px;color:var(--mut);margin-bottom:14px">Follow-Up &middot; ' + _escHtml(classCode) + '</div>';
+    due.forEach(t => {
+      const tid = t.task_id ?? t.id;
+      const r = fuRecOf(stuId, classCode, t.cycle_key, tid);
+      const st = r ? r.result : '';
+      h += '<div class="fu-item ' + (st === 'done' ? 'fu-done' : st === 'issue' ? 'fu-issue' : '') + '">'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        + '<span style="flex:1;font-weight:600;min-width:120px">' + _escHtml(t.item_label) + '</span>'
+        + '<button class="fu-btn ' + (st === 'done' ? 'on-done' : '') + '" data-a="done" data-t="' + tid + '">Done</button>'
+        + '<button class="fu-btn ' + (st === 'issue' ? 'on-issue' : '') + '" data-a="issue" data-t="' + tid + '">Issue</button>'
+        + '</div>'
+        + (st === 'issue' ? '<input class="fu-note" data-t="' + tid + '" type="text" placeholder="What is the problem? (optional)" value="' + _escHtml((r && r.note) || '') + '" style="width:100%;margin-top:8px;padding:6px 8px;border:.5px solid var(--bdr);border-radius:6px;font-size:12px;font-family:inherit">' : '')
+        + '</div>';
+    });
+    olds.forEach(r => {
+      const t = allFuTasks.find(x => x.id === r.task_id);
+      h += '<div class="fu-item fu-old">'
+        + '<div style="font-size:10px;color:#C4622D;font-weight:700;margin-bottom:4px">From ' + _escHtml(r.due_date) + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        + '<span style="flex:1;font-weight:600;min-width:120px">' + _escHtml(t ? t.item_label : r.task_id) + '</span>'
+        + '<button class="fu-btn" data-a="resolve" data-r="' + r.id + '">Resolved</button></div>'
+        + (r.note ? '<div style="font-size:11px;color:var(--mut);margin-top:6px">' + _escHtml(r.note) + '</div>' : '')
+        + '</div>';
+    });
+    if (!due.length && !olds.length) h += '<div style="color:var(--mut);padding:10px 0">Nothing to follow up today.</div>';
+    h += '<div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="fu-btn" id="fu-close">Close</button></div></div>';
+    ov.innerHTML = h;
+  }
+  paint();
+  ov.addEventListener('click', async ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.id === 'fu-close'){ ov.remove(); renderMark(); return; }
+    const act = b.getAttribute('data-a');
+    if (act === 'resolve'){
+      const rec = fuRecords.find(x => String(x.id) === b.getAttribute('data-r'));
+      if (rec && await fuResolve(rec)){ const i = olds.indexOf(rec); if (i >= 0) olds.splice(i, 1); paint(); }
+      return;
+    }
+    const tid = b.getAttribute('data-t');
+    const t = due.find(x => (x.task_id ?? x.id) === tid); if (!t) return;
+    const noteEl = ov.querySelector('.fu-note[data-t="' + tid + '"]');
+    await fuMark(stu, dept, classCode, sess, t, act, noteEl ? noteEl.value.trim() : '');
+    paint();
+  });
+  /* 备注：打字就存，不必按任何按钮（§00A3 规则一） */
+  let noteT = null;
+  ov.addEventListener('input', ev => {
+    const el = ev.target.closest('.fu-note'); if (!el) return;
+    clearTimeout(noteT);
+    noteT = setTimeout(async () => {
+      const tid = el.getAttribute('data-t');
+      const t = due.find(x => (x.task_id ?? x.id) === tid); if (!t) return;
+      await fuMark(stu, dept, classCode, sess, t, 'issue', el.value.trim());
+    }, 800);
+  });
+  document.body.appendChild(ov);
+}
+function fuTag(stu, classCode){
+  const nPend = fuPending(stu, currentDept, classCode, selectedDate, currentSession);
+  const due = fuDueTasks(currentDept, selectedDate, currentSession);
+  if (!due.length && !fuOpenIssues(stu.id, classCode, '').length) return '';
+  if (nPend === 0) return '<span class="fu-tag fu-ok" onclick="event.stopPropagation();fuOpen(\'' + stu.id + '\',\'' + classCode + '\')">Follow-Up \u2713</span>';
+  return '<span class="fu-tag" onclick="event.stopPropagation();fuOpen(\'' + stu.id + '\',\'' + classCode + '\')">Follow-Up (' + nPend + ')</span>';
+}
+
 // ── Get attendance status for a student ──
 function getStatus(studentId,dept,session){
   const s=session??currentSession;
@@ -457,7 +756,7 @@ function goPage(p){
   if(p==='monthly') renderMonthly();
   if(p==='tracker') renderTracker();
   if(p==='rules') renderRulesPage();
-  if(p==='manage') renderManage();
+  if(p==='manage'){ renderManage(); fuRenderAdmin(); }
 }
 
 // ═══════════════════════════════════════
@@ -465,7 +764,8 @@ function goPage(p){
 // ═══════════════════════════════════════
 function renderDashboard(){
   const el=document.getElementById('dash-content');
-  const total=allStudents.length;
+  /* v12 · 请假的孩子不进「还没点名」的分母；已经被点的照算，否则会出现 362 of 361 */
+  const total=allStudents.filter(s=>!isPausedStu(s)||todayRecords.some(r=>r.student_id===s.id)).length;
   const marked=todayRecords.length;
 
   // Group by status+dept
@@ -630,8 +930,8 @@ function renderMark(){
   if(currentDept==='ATC'){
     if(currentSession===0) currentSession=1; // default to S1
     h+=`<div style="display:flex;gap:6px;margin-bottom:14px">
-      <button class="dept-tab${currentSession===1?' on':''}" style="${currentSession===1?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="switchSession(1)">S1: 功课班 1:30-3:30</button>
-      <button class="dept-tab${currentSession===2?' on':''}" style="${currentSession===2?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="switchSession(2)">S2: 上课班 3:30-5:30</button>
+      <button class="dept-tab${currentSession===1?' on':''}" style="${currentSession===1?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="switchSession(1)">S1: Homework 1:30-3:30</button>
+      <button class="dept-tab${currentSession===2?' on':''}" style="${currentSession===2?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="switchSession(2)">S2: Lesson 3:30-5:30</button>
     </div>`;
   }else{
     currentSession=0;
@@ -664,10 +964,12 @@ function renderMark(){
     filteredClasses.forEach(code=>{
       const sts=getClassStudents(currentDept,code);
       const mc=sts.filter(s=>getStatus(s.id,currentDept,currentSession)!=='unmarked').length;
-      const done=mc===sts.length&&sts.length>0;
+      const _exp=expectedCount(sts,currentDept,currentSession);   /* v12 · 请假的不算，否则这班永远点不完 */
+      /* v14 · Follow-Up 没做完，这班点名不算完成（Owner 27-09 裁定） */
+      const done=mc===_exp&&_exp>0&&fuClassDone(sts,currentDept,code,selectedDate,currentSession);
       const isOn=code===markClass;
       const shortName=shortClassName(code);
-      h+=`<button style="padding:6px 12px;border-radius:8px;border:1px solid ${isOn?'transparent':'var(--bdr)'};background:${isOn?'var(--txt)':'var(--sur)'};color:${isOn?'#fff':'var(--txt)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" onclick="switchMarkClass('${code}')">${shortName} <span style="font-size:10px;opacity:.7">${done?'\u2713':mc+'/'+sts.length}</span></button>`;
+      h+=`<button style="padding:6px 12px;border-radius:8px;border:1px solid ${isOn?'transparent':'var(--bdr)'};background:${isOn?'var(--txt)':'var(--sur)'};color:${isOn?'#fff':'var(--txt)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" onclick="switchMarkClass('${code}')">${shortName} <span style="font-size:10px;opacity:.7">${done?'\u2713':mc+'/'+_exp}</span></button>`;
     });
     h+=`</div>`;
 
@@ -675,11 +977,13 @@ function renderMark(){
     const code=markClass;
     const students=getClassStudents(currentDept,code);
     const markedCount=students.filter(s=>getStatus(s.id,currentDept,currentSession)!=='unmarked').length;
-    const allMarked=markedCount===students.length&&students.length>0;
+    const expectCount=expectedCount(students,currentDept,currentSession);   /* v12 · 请假的不算进分母 */
+    const fuOk=fuClassDone(students,currentDept,code,selectedDate,currentSession);   /* v14 */
+    const allMarked=markedCount===expectCount&&expectCount>0&&fuOk;
     h+=`<div class="card" style="padding:0">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bdr)">
         <span style="font-size:14px;font-weight:700">${code}</span>
-        <span style="font-size:12px;color:var(--mut)">${allMarked?'\u2713 ':''}${markedCount}/${students.length}</span>
+        <span style="font-size:12px;color:var(--mut)">${allMarked?'\u2713 ':''}${markedCount}/${expectCount}${(markedCount===expectCount&&expectCount>0&&!fuOk)?' &middot; Follow-Up pending':''}</span>
       </div>
       <div style="padding:0 0 8px">
         <div class="mark-all-bar"><span>Quick:</span>
@@ -696,16 +1000,16 @@ function renderMark(){
       const mem=allMemberships.find(m=>m.student_id===s.id&&m.dept===currentDept&&m.class_code===code);
       const isTransferDay=mem&&mem.end_date===selectedDate;
       const transferTo=isTransferDay?getTransferTarget(s.id,currentDept,mem.end_date):null;
-      const transferTag=isTransferDay?'<span style="font-size:9px;color:#7870CC;margin-left:6px">\u2192 '+(transferTo?transferTo.class_code:'\u8c03\u73ed')+'</span>':'';
+      const transferTag=isTransferDay?'<span style="font-size:9px;color:#7870CC;margin-left:6px">\u2192 '+(transferTo?transferTo.class_code:'Moved')+'</span>':'';
       const lateMatch=(note||'').match(/Late:\s*(\d{1,2}:\d{2})/);
       const lateLabel=lateMatch?'\u23f0'+lateMatch[1]:'\u23f0';
       const LABELS_ROW={present:'\u2713',absent:'\u2715',late:lateLabel,early_leave:'\ud83d\udeaa',mc:'\ud83e\udd12'};
       const showNote=note&&(active==='absent'||active==='early_leave')&&!isTransferDay;
       h+=`<div class="stu-row" style="${ruleStyle}${isTransferDay?'opacity:.5':''}">
         <div class="stu-num">${s.num??''}</div>
-        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${ruleTag}${transferTag}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+note+'</div>':''}</div>
+        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${ruleTag}${transferTag}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+note+'</div>':''}${pausedNote(s)}</div>
         ${isTransferDay
-          ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap">\u5df2\u8c03\u73ed</div>'
+          ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap">Class changed</div>'
           :`<div class="sb-wrap">${STATUSES.map(status=>
             `<button class="status-btn${active===status?' s-'+status:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${STATUS_TX[status]}</span></button>`
           ).join('')}</div>`}
@@ -767,12 +1071,12 @@ async function markStudent(studentId,studentName,dept,classCode,status){
     note='Late: '+input;
   }
   if(status==='absent'){
-    const reason=prompt('缺席原因（活动/补习，可留空）:','');
+    const reason=prompt('Reason for absence (activity / tuition — you can leave this blank):','');
     if(reason===null) return;
     if(reason) note=reason;
   }
   if(status==='early_leave'){
-    const reason=prompt('早退（例：3:30 去钢琴，可留空）:','');
+    const reason=prompt('Left early — what time and why? (e.g. 3:30 piano — you can leave this blank):','');
     if(reason===null) return;
     note=reason?'Early: '+reason:'Early leave';
   }
@@ -865,8 +1169,8 @@ async function renderMonthly(){
   if(monthlyDept==='ATC'){
     if(monthlySession===0) monthlySession=1;
     h+=`<div style="display:flex;gap:6px;margin-bottom:14px">
-      <button class="dept-tab${monthlySession===1?' on':''}" style="${monthlySession===1?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="monthlySession=1;renderMonthly()">S1: 功课班</button>
-      <button class="dept-tab${monthlySession===2?' on':''}" style="${monthlySession===2?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="monthlySession=2;renderMonthly()">S2: 上课班</button>
+      <button class="dept-tab${monthlySession===1?' on':''}" style="${monthlySession===1?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="monthlySession=1;renderMonthly()">S1: Homework</button>
+      <button class="dept-tab${monthlySession===2?' on':''}" style="${monthlySession===2?'background:var(--d-atc);color:#fff;border-color:transparent':''}" onclick="monthlySession=2;renderMonthly()">S2: Lesson</button>
     </div>`;
   }else{ monthlySession=0; }
 
@@ -931,7 +1235,7 @@ async function renderMonthly(){
     const mem=s.mem;
     const transferred=mem.end_date!=null;
     const transferTarget=transferred?getTransferTarget(s.id,monthlyDept,mem.end_date):null;
-    const nameLabel=s.name+(transferred?' <span style="font-size:9px;color:var(--hint)">↗ '+( transferTarget?transferTarget.class_code:'已调')+'</span>':'');
+    const nameLabel=s.name+pausedTag(s)+(transferred?' <span style="font-size:9px;color:var(--hint)">↗ '+( transferTarget?transferTarget.class_code:'Moved')+'</span>':'');
     h+=`<tr><td style="padding:6px 8px;border-bottom:.5px solid var(--bdr);white-space:nowrap;position:sticky;left:0;background:var(--sur);z-index:1;font-size:11px">${nameLabel}</td>`;
     for(let d=1;d<=daysInMonth;d++){
       const dayStr=monthlyMonth+'-'+String(d).padStart(2,'0');
@@ -951,10 +1255,10 @@ async function renderMonthly(){
       }else if(transferred&&dayStr===mem.end_date){
         // Transfer day: show attendance record + transfer marker below
         const r=(recMap[s.id]||{})[d];
-        const targetName=transferTarget?transferTarget.class_code.replace(/^[A-Z]+_/,''):'调';
+        const targetName=transferTarget?transferTarget.class_code.replace(/^[A-Z]+_/,''):'Moved';
         const attIcon=r?(r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]):'·';
         const attBg=r?BG[r.status]||'':'';
-        h+=`<td style="padding:1px;text-align:center;border-bottom:.5px solid var(--bdr);background:${attBg};line-height:1.1" title="调班 → ${transferTarget?transferTarget.class_code:'—'}">
+        h+=`<td style="padding:1px;text-align:center;border-bottom:.5px solid var(--bdr);background:${attBg};line-height:1.1" title="Class change → ${transferTarget?transferTarget.class_code:'—'}">
           <div style="font-size:10px">${attIcon}</div>
           <div style="font-size:6px;color:#7870CC;font-weight:700">→${targetName}</div>
         </td>`;
@@ -1020,7 +1324,7 @@ function printMonthly(){
   const grid=document.getElementById('monthly-grid');
   if(!grid) return;
   const w=window.open('','_blank','width=1200,height=800');
-  const sessTag=monthlySession===1?' · S1 功课班':monthlySession===2?' · S2 上课班':'';
+  const sessTag=monthlySession===1?' · S1 Homework':monthlySession===2?' · S2 Lesson':'';
   w.document.write(`<!DOCTYPE html><html><head><title>Attendance — ${monthlyClass} · ${monthlyMonth}${sessTag}</title>
   <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:20px;font-size:10px}
   h1{font-size:16px;font-weight:700;margin-bottom:4px}
@@ -1231,6 +1535,68 @@ function toast(msg,ms){
   el._t=setTimeout(()=>el.classList.remove('show'),ms||2000);
 }
 
+/* ── v14 · 行政自己维护清单，不必找人改程式 ── */
+function fuRenderAdmin(){
+  const el = document.getElementById('fu-admin'); if (!el) return;
+  let h = '';
+  DEPTS.forEach(d => {
+    const ts = allFuTasks.filter(t => t.dept === d).sort((a, b) => (a.nth_day - b.nth_day) || (a.sort_order - b.sort_order));
+    h += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:' + (DEPT_COLORS[d] || 'var(--txt)') + ';margin-bottom:5px">' + d + '</div>';
+    if (!ts.length){
+      h += '<div style="font-size:11px;color:var(--hint);padding:4px 0">No checklist yet.</div>';
+    } else {
+      ts.forEach(t => {
+        h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bdr);flex-wrap:wrap">'
+          + '<span style="font-size:10px;background:var(--sur2);border-radius:4px;padding:1px 7px;white-space:nowrap">'
+          + (t.trigger_type === 'weekly_nth_day' ? ('School day ' + t.nth_day + ' of the week') : 'After absence') + '</span>'
+          + '<span style="flex:1;font-size:12px;min-width:120px">' + _escHtml(t.item_label) + '</span>'
+          + '<button class="fu-btn" style="font-size:11px;padding:3px 10px" onclick="fuAdminRename(\'' + t.id + '\')">Rename</button>'
+          + '<button class="fu-btn" style="font-size:11px;padding:3px 10px" onclick="fuAdminRemove(\'' + t.id + '\')">Remove</button>'
+          + '</div>';
+      });
+    }
+    h += '<button class="fu-btn" style="font-size:11px;padding:3px 10px;margin-top:6px" onclick="fuAdminAdd(\'' + d + '\')">+ Add item</button></div>';
+  });
+  el.innerHTML = h;
+}
+async function fuAdminAdd(dept){
+  const label = prompt('New checklist item for ' + dept + ' (e.g. Hygiene Checking):', '');
+  if (!label || !label.trim()) return;
+  const nth = prompt('Do it on which school day of the week? Type 1 or 2:', '1');
+  if (nth !== '1' && nth !== '2') { toast('Cancelled — please type 1 or 2'); return; }
+  const id = 'fut_' + dept.toLowerCase() + '_' + Date.now().toString(36);
+  const sib = allFuTasks.filter(t => t.dept === dept && t.nth_day === parseInt(nth));
+  try{
+    const { error } = await _sb.from('followup_task').insert({
+      id: id, dept: dept, trigger_type: 'weekly_nth_day', nth_day: parseInt(nth), session: 0,
+      item_label: label.trim(), sort_order: sib.length + 1, is_active: true, updated_by: userEmail || null });
+    if (error) throw error;
+    await fuLoadTasks(); fuRenderAdmin(); toast('\u2713 Added');
+  }catch(e){ toast('\u274c NOT SAVED — ' + (e.message || 'unknown'), 12000); }
+}
+async function fuAdminRename(id){
+  const t = allFuTasks.find(x => x.id === id); if (!t) return;
+  const label = prompt('Rename this item:', t.item_label);
+  if (!label || !label.trim() || label.trim() === t.item_label) return;
+  try{
+    const { error } = await _sb.from('followup_task')
+      .update({ item_label: label.trim(), updated_at: new Date().toISOString(), updated_by: userEmail || null }).eq('id', id);
+    if (error) throw error;
+    await fuLoadTasks(); fuRenderAdmin(); toast('\u2713 Renamed');
+  }catch(e){ toast('\u274c NOT SAVED — ' + (e.message || 'unknown'), 12000); }
+}
+async function fuAdminRemove(id){
+  const t = allFuTasks.find(x => x.id === id); if (!t) return;
+  if (!confirm('Remove "' + t.item_label + '" from the ' + t.dept + ' checklist?\n\nPast records are kept.')) return;
+  try{
+    /* 停用不删 —— 旧纪录要留著 */
+    const { error } = await _sb.from('followup_task')
+      .update({ is_active: false, updated_at: new Date().toISOString(), updated_by: userEmail || null }).eq('id', id);
+    if (error) throw error;
+    await fuLoadTasks(); fuRenderAdmin(); toast('\u2713 Removed');
+  }catch(e){ toast('\u274c NOT SAVED — ' + (e.message || 'unknown'), 12000); }
+}
+
 function renderManage(){
   const el=document.getElementById('manage-content');
   const marked=todayRecords.length;
@@ -1245,6 +1611,12 @@ function renderManage(){
     <div class="mg-row"><span class="k">Students loaded</span><span class="v">${allStudents.length}</span></div>
     <div class="mg-row"><span class="k">Marked (${selectedDate})</span><span class="v">${marked}</span></div>
     <div class="mg-row"><span class="k">Signed in</span><span class="v">${userEmail||'—'}</span></div>
+  </div>
+
+  <div class="card">
+    <div class="mg-title">Follow-Up Checklist</div>
+    <div style="font-size:11px;color:var(--mut);margin-bottom:10px">What teachers must check when a student comes back. Edit here — no need to change the system.</div>
+    <div id="fu-admin"></div>
   </div>
 
   <div class="card">
@@ -1276,7 +1648,7 @@ function renderManage(){
           <option value="">Day</option><option value="1">Mon</option><option value="2">Tue</option><option value="3">Wed</option><option value="4">Thu</option><option value="5">Fri</option>
         </select>
         <select id="rule-session" style="padding:6px;border-radius:6px;border:1px solid var(--bdr);font-size:11px">
-          <option value="0">All Sessions</option><option value="1">S1 功课班</option><option value="2">S2 上课班</option>
+          <option value="0">All Sessions</option><option value="1">S1 Homework</option><option value="2">S2 Lesson</option>
         </select>
         <select id="rule-type" style="padding:6px;border-radius:6px;border:1px solid var(--bdr);font-size:11px">
           <option value="absent">Absent</option><option value="early_leave">Early Leave</option>
@@ -1332,7 +1704,7 @@ function renderRulesPage(){
     const students=getClassStudents(rulesDept,rulesClass);
     const isATC=rulesDept==='ATC';
     const sessions=isATC?[1,2]:[0];
-    const sessionLabels=isATC?{1:'S1 功课班',2:'S2 上课班'}:{0:'Session'};
+    const sessionLabels=isATC?{1:'S1 Homework',2:'S2 Lesson'}:{0:'Session'};
     const dayNames=['','Mon','Tue','Wed','Thu','Fri'];
 
     students.forEach(s=>{
@@ -1342,7 +1714,7 @@ function renderRulesPage(){
       h+=`<div class="card" style="padding:0;margin-bottom:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer" onclick="rulesToggleStudent('${s.id}')">
           <div>
-            <span style="font-size:13px;font-weight:600">${s.name}</span>
+            <span style="font-size:13px;font-weight:600">${s.name}</span>${pausedTag(s)}
             ${s.name_cn?'<span style="font-size:11px;color:var(--mut);margin-left:6px">'+s.name_cn+'</span>':''}
           </div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -1391,7 +1763,7 @@ function renderRulesPage(){
         // History (all rules - complete log)
         if(stuRules.length){
           const isATC=rulesDept==='ATC';
-          const sessLabel={0:'All',1:'功课班',2:'上课班'};
+          const sessLabel={0:'All',1:'Homework',2:'Lesson'};
           h+=`<div style="margin-top:12px;border-top:1px solid var(--bdr);padding-top:8px">
             <div style="font-size:10px;font-weight:600;color:var(--mut);margin-bottom:6px">All Records (${stuRules.length})</div>`;
           [...stuRules].sort((a,b)=>(b.start_date||'').localeCompare(a.start_date||'')).forEach(r=>{
@@ -1430,7 +1802,7 @@ let _rmPending=null;
 function rulesAddCell(studentId,studentName,dept,classCode,day,session){
   const dayNames=['','Mon','Tue','Wed','Thu','Fri'];
   _rmPending={studentId,studentName,dept,classCode,day,session};
-  document.getElementById('rm-subtitle').textContent=studentName+' · '+dayNames[day]+' · '+(session===1?'S1 功课班':session===2?'S2 上课班':'All');
+  document.getElementById('rm-subtitle').textContent=studentName+' · '+dayNames[day]+' · '+(session===1?'S1 Homework':session===2?'S2 Lesson':'All');
   document.getElementById('rm-type').value='absent';
   document.getElementById('rm-start').value=todayStr();
   document.getElementById('rm-end').value='';
@@ -1528,7 +1900,7 @@ function editHistoryRule(id){
   if(!r) return;
   _editId=id;
   const dayNames=['','Mon','Tue','Wed','Thu','Fri'];
-  const sessLabel={0:'All',1:'S1 功课班',2:'S2 上课班'};
+  const sessLabel={0:'All',1:'S1 Homework',2:'S2 Lesson'};
   document.getElementById('rm-title').textContent='Edit Rule';
   document.getElementById('rm-subtitle').textContent=dayNames[r.day_of_week]+' · '+sessLabel[r.session];
   document.getElementById('rm-type').value=r.rule_type;
