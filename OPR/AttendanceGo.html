@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v14</title>
+<title>OPR-AttendanceGo v15</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -60,10 +60,10 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 /* STUDENT ROW */
 .stu-row{display:flex;align-items:center;padding:10px 14px;border-bottom:.5px solid var(--bdr);gap:10px}
 .stu-row:last-child{border-bottom:none}
-.stu-name{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}
+.stu-name{flex:1;min-width:84px;font-size:12px;overflow-wrap:anywhere}
 .stu-num{font-size:10px;color:var(--mut);width:24px;text-align:center;flex-shrink:0}
 .stu-cn{font-size:10px;color:var(--mut)}
-.fu-tag{display:inline-block;font-size:9px;font-weight:700;color:#8A5A00;background:#FFF0C2;border:.5px solid #F2D178;border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:middle;cursor:pointer;flex-shrink:0}
+.fu-tag{display:inline-block;white-space:nowrap;font-size:9px;font-weight:700;color:#8A5A00;background:#FFF0C2;border:.5px solid #F2D178;border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:middle;cursor:pointer;flex-shrink:0}
 .fu-tag.fu-ok{color:#1E6B4F;background:#E1F5EE;border-color:#9FE1CB}
 .fu-ov{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .fu-box{background:var(--sur);color:var(--txt);max-width:480px;width:100%;max-height:88vh;overflow:auto;border-radius:12px;padding:18px 20px;font-size:13px;line-height:1.5}
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v13</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v15</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -247,7 +247,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=14;
+const APP_VERSION=15;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -1002,8 +1002,9 @@ function renderMark(){
       const transferTo=isTransferDay?getTransferTarget(s.id,currentDept,mem.end_date):null;
       const transferTag=isTransferDay?'<span style="font-size:9px;color:#7870CC;margin-left:6px">\u2192 '+(transferTo?transferTo.class_code:'Moved')+'</span>':'';
       const lateMatch=(note||'').match(/Late:\s*(\d{1,2}:\d{2})/);
-      const lateLabel=lateMatch?'\u23f0'+lateMatch[1]:'\u23f0';
-      const LABELS_ROW={present:'\u2713',absent:'\u2715',late:lateLabel,early_leave:'\ud83d\udeaa',mc:'\ud83e\udd12'};
+      /* v15 · 迟到时间只在「现在是 Late」时显示，放在按钮下面那行小字 —— 按钮宽度固定，名字不会被挤成一字一行 */
+      const lateTx=(active==='late'&&lateMatch)?lateMatch[1]:'';
+      const LABELS_ROW={present:'\u2713',absent:'\u2715',late:'\u23f0',early_leave:'\ud83d\udeaa',mc:'\ud83e\udd12'};
       const showNote=note&&(active==='absent'||active==='early_leave')&&!isTransferDay;
       h+=`<div class="stu-row" style="${ruleStyle}${isTransferDay?'opacity:.5':''}">
         <div class="stu-num">${s.num??''}</div>
@@ -1011,7 +1012,7 @@ function renderMark(){
         ${isTransferDay
           ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap">Class changed</div>'
           :`<div class="sb-wrap">${STATUSES.map(status=>
-            `<button class="status-btn${active===status?' s-'+status:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${STATUS_TX[status]}</span></button>`
+            `<button class="status-btn${active===status?' s-'+status:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${status==='late'&&lateTx?lateTx:STATUS_TX[status]}</span></button>`
           ).join('')}</div>`}
       </div>`;
     });
@@ -1088,6 +1089,9 @@ async function markStudent(studentId,studentName,dept,classCode,status){
   renderMark();
   openIds.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('open');});
   window.scrollTo(0,scrollY);
+  /* v15 · 点了「有来」（Present / Late / Early）而这孩子还有 Follow-Up 没做 → 直接弹出清单，老师不用另外找那颗黄标 */
+  if((status==='present'||status==='late'||status==='early_leave') && !document.getElementById('fu-ov')
+     && fuPending({id:studentId},dept,classCode,selectedDate,currentSession)>0){ fuOpen(studentId,classCode); }
   try{
     const{error}=await _sb.from('attendance').upsert({
       date:selectedDate,student_id:studentId,student_name:studentName,
