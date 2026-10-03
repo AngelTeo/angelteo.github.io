@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v33</title>
+<title>MasterHub — Student v34</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -37,7 +37,7 @@ html, body { margin: 0; padding: 0; font-family: -apple-system, 'Segoe UI', 'Pin
 .btn:hover { background: var(--sur2); }
 .btn-pri { background: var(--layer); color: #fff; border-color: var(--layer); }
 .btn-pri:hover { background: #134d83; }
-.btn-dng { background: var(--red); color: #fff; border-color: var(--red); }
+.btn-dng { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-sm { padding: 3px 8px; font-size: 10px; }
 .input { border: .5px solid var(--bdr); border-radius: 6px; padding: 6px 10px; font-size: 12px; font-family: inherit; outline: none; }
 .input:focus { border-color: var(--layer); }
@@ -53,7 +53,7 @@ select.input { background: var(--sur); }
 .dept-atc { background: #E1F5EE; color: var(--dept-atc); border: .5px solid #9FE1CB; }
 .dept-srt { background: #ECE3F4; color: var(--dept-srt); border: .5px solid #C6B1DE; }
 .tier-badge { display: inline-block; background: rgba(0,0,0,.08); border-radius: 4px; padding: 0 4px; margin-left: 3px; font-size: 9px; font-weight: 600; }
-.flag-new { background: #FCEBEB; color: var(--red); border: .5px solid #F09595; display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; }
+.flag-new { background: #FCEBEB; color: var(--danger); border: .5px solid #F09595; display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; }
 .flag-rsvp { background: #FFF8E1; color: var(--amb); border: .5px solid #F9CB42; display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; }
 .flag-multi { background: #EEF2F7; color: var(--layer); border: .5px solid #AABDD4; display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; }
 .status-badge { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 9px; font-weight: 500; white-space: nowrap; }
@@ -180,7 +180,7 @@ table.data tbody tr:hover{background:#FFF9E6}
 .alert-card { background: #FFF8E1; border: .5px solid #F9CB42; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
 .alert-card.red { background: #FCEBEB; border-color: #F09595; }
 .alert-text { flex: 1; font-size: 11px; }
-.emergency-btn { background: var(--red); color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-left: 8px; }
+.emergency-btn { background: var(--danger); color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-left: 8px; }
 .age-col { color: var(--mut); font-size: 11px; }
 .gender-b { color: var(--boy); }
 .gender-g { color: var(--girl); }
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 33;
+const APP_VERSION = 34;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -475,27 +475,27 @@ function isInactiveStatus(st){ return INACTIVE_STATUSES.indexOf(st) >= 0; }
    正本表 hub_student_outside_tuition（不是学生 blob 的一部分，独立读写）。
    AttendanceGo 等系统只读。停掉要填结束日，不删。 */
 const OUTSIDE_SUBJECTS = [
-  { v:'MATH',        l:'Maths 数学' },
-  { v:'ENG',         l:'English 英文' },
-  { v:'CHI',         l:'Chinese 华文' },
-  { v:'BM',          l:'Bahasa 国文' },
-  { v:'SCI',         l:'Science 科学' },
-  { v:'ABACUS',      l:'Abacus 珠心算' },
-  { v:'HANDWRITING', l:'Handwriting 书法' },
-  { v:'MUSIC',       l:'Music 音乐/乐器' },
-  { v:'SPORT',       l:'Sport 运动' },
-  { v:'RELIGIOUS',   l:'Religious 宗教班' },
-  { v:'OTHER',       l:'Other 其他' },
+  { v:'MATH',        l:'Maths' },
+  { v:'ENG',         l:'English' },
+  { v:'CHI',         l:'Chinese' },
+  { v:'BM',          l:'Bahasa Melayu' },
+  { v:'SCI',         l:'Science' },
+  { v:'ABACUS',      l:'Abacus' },
+  { v:'HANDWRITING', l:'Handwriting' },
+  { v:'MUSIC',       l:'Music' },
+  { v:'SPORT',       l:'Sport' },
+  { v:'RELIGIOUS',   l:'Religious' },
+  { v:'OTHER',       l:'Other' },
 ];
 const OUTSIDE_DAYS = [
-  { v:1, l:'Mon 一' }, { v:2, l:'Tue 二' }, { v:3, l:'Wed 三' }, { v:4, l:'Thu 四' },
-  { v:5, l:'Fri 五' }, { v:6, l:'Sat 六' }, { v:7, l:'Sun 日' },
+  { v:1, l:'Mon' }, { v:2, l:'Tue' }, { v:3, l:'Wed' }, { v:4, l:'Thu' },
+  { v:5, l:'Fri' }, { v:6, l:'Sat' }, { v:7, l:'Sun' },
 ];
 const OUTSIDE_EFFECTS = [
-  { v:'none',        l:'No clash 不影响' },
-  { v:'late',        l:'Comes late 迟到' },
-  { v:'early_leave', l:'Leaves early 早退' },
-  { v:'absent',      l:'Does not come 缺席' },
+  { v:'none',        l:'No clash' },
+  { v:'late',        l:'Comes late' },
+  { v:'early_leave', l:'Leaves early' },
+  { v:'absent',      l:'Does not come' },
 ];
 function outsideSubjectLabel(v){ const x = OUTSIDE_SUBJECTS.find(o=>o.v===v); return x ? x.l : (v||''); }
 function outsideDayLabel(v){ const x = OUTSIDE_DAYS.find(o=>o.v===Number(v)); return x ? x.l : String(v||''); }
@@ -506,7 +506,7 @@ let OUTSIDE_READ_OK = false;
    一律不删（要拿掉只有「还没存过」的那一笔）。失败往上丢，由呼叫端跳讯息。 */
 async function saveOutsideRows(studentId, rows) {
   if (!studentId) return false;
-  if (!OUTSIDE_READ_OK) throw new Error('校外补习读不到云端，这一次不写回（避免覆盖别人的资料）');
+  if (!OUTSIDE_READ_OK) throw new Error('Could not read outside tuition from the cloud — not saving this time (to avoid overwriting other people\'s data)');
   const before = OUTSIDE[studentId] || [];
   const clean = (r) => ({
     student_id: studentId,
@@ -620,7 +620,7 @@ function _saveBanner(msg){
       + 'padding:10px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)';
     document.body.appendChild(b);
   }
-  b.textContent = '❌ 没有存进云端：' + msg + ' —— 这一笔还没有存好，不要关掉页面。';
+  b.textContent = '❌ Not saved to the cloud: ' + msg + ' — this change is not saved yet. Do not close the page.';
 }
 async function saveAll() {
   try {
@@ -638,8 +638,8 @@ async function saveAll() {
     console.error('Save failed:', e);
     safeSet('last-saved', '❌ NOT SAVED ' + new Date().toLocaleTimeString('en-GB'));
     _saveBanner(msg);
-    toast('❌ 存档失败：' + msg, 6000);
-    if (!window._stuAuto) { try { alert('存档失败，资料没有进云端。\n\n原因：' + msg + '\n\n请截图这段话给 Owner，先不要关掉页面。'); } catch(_e){} }   /* v32 · 自动存时靠横幅，不连跳 alert */
+    toast('❌ Save failed: ' + msg, 6000);
+    if (!window._stuAuto) { try { alert('Save failed — the data did not reach the cloud.\n\nReason: ' + msg + '\n\nPlease screenshot this message for the Owner. Do not close the page yet.'); } catch(_e){} }   /* v32 · 自动存时靠横幅，不连跳 alert */
     return false;
   }
 }
@@ -741,8 +741,8 @@ async function initData() {
        ① 云端根本没读到（Store.get 退回本机快取）—— 写回去就是拿旧资料盖新资料
        ② 云端回传 0 位学生 —— 空的不可能是真相，写回去会把班籍整批删掉
        ③ 格式不对 */
-    if (!CLOUD_READ_OK) throw new Error('读不到云端的学生资料（画面上是本机旧快取，不能写回去）');
-    if (CLOUD_COUNT === 0) throw new Error('云端回传 0 位学生 —— 这不合理，已停住不写入任何资料');
+    if (!CLOUD_READ_OK) throw new Error('Could not read student data from the cloud (the screen shows an old local copy, which cannot be saved back)');
+    if (CLOUD_COUNT === 0) throw new Error('The cloud returned 0 students — that is not right, so nothing was saved');
     if (loaded && validateData()) {
       /* v26 · 只有 migrateAll() 真的改了东西才写回。
          以前是每次开机无条件 saveAll()，等於每次开机都拿画面上的东西覆盖云端一次。 */
@@ -762,7 +762,7 @@ async function initData() {
        也就是网路抖一下、或云端读失败，365 位学生的班籍就会被换成四月的旧快照，
        而且 SEED_DATA 里的班名是 SRK-SR.1 那套旧写法，写进去平台其他系统全部认不得。
        新行为：fail closed —— 停住、讲清楚、一个字都不写。 */
-    throw new Error(loaded ? '云端资料读得到，但格式不对' : '读不到云端的学生资料');
+    throw new Error(loaded ? 'Cloud data was read but the format is wrong' : 'Could not read student data from the cloud');
   } catch (e) {
     console.error('initData 中止（未写入任何资料）:', e);
     throw e;
@@ -776,15 +776,15 @@ window.emergencyReset = async function() {
   try {
     const n = (S.students || []).length;
     if (n > 0) {
-      alert('已挡下这个动作。\n\n云端现在有 ' + n + ' 位学生的资料。'
-          + '重置会用 2026 年 4 月的旧快照整批覆盖掉，包括所有班籍，\n'
-          + '而且写进去的班名格式平台其他系统认不得（ParentGo / AttendanceGo / ClassGo / ObsGo 会看不到人）。\n\n'
-          + '真的要重置，请先按「Export Full JSON」备份，再找管理层。');
+      alert('This action was blocked.\n\nThe cloud has ' + n + ' students right now. '
+          + 'Reset would overwrite everything (including all class records) with an old April 2026 snapshot,\n'
+          + 'and that class-name format is not recognised by other systems (ParentGo / AttendanceGo / ClassGo / ObsGo would lose the students).\n\n'
+          + 'If you really need to reset, first press "Export Full JSON" to back up, then talk to management.');
       return;
     }
   } catch (e) {}
   if (!confirm('Reset all data to initial seed?\n(localStorage will be wiped and reloaded from the Excel-imported namelist.)')) return;
-  if (prompt('这个动作无法复原。\n请打字输入 RESET 确认：') !== 'RESET') { toast('已取消', 2000); return; }
+  if (prompt('This cannot be undone.\nType RESET to confirm:') !== 'RESET') { toast('Cancelled', 2000); return; }
   Object.keys(localStorage).forEach(k => {
     if (k.startsWith('masterhub_namelist') || k.startsWith('academee_namelist') || k.startsWith('att_')) localStorage.removeItem(k);
   });
@@ -1174,7 +1174,7 @@ function renderStudentsAll() {
       h += '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:32px"><col style="width:28%"><col style="width:15%"><col style="width:10%"><col style="width:32%"><col style="width:15%"></colgroup><thead><tr>';
       h += '<th>#</th>';
       h += sortHdr('Name', 'name');
-      h += '<th>中文</th>';
+      h += '<th>Chinese name</th>';
       h += sortHdr('Age', 'age');
       h += '<th>Class</th>';
       h += sortHdr('Status', 'status');
@@ -1327,7 +1327,7 @@ function renderDeptPage(dept) {
     h += '</div>';
 
     // Student count
-    var showCount = cls === 'ALL' ? deptStudents.length : getClassRoster(dept, cls).length;
+    var showCount = cls === 'ALL' ? ((dept === 'SRT' && filteredClasses.length !== getClasses('SRT').length) ? new Set([].concat.apply([], filteredClasses.map(function(cn){ return getClassRoster(dept, cn).map(function(r){ return r.student.id; }); }))).size : deptStudents.length) : getClassRoster(dept, cls).length;
     h += '<div style="padding:4px 16px"><span style="font-size:11px;color:var(--mut)">' + showCount + ' students</span></div>';
 
     // Table
@@ -1361,15 +1361,22 @@ function getFilteredClasses(dept) {
   if (dept !== 'SRT') return all;
   var tf = S.ui.srtTimeFilter || 'all';
   var lf = S.ui.srtLevelFilter || 'all';
+  /* v34 · 班代号是 SRT-SRT_LV4_SAT_NN，以前拿 'SAT.NN' / 'SRT-LV4.' 去比对永远对不上。改用平台班名（LV4.SAT.NN / LV4.A.SAT.NN）判断 */
   return all.filter(function(cn) {
-    if (tf !== 'all' && cn.indexOf(tf) < 0) return false;
-    if (lf !== 'all' && !cn.startsWith('SRT-' + lf + '.')) return false;
+    var nm = String(clsName('SRT', cn) || '');
+    if (tf !== 'all' && !(nm.slice(-tf.length) === tf)) return false;
+    if (lf !== 'all' && nm.indexOf(lf + '.') !== 0) return false;
     return true;
   });
 }
 
 function renderDeptAllTable(dept, term) {
   var students = getStudentsByDept(dept);
+  /* v34 · SRT 选了 Time / Level，名单也只列这些班的学生（以前只筛了班级按钮，名单照样全列） */
+  if (dept === 'SRT' && ((S.ui.srtTimeFilter || 'all') !== 'all' || (S.ui.srtLevelFilter || 'all') !== 'all')) {
+    var okCls = new Set(getFilteredClasses('SRT'));
+    students = students.filter(function(s) { return s.memberships.some(function(m) { return m.dept === 'SRT' && okCls.has(m.class); }); });
+  }
   if (term) {
     students = students.filter(function(s) {
       if (s.name.toLowerCase().indexOf(term) >= 0) return true;
@@ -1388,7 +1395,7 @@ function renderDeptAllTable(dept, term) {
   students.sort(function(a, b) { return a.name.localeCompare(b.name); });
   if (students.length === 0) return '<div class="empty">No students found</div>';
   var h = '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:28px"><col style="width:25%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:22%"><col style="width:15%"></colgroup>';
-  h += '<thead><tr><th>#</th><th>Name</th><th>中文</th><th>Age</th><th>Class</th><th>Cross-Dept</th><th>Status</th></tr></thead><tbody>';
+  h += '<thead><tr><th>#</th><th>Name</th><th>Chinese name</th><th>Age</th><th>Class</th><th>Cross-Dept</th><th>Status</th></tr></thead><tbody>';
   students.forEach(function(s, i) {
     var deptMembership = null;
     for (var mi = 0; mi < s.memberships.length; mi++) { if (s.memberships[mi].dept === dept) { deptMembership = s.memberships[mi]; break; } }
@@ -1427,7 +1434,7 @@ function renderDeptClassTable(dept, cls, term) {
   if (fs !== 'all') roster = roster.filter(function(r) { return r.student.status === fs; });
   if (roster.length === 0) return '<div class="empty">No students match filters</div>';
   var h = '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:28px"><col style="width:24%"><col style="width:14%"><col style="width:10%"><col style="width:10%"><col style="width:27%"><col style="width:15%"></colgroup>';
-  h += '<thead><tr><th>#</th><th>Name</th><th>中文</th><th>Age</th><th>Gender</th><th>Cross-Dept</th><th>Status</th></tr></thead><tbody>';
+  h += '<thead><tr><th>#</th><th>Name</th><th>Chinese name</th><th>Age</th><th>Gender</th><th>Cross-Dept</th><th>Status</th></tr></thead><tbody>';
   roster.forEach(function(r, i) {
     var s = r.student, m = r.membership;
     var exclKey = m.dept + '/' + m.class;
@@ -1488,7 +1495,7 @@ function renderCrossEnrolled() {
     h += '<div class="empty">No cross-enrolled students</div>';
   } else {
     h += '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:28px"><col style="width:25%"><col style="width:14%"><col style="width:10%"><col style="width:36%"><col style="width:15%"></colgroup>';
-    h += '<thead><tr><th>#</th><th>Name</th><th>中文</th><th>×N</th><th>All classes</th><th></th></tr></thead><tbody>';
+    h += '<thead><tr><th>#</th><th>Name</th><th>Chinese name</th><th>×N</th><th>All classes</th><th></th></tr></thead><tbody>';
     multi.forEach(function(s, i) {
       h += '<tr>';
       h += '<td style="color:var(--mut)">' + (i+1) + '</td>';
@@ -1538,7 +1545,7 @@ function renderPromotionGap() {
     h += '<div class="empty">All ' + src + ' students are already in ' + tgt + '</div>';
   } else {
     h += '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:28px"><col style="width:28%"><col style="width:15%"><col style="width:10%"><col style="width:32%"><col style="width:15%"></colgroup>';
-    h += '<thead><tr><th>#</th><th>Name</th><th>中文</th><th>Age</th><th>Current classes</th><th>Status</th></tr></thead><tbody>';
+    h += '<thead><tr><th>#</th><th>Name</th><th>Chinese name</th><th>Age</th><th>Current classes</th><th>Status</th></tr></thead><tbody>';
     gap.forEach(function(s, i) {
       var chips = '<div style="display:flex;flex-wrap:wrap;gap:3px">' + renderDeptChips(s.memberships) + '</div>';
       h += '<tr style="cursor:pointer" onclick="openStudent(\'' + s.id + '\')">';
@@ -1566,30 +1573,30 @@ window.setCrossMode = function(m) { S.ui.crossMode = m; renderCrossClass(); };
    两道护栏任一触发都不会写入任何资料。 */
 window.syncToPlatform = async function(btn) {
   var box = document.getElementById('sync-result');
-  if (!confirm('把这里的学生与班籍资料同步到平台？\n\nObsGo / EvalGo / ParentGo 会看到最新资料。\n这个动作不会改动 MasterHub 自己的资料。')) return;
-  btn.disabled = true; var old = btn.textContent; btn.textContent = '同步中…';
-  if (box) { box.style.color = 'var(--mut)'; box.textContent = '正在同步…'; }
+  if (!confirm('Sync students and class records to the Platform now?\n\nObsGo / EvalGo / ParentGo will see the latest data.\nThis does not change MasterHub\'s own data.')) return;
+  btn.disabled = true; var old = btn.textContent; btn.textContent = 'Syncing…';
+  if (box) { box.style.color = 'var(--mut)'; box.textContent = 'Syncing…'; }
   try {
     var r = await _sb.rpc('sync_master_data');
     if (r.error) throw r.error;
     var d = r.data || {};
     if (d.ok === false) {
       box.style.color = 'var(--warn)';
-      box.innerHTML = '⚠ 同步被安全机制挡下，<b>没有改动任何资料</b>：<br>' + (d.aborted || '') +
-                      '<br><span style="color:var(--mut)">请截图找管理层。</span>';
+      box.innerHTML = '⚠ Sync was blocked by a safety check — <b>nothing was changed</b>:<br>' + (d.aborted || '') +
+                      '<br><span style="color:var(--mut)">Please screenshot this for management.</span>';
     } else {
       var n = (d.students_updated||0)+(d.students_inserted||0)+(d.enrol_inserted||0)+
               (d.enrol_deactivated||0)+(d.enrol_reactivated||0)+(d.classes_deactivated||0);
       box.style.color = 'var(--ok)';
       box.innerHTML = n === 0
-        ? '✓ 已经是最新的，没有东西需要同步。'
-        : '✓ 同步完成：学生更新 ' + (d.students_updated||0) + ' · 新增 ' + (d.students_inserted||0) +
-          ' · 班籍新增 ' + (d.enrol_inserted||0) + ' · 结束 ' + (d.enrol_deactivated||0) +
-          ' · 班级停用 ' + (d.classes_deactivated||0);
+        ? '✓ Already up to date — nothing to sync.'
+        : '✓ Sync done: students updated ' + (d.students_updated||0) + ' · added ' + (d.students_inserted||0) +
+          ' · class records added ' + (d.enrol_inserted||0) + ' · ended ' + (d.enrol_deactivated||0) +
+          ' · classes closed ' + (d.classes_deactivated||0);
     }
   } catch (e) {
     box.style.color = 'var(--danger)';
-    box.textContent = '✕ 同步失败：' + (e.message || e) + '　（没有改动任何资料）';
+    box.textContent = '✕ Sync failed: ' + (e.message || e) + ' (nothing was changed)';
   }
   btn.disabled = false; btn.textContent = old;
 };
@@ -1606,12 +1613,12 @@ function renderManage() {
        资料来源是这里的 hub_students / hub_student_memberships。
        2026-06-11 至 2026-09-09 之间没有同步机制，累积出 27 个出生年遗失、2 位学生消失、
        GAK 3 个不存在的班。现在每晚 02:00 自动同步，这颗按钮是「等不及」时用的。 */
-    h += '<div class="card"><div class="card-hdr"><span class="card-title">同步到平台</span></div>';
+    h += '<div class="card"><div class="card-hdr"><span class="card-title">Sync to Platform</span></div>';
     h += '<div style="font-size:12px;line-height:1.9;color:var(--mut);margin-bottom:10px">';
-    h += '这里改完的资料，要同步之後 ObsGo / EvalGo / ParentGo 才看得到。<br>';
-    h += '系统每晚 <b>02:00</b> 会自动同步一次。刚改完想马上生效，按这颗。';
+    h += 'Changes made here reach ObsGo / EvalGo / ParentGo after a sync.<br>';
+    h += 'The system syncs automatically every night at <b>02:00</b>. Press this to apply changes right away.';
     h += '</div>';
-    h += '<button class="btn btn-pri" style="min-height:44px" onclick="syncToPlatform(this)">☁ 立刻同步到平台</button>';
+    h += '<button class="btn btn-pri" style="min-height:44px" onclick="syncToPlatform(this)">☁ Sync to Platform now</button>';
     h += '<div id="sync-result" style="font-size:12px;margin-top:10px"></div></div>';
 
     h += '<div class="card"><div class="card-hdr"><span class="card-title">System Information</span></div>';
@@ -1707,9 +1714,9 @@ window.openStudent = function(id) {
     h += '<div class="form-row"><label>Transfer History</label><div id="ed-history"></div></div>';
 
     /* v29 · 校外补习 */
-    h += '<div class="form-row"><label>Outside tuition 校外补习</label><div id="ed-outside"></div>';
+    h += '<div class="form-row"><label>Outside tuition</label><div id="ed-outside"></div>';
     h += '<button class="btn btn-sm" onclick="window.addOutside()"' + (isNew ? ' disabled title="Save the student first"' : '') + '>+ Add outside tuition</button>';
-    h += '<div style="font-size:10px;color:var(--hint);padding:4px 0">出席系统只读这里。停掉请按 End（填结束日），不要删。</div></div>';
+    h += '<div style="font-size:10px;color:var(--hint);padding:4px 0">AttendanceGo reads this. To stop, press End (enter the last day) — do not delete.</div></div>';
 
     h += '<div class="form-row"><label>Notes</label><input class="input" id="ed-notes" value="' + esc(buf.notes || '') + '"></div>';
     return h;
@@ -1727,27 +1734,27 @@ window.openStudent = function(id) {
     live.forEach(r => {
       const i = buf.outside.indexOf(r);
       h += '<div class="membership-row" style="flex-wrap:wrap">';
-      h += '<input type="text" placeholder="Place 机构" style="width:130px" value="' + esc(r.provider || '') + '" oninput="window.updateOutside(' + i + ',\'provider\',this.value)">';
+      h += '<input type="text" placeholder="Place" style="width:130px" value="' + esc(r.provider || '') + '" oninput="window.updateOutside(' + i + ',\'provider\',this.value)">';
       h += '<select onchange="window.updateOutside(' + i + ',\'subject\',this.value)" style="width:140px">';
       OUTSIDE_SUBJECTS.forEach(o => { h += '<option value="' + o.v + '"' + (r.subject === o.v ? ' selected' : '') + '>' + esc(o.l) + '</option>'; });
       h += '</select>';
       if (r.subject === 'OTHER') {
-        h += '<input type="text" placeholder="which subject 哪一科" style="width:120px" value="' + esc(r.subject_note || '') + '" oninput="window.updateOutside(' + i + ',\'subject_note\',this.value)">';
+        h += '<input type="text" placeholder="Which subject" style="width:120px" value="' + esc(r.subject_note || '') + '" oninput="window.updateOutside(' + i + ',\'subject_note\',this.value)">';
       }
       h += '<select onchange="window.updateOutside(' + i + ',\'day_of_week\',this.value)" style="width:80px">';
       OUTSIDE_DAYS.forEach(o => { h += '<option value="' + o.v + '"' + (Number(r.day_of_week) === o.v ? ' selected' : '') + '>' + esc(o.l) + '</option>'; });
       h += '</select>';
-      h += '<input type="time" style="width:100px" value="' + esc((r.from_time || '').slice(0,5)) + '" title="From 几点开始" oninput="window.updateOutside(' + i + ',\'from_time\',this.value)">';
-      h += '<input type="time" style="width:100px" value="' + esc((r.to_time || '').slice(0,5)) + '" title="To 几点结束" oninput="window.updateOutside(' + i + ',\'to_time\',this.value)">';
-      h += '<select onchange="window.updateOutside(' + i + ',\'clash_effect\',this.value)" style="width:150px" title="撞到我们的课时怎样">';
+      h += '<input type="time" style="width:100px" value="' + esc((r.from_time || '').slice(0,5)) + '" title="From" oninput="window.updateOutside(' + i + ',\'from_time\',this.value)">';
+      h += '<input type="time" style="width:100px" value="' + esc((r.to_time || '').slice(0,5)) + '" title="To" oninput="window.updateOutside(' + i + ',\'to_time\',this.value)">';
+      h += '<select onchange="window.updateOutside(' + i + ',\'clash_effect\',this.value)" style="width:150px" title="Effect on our classes">';
       OUTSIDE_EFFECTS.forEach(o => { h += '<option value="' + o.v + '"' + ((r.clash_effect || 'none') === o.v ? ' selected' : '') + '>' + esc(o.l) + '</option>'; });
       h += '</select>';
-      h += '<input type="text" placeholder="Note 备注" style="width:120px" value="' + esc(r.note || '') + '" oninput="window.updateOutside(' + i + ',\'note\',this.value)">';
+      h += '<input type="text" placeholder="Note" style="width:120px" value="' + esc(r.note || '') + '" oninput="window.updateOutside(' + i + ',\'note\',this.value)">';
       h += '<button class="btn btn-sm btn-dng" onclick="window.endOutside(' + i + ')" title="Stopped going — keeps the record">End</button>';
       h += '</div>';
     });
     if (done.length) {
-      h += '<div style="font-size:10px;color:var(--hint);padding:6px 0 2px">Ended 已结束</div>';
+      h += '<div style="font-size:10px;color:var(--hint);padding:6px 0 2px">Ended</div>';
       done.forEach(r => {
         h += '<div style="font-size:10px;padding:3px 0;border-bottom:.5px solid var(--bdr)">'
            + '<span style="color:var(--mut)">■ ' + esc(r.end_date) + '</span> · '
@@ -1767,7 +1774,7 @@ window.openStudent = function(id) {
     if (field === 'subject') renderOutside();
   };
   window.addOutside = function() {
-    if (isNew) { toast('Save the student first 先存学生再加校外补习', 2500); return; }
+    if (isNew) { toast('Save the student first, then add outside tuition', 2500); return; }
     buf.outside = buf.outside || [];
     buf.outside.push({ id: null, student_id: buf.id, provider: '', subject: 'MATH', subject_note: '',
                        day_of_week: 1, from_time: null, to_time: null, start_date: _today(),
@@ -1778,14 +1785,14 @@ window.openStudent = function(id) {
     const r = (buf.outside || [])[idx];
     if (!r) return;
     if (r.id == null) { buf.outside.splice(idx, 1); renderOutside(); return; }  // 还没存过的，直接拿掉
-    const d = prompt('停止去这个补习班的最後一天（YYYY-MM-DD）：', _today());
+    const d = prompt('Last day at this outside tuition (YYYY-MM-DD):', _today());
     if (d === null) return;
     const dd = (d || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dd)) { toast('Please use YYYY-MM-DD', 2500); return; }
     if (r.start_date && dd < r.start_date) { toast('End date cannot be before the start date (' + r.start_date + ')', 3500); return; }
     r.end_date = dd;
     renderOutside();
-    toast('Ended ' + dd + ' — record kept（会自动存）', 3000);
+    toast('Ended ' + dd + ' — record kept (saves automatically)', 3000);
   };
   
   function renderMemberships() {
@@ -1891,7 +1898,7 @@ window.openStudent = function(id) {
     buf.memberships_history.push(JSON.parse(JSON.stringify(m)));
     buf.memberships.splice(idx, 1);
     renderMemberships(); renderHistory();
-    toast('Class ended ' + dd + ' — record kept（会自动存）', 3000);
+    toast('Class ended ' + dd + ' — record kept (saves automatically)', 3000);
   };
   window.addMembership = function() {
     buf.memberships.push({ dept: 'SRK', class: S.classes.SRK[0] || '', num: null, start_date: _today(), end_date: null });
@@ -1901,7 +1908,7 @@ window.openStudent = function(id) {
   window.cancelTransfer = function(idx) {
     const m = buf.memberships[idx];
     if (!m || !m.end_date) return;
-    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('先把这个补好：' + _stInvalid) : '正在自动存，请一秒后再按', 3000); return; }
+    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('Please fix this first: ' + _stInvalid) : 'Saving… try again in a second', 3000); return; }
     const dept = m.dept, oldClass = m.class, endDate = m.end_date;
     if (!confirm('Cancel the transfer scheduled on ' + endDate + '?\n\n' + dept + ' ' + oldClass + ' will stay as the current class.')) return;
     (async function() {
@@ -1931,8 +1938,8 @@ window.openStudent = function(id) {
   window.openTransfer = function(idx) {
     const m = buf.memberships[idx];
     if (!m) return;
-    if (isNew) { toast('先填好英文名字，学生建立后才能转班', 2500); return; }
-    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('先把这个补好：' + _stInvalid) : '正在自动存，请一秒后再按', 3000); return; }
+    if (isNew) { toast('Enter the English name first — you can transfer after the student is created', 2500); return; }
+    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('Please fix this first: ' + _stInvalid) : 'Saving… try again in a second', 3000); return; }
     const dept = m.dept, oldClass = m.class, oldNum = (m.num != null ? m.num : null), oldStart = m.start_date || null;
     const opts = getClasses(dept).filter(c => c !== oldClass);
     if (!opts.length) { toast('No other ' + dept + ' classes available', 2500); return; }
@@ -1969,10 +1976,10 @@ window.openStudent = function(id) {
           .eq('student_id', s.id).eq('dept', dept).eq('class_code', newClass).is('end_date', null);
         if (dupChk && dupChk.length) {
           this.disabled = false; this.textContent = 'Transfer';
-          alert('无法转班：' + s.name + ' 已经在 ' + dept + ' ' + clsName(dept, newClass) + ' 了'
-              + '（座号 ' + (dupChk[0].num == null ? '无' : dupChk[0].num)
-              + '，自 ' + dupChk[0].start_date + ' 起）。\n\n'
-              + '若只是要结束 ' + clsName(dept, oldClass) + '，请直接在班籍列表把它设 end date，不要用转班。');
+          alert('Cannot transfer: ' + s.name + ' is already in ' + dept + ' ' + clsName(dept, newClass)
+              + ' (no. ' + (dupChk[0].num == null ? '—' : dupChk[0].num)
+              + ', since ' + dupChk[0].start_date + ').\n\n'
+              + 'To just stop ' + clsName(dept, oldClass) + ', press "End class" on that row instead of Transfer.');
           return;
         }
         const { error: e1 } = await _sb.from('hub_student_memberships')
@@ -2013,7 +2020,7 @@ window.openStudent = function(id) {
      现在：选离开类型 → 填最后一天 → 所有生效班籍在那天结束 → 状态跟着改。 */
   window.openLeave = function() {
     if (isNew) { toast('Save the student first', 2500); return; }
-    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('先把这个补好：' + _stInvalid) : '正在自动存，请一秒后再按', 3000); return; }
+    if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('Please fix this first: ' + _stInvalid) : 'Saving… try again in a second', 3000); return; }
     const live = (buf.memberships || []).filter(m => !m.end_date);
     const lov = document.createElement('div');
     lov.className = 'modal-bg'; lov.style.zIndex = '1001';
@@ -2069,7 +2076,7 @@ window.openStudent = function(id) {
   const _footLeft = isNew ? '' :
     '<button class="btn btn-sm" style="color:#A32D2D;border-color:#A32D2D;margin-right:auto" onclick="window.openLeave()">Student leaving</button>' +
     '<button class="btn btn-sm" style="color:var(--mut);margin-right:8px" onclick="window.archiveStudent(\'' + esc(buf.id) + '\')">' + (buf.status === 'Archived' ? 'Restore' : 'Archive') + '</button>';
-  overlay.innerHTML = '<div class="modal"><div class="modal-hdr"><div class="modal-title">' + (isNew ? 'New Student' : 'Student — ' + esc(buf.name) + (buf.name_cn ? ' ' + esc(buf.name_cn) : '')) + '</div><button class="x-btn" id="modal-close-x">×</button></div><div class="modal-body">' + modalBody() + '</div><div class="modal-foot">' + _footLeft + '<span id="st-af-hint" style="font-size:12px;font-weight:600;color:#2D6A4F;align-self:center;margin-right:8px">✓ 改了就自动存进云端，不用按按钮</span><button class="btn btn-pri" id="modal-cancel">Close</button></div></div>';
+  overlay.innerHTML = '<div class="modal"><div class="modal-hdr"><div class="modal-title">' + (isNew ? 'New Student' : 'Student — ' + esc(buf.name) + (buf.name_cn ? ' ' + esc(buf.name_cn) : '')) + '</div><button class="x-btn" id="modal-close-x">×</button></div><div class="modal-body">' + modalBody() + '</div><div class="modal-foot">' + _footLeft + '<span id="st-af-hint" style="font-size:12px;font-weight:600;color:#2D6A4F;align-self:center;margin-right:8px">✓ Changes save to the cloud automatically</span><button class="btn btn-pri" id="modal-cancel">Close</button></div></div>';
   document.body.appendChild(overlay);
   renderMemberships();
   renderHistory();
@@ -2085,7 +2092,7 @@ window.openStudent = function(id) {
   function _stHint(msg, warn) {
     const el = document.getElementById('st-af-hint'); if (!el) return;
     if (msg) { el.textContent = '⚠ ' + msg; el.style.color = warn ? '#854F0B' : '#c0392b'; }
-    else { el.textContent = '✓ 改了就自动存进云端，不用按按钮'; el.style.color = '#2D6A4F'; }
+    else { el.textContent = '✓ Changes save to the cloud automatically'; el.style.color = '#2D6A4F'; }
   }
   function _stQueue(ms) { clearTimeout(_stTimer); _stTimer = setTimeout(_stRun, ms == null ? 1000 : ms); }
   async function _stRun() {
@@ -2119,15 +2126,15 @@ window.openStudent = function(id) {
   async function commitStudent() {
     if (!document.body.contains(overlay)) return;
     _stRead();
-    if (!buf.name) { _stInvalid = '还没填英文名字'; _stHint(_stInvalid); return; }
+    if (!buf.name) { _stInvalid = 'English name is missing'; _stHint(_stInvalid); return; }
     const otRows = (buf.outside || []);
     const badOt = otRows.find(r => (!r.end_date || r.end_date >= _today())
                     && r.from_time && r.to_time && r.to_time <= r.from_time);
-    if (badOt) { _stInvalid = '校外补习：结束时间要比开始时间晚'; _stHint(_stInvalid); return; }
+    if (badOt) { _stInvalid = 'Outside tuition: end time must be after start time'; _stHint(_stInvalid); return; }
     _stInvalid = '';
     const clash = seatClashes(buf.id, buf.memberships);
     const sig = JSON.stringify(buf);
-    if (sig === _stLast) { clash.length ? _stHint('座号跟 ' + clash.join('、') + ' 撞了，请确认', true) : _stHint(''); return; }
+    if (sig === _stLast) { clash.length ? _stHint('Same seat number as ' + clash.join(', ') + ' — please check', true) : _stHint(''); return; }
     const _outBuf = JSON.parse(JSON.stringify(otRows));
     const stu = JSON.parse(sig); delete stu.outside;   /* 校外补习不跟着学生 blob 一起写 */
     if (isNew) { S.students.push(stu); isNew = false; }
@@ -2138,24 +2145,24 @@ window.openStudent = function(id) {
     window._stuAuto = true;
     let ok = false;
     try { ok = await saveAll(); } finally { window._stuAuto = false; }
-    if (!ok) { _stHint('没有存进云端，看顶部红色横幅'); return; }
+    if (!ok) { _stHint('Not saved to the cloud — see the red banner at the top'); return; }
     if (_outBuf.length || (OUTSIDE[buf.id] || []).length) {
       try { await saveOutsideRows(buf.id, _outBuf); }
       catch (e) {
         const msg = (e && (e.message || e.details)) ? (e.message || e.details) : String(e);
-        _saveBanner('校外补习 — ' + msg);
-        _stHint('校外补习没存进云端：' + msg);
+        _saveBanner('Outside tuition — ' + msg);
+        _stHint('Outside tuition not saved: ' + msg);
         return;
       }
     }
     _stLast = sig;
     const t = overlay.querySelector('.modal-title'); if (t) t.textContent = 'Student — ' + buf.name + (buf.name_cn ? ' ' + buf.name_cn : '');
-    clash.length ? _stHint('座号跟 ' + clash.join('、') + ' 撞了，请确认', true) : _stHint('');
+    clash.length ? _stHint('Same seat number as ' + clash.join(', ') + ' — please check', true) : _stHint('');
   }
   async function closeModal() {
     await _stFlush();
     if (_stTouched && _stInvalid) {
-      if (!confirm('这位学生还没存：' + _stInvalid + '\n\n现在关掉就不会存。确定关掉？')) return;
+      if (!confirm('This student is not saved yet: ' + _stInvalid + '\n\nIf you close now it will not be saved. Close anyway?')) return;
     }
     clearTimeout(_stTimer); _stTimer = null;
     overlay.remove();
@@ -2268,7 +2275,7 @@ window.openAddClass = function() {
   h += '</select></div>';
   h += '<div class="form-row"><label>Class Name</label><input class="input" id="ac-name" placeholder="e.g. SRK-SR.4"></div>';
   h += '<div id="ac-hint" style="font-size:11px;color:var(--mut);line-height:1.5;background:var(--sur2);padding:8px 10px;border-radius:6px;margin-top:-6px"></div>';
-  h += '<div id="ac-error" style="color:var(--red);font-size:11px;margin-top:8px;display:none"></div>';
+  h += '<div id="ac-error" style="color:var(--danger);font-size:11px;margin-top:8px;display:none"></div>';
   h += '</div>';
   h += '<div class="modal-ftr"><button class="btn" onclick="this.closest(\'.modal-bd\').remove()">Cancel</button>';
   h += '<button class="btn btn-pri" id="ac-save">Add</button></div>';
@@ -2305,10 +2312,10 @@ window.openAddClass = function() {
        旧版要求 SRK-SR.4 / GAK-SR.4 / ATC-7 / SRT-LV5.SAT.PM，
        但资料库里实际是 SRK_SR_4 / GAK-GAK_SR_4 / ATC_A7 / SRT-SRT_LV5_SAT_PM。
        照旧版打出来的班名，平台其他系统一个都认不得。 */
-    if (dept === 'SRK' && !/^SRK_[A-Z]+_\d+$/i.test(name) && name !== 'SRK_RSVP') { valid = false; msg = '格式：SRK_XX_N（例：SRK_SR_4）'; }
-    if (dept === 'GAK' && !/^GAK-GAK_[A-Z]+_\d+$/i.test(name)) { valid = false; msg = '格式：GAK-GAK_XX_N（例：GAK-GAK_SR_4）'; }
-    if (dept === 'ATC' && !/^ATC_A\d+$/i.test(name)) { valid = false; msg = '格式：ATC_AN（例：ATC_A7）'; }
-    if (dept === 'SRT' && !/^SRT-SRT_LV\d+_(FRI_PM|SAT_AM|SAT_NN|SAT_PM)$/i.test(name)) { valid = false; msg = '格式：SRT-SRT_LVn_TIME（例：SRT-SRT_LV5_SAT_PM）'; }
+    if (dept === 'SRK' && !/^SRK_[A-Z]+_\d+$/i.test(name) && name !== 'SRK_RSVP') { valid = false; msg = 'Format: SRK_XX_N (e.g. SRK_SR_4)'; }
+    if (dept === 'GAK' && !/^GAK-GAK_[A-Z]+_\d+$/i.test(name)) { valid = false; msg = 'Format: GAK-GAK_XX_N (e.g. GAK-GAK_SR_4)'; }
+    if (dept === 'ATC' && !/^ATC_A\d+$/i.test(name)) { valid = false; msg = 'Format: ATC_AN (e.g. ATC_A7)'; }
+    if (dept === 'SRT' && !/^SRT-SRT_LV\d+_(FRI_PM|SAT_AM|SAT_NN|SAT_PM)$/i.test(name)) { valid = false; msg = 'Format: SRT-SRT_LVn_TIME (e.g. SRT-SRT_LV5_SAT_PM)'; }
     if (!valid) { err.textContent = msg; err.style.display = 'block'; return; }
 
     if (!S.classes[dept]) S.classes[dept] = [];
@@ -2375,7 +2382,7 @@ function renderImportExport() {
     safeSet('importexport-content', h);
   } catch (e) {
     console.error('ImportExport render error', e);
-    safeSet('importexport-content', '<div class="card" style="color:var(--red)">Render error: ' + esc(e.message) + '</div>');
+    safeSet('importexport-content', '<div class="card" style="color:var(--danger)">Render error: ' + esc(e.message) + '</div>');
   }
 }
 
@@ -3111,12 +3118,12 @@ async function initApp(){
        只会让情况更糟，而且使用者会以为那是修复动作。 */
     document.body.innerHTML =
       '<div style="max-width:520px;margin:60px auto;padding:28px;font-family:system-ui;line-height:1.7">'
-      + '<h2 style="margin:0 0 12px">读不到资料</h2>'
-      + '<p style="margin:0 0 6px"><b>没有任何资料被改动。</b>现有的学生与班籍资料都还在云端，完好无缺。</p>'
-      + '<p style="color:#666;margin:0 0 18px">原因：' + esc(e.message) + '</p>'
-      + '<button onclick="location.reload()" style="padding:10px 18px;font-size:15px">重新整理</button>'
-      + '<p style="color:#666;font-size:13px;margin-top:18px">重新整理两三次还是这样，请截图找管理层。'
-      + '<br>不要清浏览器资料，那不会修好这个问题。</p></div>';
+      + '<h2 style="margin:0 0 12px">Could not load data</h2>'
+      + '<p style="margin:0 0 6px"><b>Nothing was changed.</b> All student and class records are safe in the cloud.</p>'
+      + '<p style="color:#666;margin:0 0 18px">Reason: ' + esc(e.message) + '</p>'
+      + '<button onclick="location.reload()" style="padding:10px 18px;font-size:15px">Reload</button>'
+      + '<p style="color:#666;font-size:13px;margin-top:18px">If it still fails after two or three reloads, screenshot this for management.'
+      + '<br>Do not clear browser data — that will not fix it.</p></div>';
   }
 }
 
@@ -3131,7 +3138,7 @@ window.addEventListener('beforeunload', (ev) => {
   try{
     if(localStorage.getItem(PENDING_KEY) === '1' || UNSYNCED){
       ev.preventDefault();
-      ev.returnValue = '有资料还没存进云端。离开前请先 Export 备份。';
+      ev.returnValue = 'Some changes are not saved to the cloud yet. Please Export a backup before leaving.';
       return ev.returnValue;
     }
   }catch(e){}
