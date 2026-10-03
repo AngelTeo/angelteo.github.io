@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v35</title>
+<title>MasterHub — Student v36</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 35;
+const APP_VERSION = 36;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -1972,7 +1972,8 @@ window.openStudent = function(id) {
           h += '<option value="' + d + '"' + (m.dept===d ? ' selected':'') + '>' + d + '</option>';
         });
         h += '</select>';
-        h += '<select onchange="window.updateMembership(' + idx + ',\'class\',this.value)" style="width:130px">';
+        h += '<select onchange="window.updateMembership(' + idx + ',\'class\',this.value)" style="width:130px' + (m.class ? '' : ';border-color:var(--danger)') + '">';
+        if (!m.class) h += '<option value="" selected>— choose class —</option>';   /* v36 · Reg New 先选班才存 */
         getClasses(m.dept).forEach(c => {
           const disp = clsName(m.dept, c);
           h += '<option value="' + esc(c) + '"' + (m.class===c ? ' selected':'') + '>' + esc(disp) + '</option>';
@@ -2061,13 +2062,21 @@ window.openStudent = function(id) {
       const oldDept = buf.memberships[idx].dept;
       buf.memberships[idx].dept = val;
       if (getClasses(val).indexOf(buf.memberships[idx].class) < 0) {
-        buf.memberships[idx].class = getClasses(val)[0] || '';
+        buf.memberships[idx].class = '';   /* v36 · 换部门 → 要重新选班，不自动塞第一班 */
       }
       if (val === 'GAK' && !buf.memberships[idx].tier) buf.memberships[idx].tier = '530';
       if (val !== 'GAK') delete buf.memberships[idx].tier;
       renderMemberships();
     } else if (field === 'class') {
-      buf.memberships[idx].class = val;
+      const mm = buf.memberships[idx];
+      mm.class = val;
+      /* v36 · Reg New 选好班 → 系统自动给下一个空座号（那班本来就不编号的，例如 GAK，就不给） */
+      if (val && _newRows.has(mm)) {
+        const roster = getClassRoster(mm.dept, val).filter(r => r.student.id !== buf.id);
+        const used = seatsInClass(mm.dept, val, buf.id);
+        mm.num = (roster.length && !used.length) ? null : nextFreeNum(mm.dept, val, buf.id);
+      }
+      renderMemberships();
     } else if (field === 'tier') {
       buf.memberships[idx].tier = val;
     }
@@ -2180,7 +2189,7 @@ window.openStudent = function(id) {
     }
   }
   window.addMembership = function() {
-    const nm = { dept: 'SRK', class: S.classes.SRK[0] || '', num: null, start_date: _today(), end_date: null };
+    const nm = { dept: 'SRK', class: '', num: null, start_date: _today(), end_date: null };   /* v36 · 先空白，选好班才存 */
     buf.memberships.push(nm);
     _newRows.set(nm, { key: null, ids: [] });
     renderMemberships();
@@ -2429,6 +2438,7 @@ window.openStudent = function(id) {
     const badOt = otRows.find(r => (!r.end_date || r.end_date >= _today())
                     && r.from_time && r.to_time && r.to_time <= r.from_time);
     if (badOt) { _stInvalid = 'Outside tuition: end time must be after start time'; _stHint(_stInvalid); return; }
+    if ((buf.memberships || []).some(m => !m.class)) { _stInvalid = 'Choose the class for the new row (or press End class to remove it)'; _stHint(_stInvalid, true); return; }   /* v36 */
     _stInvalid = '';
     const clash = seatClashes(buf.id, buf.memberships);
     const sig = JSON.stringify(buf);
