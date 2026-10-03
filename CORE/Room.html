@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MasterHub — Room v16</title>
+<title>MasterHub — Room v17</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -114,6 +114,25 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 .fp-marker .mk-x{font-size:9px;color:var(--danger);cursor:pointer;opacity:0;transition:opacity .15s;background:var(--sur);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;border:.5px solid var(--bdr)}
 .fp-marker:hover .mk-x{opacity:1}
 .fp-overlay{position:absolute;inset:0;cursor:crosshair;z-index:5}
+/* v17 · 设备 */
+.fp-marker .mk-c{font-size:8px;font-weight:700;background:#fff;border:1px solid #bbb;border-radius:3px;padding:0 3px;line-height:12px;color:#1a1a1a;white-space:nowrap}
+.fp-marker.exp .mk-c{background:#A32D2D;color:#fff;border-color:#A32D2D}
+.fp-marker.soon .mk-c{background:#F5C451;border-color:#C9A227}
+.fac-h{font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.fac-pills{display:flex;flex-wrap:wrap;gap:4px}
+.fac-pills button{border:.5px solid var(--bdr);background:var(--sur);border-radius:12px;padding:3px 9px;font-size:10px;cursor:pointer;font-family:inherit}
+.fac-pills button.on{background:var(--layer);color:#fff;border-color:var(--layer)}
+.fac-list{max-height:260px;overflow:auto;font-size:11px}
+.fac-list .r{display:flex;gap:6px;align-items:center;padding:4px 2px;border-bottom:.5px solid var(--bdr);cursor:pointer}
+.fac-list .r:hover{background:var(--sur2)}
+.fac-list .r b{min-width:54px}.fac-list .r span{flex:1;color:var(--mut)}
+.fac-list .t-exp{color:#A32D2D;font-weight:700}.fac-list .t-soon{color:#854F0B;font-weight:700}
+.fac-print{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.fac-print button{padding:7px 4px;border-radius:6px;border:.5px solid var(--bdr);background:var(--sur);font-size:11px;cursor:pointer;font-family:inherit}
+.fac-print button:hover{background:var(--sur2)}
+.fac-ptable{display:none}
+.fac-ed label{display:block;font-size:11px;font-weight:600;margin:10px 0 4px}
+.fac-ed input,.fac-ed textarea{width:100%;padding:8px;border:.5px solid var(--bdr);border-radius:6px;font-family:inherit;font-size:13px;box-sizing:border-box}
 .fp-wrap.mk-adding{border-color:var(--layer);border-style:dashed}
 
 /* ══ RESPONSIVE ══ */
@@ -155,6 +174,11 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
   .print-ftr{display:block!important;font-size:8pt;color:#888;text-align:center;margin-top:4mm}
   .fp-wrap{padding-bottom:0!important;height:160mm!important;border:none!important;background:#f0eeea!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .card{box-shadow:none;border:.5px solid #ccc}
+  .fp-marker .mk-x{display:none!important}
+  .fac-ptable.on{display:block!important;break-before:page;page-break-before:always}
+  .fac-ptable table{width:100%;border-collapse:collapse;font-size:10pt}
+  .fac-ptable th,.fac-ptable td{border:.5px solid #999;padding:3px 6px;text-align:left}
+  .fac-ptable .exp{color:#A32D2D;font-weight:700}
 }
 </style>
 </head>
@@ -189,7 +213,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══ NAV ══ -->
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home">←</button>
-  <div class="nav-logo">MasterHub — Room <span class="ver">v16</span></div>
+  <div class="nav-logo">MasterHub — Room <span class="ver">v17</span></div>
   <button class="ntab on" onclick="goPage('floorplan')">Floor Plan</button>
   <button class="ntab" onclick="goPage('facility')">Facility</button>
   <button class="ntab" onclick="goPage('list')">All Rooms</button>
@@ -259,22 +283,30 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
         <button class="fp-tab" onclick="setFacilityFloor('2F',this)">2nd Floor</button>
       </div>
       <div class="fp-wrap" id="facility-fp"></div>
-      <div class="no-print" style="margin-top:6px;font-size:10px;color:var(--mut);text-align:center">Click to place markers. Drag to move. × to remove.</div>
-    </div>
-    <div style="width:180px;flex-shrink:0" class="no-print">
+          </div>
+    <div style="width:250px;flex-shrink:0" class="no-print">
+      <div id="fac-legacy"></div>
       <div class="card" style="padding:12px">
-        <div style="font-size:9px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Add Marker</div>
-        <button class="marker-btn" id="mk-btn-fire" onclick="mkStartAdd('fire')">🧯 Fire Ext</button>
+        <div class="fac-h">Add</div>
+        <button class="marker-btn" id="mk-btn-fire" onclick="mkStartAdd('fire')">🧯 Fire Extinguisher</button>
         <button class="marker-btn" id="mk-btn-cctv" onclick="mkStartAdd('cctv')">📷 CCTV</button>
         <button class="marker-btn" id="mk-btn-whiteboard" onclick="mkStartAdd('whiteboard')">⬜ Whiteboard</button>
-        <button onclick="mkClearAll()" style="display:block;width:100%;margin-top:10px;padding:5px;border-radius:5px;border:.5px solid var(--bdr);background:none;font-size:10px;color:var(--danger);cursor:pointer;font-family:inherit">🗑 Clear Floor</button>
-        <div style="margin-top:12px;border-top:.5px solid var(--bdr);padding-top:8px">
-          <div style="font-size:9px;font-weight:600;color:var(--mut);margin-bottom:5px">Legend</div>
-          <div style="font-size:10px;line-height:2">🧯 Fire Ext<br>📷 CCTV<br>⬜ Whiteboard</div>
+        <div class="fac-h" style="margin-top:12px">Show</div>
+        <div class="fac-pills" id="fac-show"></div>
+        <div class="fac-h" style="margin-top:12px">On this floor</div>
+        <div id="fac-list" class="fac-list"></div>
+        <div class="fac-h" style="margin-top:12px">Print this floor</div>
+        <div class="fac-print">
+          <button onclick="facPrint('none')">⬜ Blank</button>
+          <button onclick="facPrint('fire')">🧯 Fire Ext</button>
+          <button onclick="facPrint('cctv')">📷 CCTV</button>
+          <button onclick="facPrint('whiteboard')">⬜ Whiteboard</button>
         </div>
+        <div style="font-size:10px;color:var(--mut);margin-top:10px;line-height:1.5">Click the plan to place · drag to move · tap a marker to edit its number / expiry.</div>
       </div>
     </div>
   </div>
+  <div class="fac-ptable" id="fac-ptable"></div>
   <div class="print-ftr">MasterHub — Room · <span class="print-date"></span></div>
 </div>
 
@@ -286,7 +318,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
       <div>System: <b>MasterHub — Room</b></div>
       <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:3px;font-size:11px">masterhub_room_v11</code></div>
       <div>Records: <b id="manage-count">—</b></div>
-      <div>Version: <span class="ver">v16</span></div>
+      <div>Version: <span class="ver">v17</span></div>
     </div>
   </div>
   <div style="margin-top:40px;text-align:center">
@@ -318,7 +350,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 const STORAGE_KEY = 'masterhub_room_v11';
 const MARKERS_KEY = 'masterhub_room_markers';
 
@@ -607,7 +639,7 @@ function goPage(p) {
   if (map[p] !== undefined) document.querySelectorAll('.ntab')[map[p]].classList.add('on');
   document.getElementById('nav-print').style.display=(p==='floorplan'||p==='facility')?'':'none';
   if (p==='floorplan') renderFP('clean-fp', UI.cleanFloor, false);
-  if (p==='facility') renderFP('facility-fp', UI.fpFloor, true);
+  if (p==='facility') renderFacility();
   if (p==='list') renderList();
   if (p==='manage') renderManage();
 }
@@ -625,7 +657,7 @@ function setFacilityFloor(f, el) {
   el.parentElement.querySelectorAll('.fp-tab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
   document.getElementById('facility-print-hdr').textContent='MasterHub — Room · Facility · '+(f==='1F'?'1st Floor':'2nd Floor');
-  renderFP('facility-fp', f, true);
+  renderFacility();
 }
 
 // ══ FLOOR PLAN ══
@@ -741,14 +773,16 @@ function renderFP(containerId, floor, showMarkers) {
     else { html += simple ? fpSimpleCard(r) : fpRoomCard(r); }
   });
 
-  // Markers (only on Facility page)
+  // Markers (only on Facility page) — v17：编号标签、过期颜色、按种类显示
   if (showMarkers) {
-    const mks = (S.markers[floor] || []);
+    const show = UI.facShow || 'all';
+    const mks = (S.markers[floor] || []).filter(m => show === 'all' || m.type === show);
     html += mks.map(m => {
       const t = MARKER_TYPES[m.type] || MARKER_TYPES.fire;
-      return `<div class="fp-marker" style="left:${m.x}%;top:${m.y}%"
+      const st = facExpiry(m);
+      return `<div class="fp-marker ${st}" style="left:${m.x}%;top:${m.y}%" title="${esc(facTitle(m))}"
         onmousedown="mkDragStart(event,'${m.id}')" ontouchstart="mkTouchStart(event,'${m.id}')">
-        ${t.icon}<span class="mk-x" onclick="mkRemove('${m.id}');event.stopPropagation()">×</span>
+        ${t.icon}${m.code ? `<span class="mk-c">${esc(m.code)}</span>` : ''}
       </div>`;
     }).join('');
     if (mkAddMode) {
@@ -975,7 +1009,7 @@ const Store = {
       const parsed = JSON.parse(v);
       const rooms = parsed.rooms ?? [];
       // Save markers to localStorage separately
-      if (parsed.markers) localStorage.setItem(MARKERS_KEY, JSON.stringify(parsed.markers));
+      /* v17 · 设备改存云端 room_facility；本机旧资料只读不写（留着给「上传」用） */
       if (rooms.length === 0) return { ok:true };
       const rows = rooms.map(r => ({
         id: r.id, floor: r.floor, capacity: r.capacity ?? 0,
@@ -1084,7 +1118,7 @@ document.addEventListener('keydown',async e=>{
 
 // ══ BEFOREUNLOAD (sync fallback only) ══
 window.addEventListener('beforeunload',()=>{
-  try{localStorage.setItem(MARKERS_KEY,JSON.stringify(S.markers||{'1F':[],'2F':[]}));}catch(e){}   /* v12 · 只存平面图标记（本来就只存本机）；教室资料不再存本机 */
+  /* v17 · 设备已改存云端，这里不再写本机 */
 });
 
 // ══ MODAL UNSAVED CHECK ══
@@ -1097,93 +1131,183 @@ async function closeModal(){
 }
 function _hideModal(){ clearTimeout(_afTimer); _afTimer=null; document.getElementById('modal').style.display='none'; editId=null; modalDirty=false; _afTouched=false; }
 
-// ══ MARKERS ══
-function mkGenId(){ return 'mk_'+Date.now().toString(36)+Math.random().toString(36).slice(2,4); }
+// ══ MARKERS（v17 · 03-10-2026 · 存云端 room_facility，一笔一个设备）══
+const FAC_LABEL = { fire:'Fire Extinguisher', cctv:'CCTV', whiteboard:'Whiteboard' };
+const FAC_PREFIX = { fire:'FE', cctv:'CCTV', whiteboard:'WB' };
+let FAC_OK = false;
+function mkGenId(){ return 'fac_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function _todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function facExpiry(m){
+  if (m.type !== 'fire' || !m.expiry_date) return '';
+  const t = _todayISO(); if (m.expiry_date < t) return 'exp';
+  const d = new Date(t+'T12:00:00'); d.setDate(d.getDate()+30);
+  const soon = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return m.expiry_date <= soon ? 'soon' : '';
+}
+function facFmt(d){ if(!d) return ''; return new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function facTitle(m){ return FAC_LABEL[m.type]+(m.code?' '+m.code:'')+(m.expiry_date?' · expires '+facFmt(m.expiry_date):'')+(m.note?' · '+m.note:''); }
+function facNextCode(type){
+  const p = FAC_PREFIX[type]; let n = 0;
+  ['1F','2F'].forEach(f => (S.markers[f]||[]).forEach(m => { if (m.type===type){ const k = parseInt(String(m.code||'').replace(/\D/g,''),10); if (k>n) n=k; } }));
+  return p+'-'+String(n+1).padStart(2,'0');
+}
+async function facLoad(){
+  try{
+    const { data, error } = await _sb.from('room_facility').select('*').eq('status','active');
+    if (error) throw error;
+    S.markers = {'1F':[],'2F':[]};
+    (data||[]).forEach(r => { (S.markers[r.floor] = S.markers[r.floor]||[]).push({ id:r.id, type:r.type, x:+r.x, y:+r.y, code:r.code||'', expiry_date:r.expiry_date||'', note:r.note||'' }); });
+    FAC_OK = true;
+  }catch(e){ FAC_OK = false; console.warn('[设备] 读不到云端：', e.message); S.markers = {'1F':[],'2F':[]}; }
+  facLegacyCheck();
+}
+async function facSave(m, floor){
+  if (!FAC_OK) { toast('✕ 没有读到云端设备资料，不能保存'); return false; }
+  const { data:{ session } } = await _sb.auth.getSession();
+  const row = { id:m.id, floor, type:m.type, x:+(+m.x).toFixed(2), y:+(+m.y).toFixed(2), code:m.code||null,
+    expiry_date:(m.type==='fire'&&m.expiry_date)?m.expiry_date:null, note:m.note||null, status:'active',
+    updated_at:new Date().toISOString(), updated_by:(session&&session.user&&session.user.email)||null };
+  const { error } = await _sb.from('room_facility').upsert(row, { onConflict:'id' });
+  if (error) { toast('✕ Not saved — '+error.message, 5000); return false; }
+  toast('✓ Saved'); return true;
+}
+async function facArchive(id){   /* 删除 = 作废（status archived），资料不真的删 */
+  const { error } = await _sb.from('room_facility').update({ status:'archived', updated_at:new Date().toISOString() }).eq('id', id);
+  if (error) { toast('✕ Not removed — '+error.message, 5000); return false; }
+  return true;
+}
+/* 以前的设备只存在某一台电脑的浏览器里 —— 云端是空的、这台电脑有旧资料，就给一个「上传」按钮 */
+function facLegacyCheck(){
+  const box = document.getElementById('fac-legacy'); if (!box) return;
+  let old = null; try { old = JSON.parse(localStorage.getItem(MARKERS_KEY)||'null'); } catch(e){}
+  const n = old ? ((old['1F']||[]).length + (old['2F']||[]).length) : 0;
+  const done = localStorage.getItem(MARKERS_KEY+'_uploaded') === '1';
+  const cloudN = (S.markers['1F']||[]).length + (S.markers['2F']||[]).length;
+  if (!FAC_OK || !n || done) { box.innerHTML=''; return; }
+  box.innerHTML = '<div class="card" style="padding:10px;border-color:#C9A227;background:#FFF8E1;font-size:11px;line-height:1.5">This computer has <b>'+n+'</b> marker'+(n>1?'s':'')+' saved only in this browser.'+(cloudN?' The cloud already has '+cloudN+'.':'')+'<br><button onclick="facLegacyUpload()" style="margin-top:6px;padding:5px 10px;border-radius:6px;border:none;background:var(--layer);color:#fff;font-size:11px;cursor:pointer">Upload to cloud</button></div>';
+}
+async function facLegacyUpload(){
+  let old = null; try { old = JSON.parse(localStorage.getItem(MARKERS_KEY)||'null'); } catch(e){}
+  if (!old) return;
+  for (const f of ['1F','2F']) for (const m of (old[f]||[])) {
+    if (!FAC_LABEL[m.type]) continue;
+    const nm = { id:mkGenId(), type:m.type, x:m.x, y:m.y, code:facNextCode(m.type), expiry_date:'', note:'' };
+    if (await facSave(nm, f)) (S.markers[f]=S.markers[f]||[]).push(nm); else return;
+  }
+  localStorage.setItem(MARKERS_KEY+'_uploaded','1'); facLegacyCheck(); renderFacility(); toast('✓ Uploaded — please fill in the numbers / expiry dates');
+}
+
+function renderFacility(){
+  renderFP('facility-fp', UI.fpFloor, true);
+  const show = UI.facShow || 'all';
+  const sh = document.getElementById('fac-show');
+  if (sh) sh.innerHTML = [['all','All'],['fire','🧯'],['cctv','📷'],['whiteboard','⬜']].map(([k,l]) => '<button class="'+(show===k?'on':'')+'" onclick="UI.facShow=\''+k+'\';renderFacility()">'+l+'</button>').join('');
+  const li = document.getElementById('fac-list'); if (!li) return;
+  const ms = (S.markers[UI.fpFloor]||[]).filter(m => show==='all' || m.type===show)
+    .sort((a,b) => a.type.localeCompare(b.type) || String(a.code).localeCompare(String(b.code), undefined, {numeric:true}));
+  li.innerHTML = ms.length ? ms.map(m => { const st = facExpiry(m);
+    return '<div class="r" onclick="facEdit(\''+m.id+'\')">'+MARKER_TYPES[m.type].icon+'<b>'+esc(m.code||'—')+'</b><span>'+esc(m.note||'')+'</span>'+
+      (m.type==='fire' ? '<small class="'+(st==='exp'?'t-exp':st==='soon'?'t-soon':'')+'">'+(m.expiry_date?(st==='exp'?'Expired ':'')+facFmt(m.expiry_date):'No expiry')+'</small>' : '')+'</div>'; }).join('')
+    : '<div style="color:var(--mut);padding:6px 0">None yet</div>';
+}
+
+function facEdit(id, isNew){
+  const m = (S.markers[UI.fpFloor]||[]).find(x => x.id === id); if (!m) return;
+  const ov = document.createElement('div'); ov.className = 'modal-bg'; ov.id = 'fac-ov';
+  ov.innerHTML = '<div class="modal" style="width:380px"><div class="modal-hdr"><span class="modal-title">'+MARKER_TYPES[m.type].icon+' '+FAC_LABEL[m.type]+' · '+UI.fpFloor+'</span><button class="btn" onclick="facEditClose()" style="border:none;background:none;font-size:18px;cursor:pointer">×</button></div>'+
+    '<div class="modal-body fac-ed"><label>Number</label><input id="fe-code" value="'+esc(m.code||'')+'" placeholder="'+facNextCode(m.type)+'">'+
+    (m.type==='fire' ? '<label>Expiry date</label><input id="fe-exp" type="date" value="'+esc(m.expiry_date||'')+'">' : '')+
+    '<label>Note (optional)</label><input id="fe-note" value="'+esc(m.note||'')+'" placeholder="e.g. beside Reception door"></div>'+
+    '<div class="modal-foot" style="justify-content:space-between"><button onclick="facRemove(\''+m.id+'\')" style="padding:7px 12px;border-radius:6px;border:.5px solid var(--danger);background:none;color:var(--danger);cursor:pointer;font-family:inherit">Remove</button>'+
+    '<span><button onclick="facEditClose()" style="padding:7px 12px;border-radius:6px;border:.5px solid var(--bdr);background:none;cursor:pointer;font-family:inherit;margin-right:6px">Cancel</button><button onclick="facEditSave(\''+m.id+'\')" style="padding:7px 14px;border-radius:6px;border:none;background:var(--layer);color:#fff;cursor:pointer;font-family:inherit">Save</button></span></div></div>';
+  ov.addEventListener('click', e => { if (e.target === ov) facEditClose(); });
+  document.body.appendChild(ov);
+  setTimeout(() => { const i = document.getElementById('fe-code'); if (i) { i.focus(); i.select(); } }, 30);
+}
+function facEditClose(){ const o = document.getElementById('fac-ov'); if (o) o.remove(); }
+async function facEditSave(id){
+  const m = (S.markers[UI.fpFloor]||[]).find(x => x.id === id); if (!m) return;
+  const prev = Object.assign({}, m);
+  m.code = (document.getElementById('fe-code').value||'').trim() || facNextCode(m.type);
+  const ex = document.getElementById('fe-exp'); if (ex) m.expiry_date = ex.value || '';
+  m.note = (document.getElementById('fe-note').value||'').trim();
+  if (!(await facSave(m, UI.fpFloor))) { Object.assign(m, prev); return; }
+  facEditClose(); renderFacility();
+}
+async function facRemove(id){
+  if (!confirm('Remove this marker?')) return;
+  if (!(await facArchive(id))) return;
+  S.markers[UI.fpFloor] = (S.markers[UI.fpFloor]||[]).filter(m => m.id !== id);
+  facEditClose(); renderFacility(); toast('✓ Removed');
+}
 
 function mkStartAdd(type){
   mkAddMode=type;
   document.querySelectorAll('.marker-btn').forEach(b=>b.classList.remove('mk-active'));
   const btn=document.getElementById('mk-btn-'+type);
   if(btn)btn.classList.add('mk-active');
-  renderFP('facility-fp',UI.fpFloor,true);
+  renderFacility();
 }
-
 function mkCancelAdd(){
   mkAddMode=null;
   document.querySelectorAll('.marker-btn').forEach(b=>b.classList.remove('mk-active'));
   const el=document.getElementById('facility-fp');
   if(el)el.classList.remove('mk-adding');
-  renderFP('facility-fp',UI.fpFloor,true);
+  if(document.getElementById('page-facility').classList.contains('on')) renderFacility();
 }
-
 async function mkCanvasClick(e){
   if(!mkAddMode)return;
   const rect=e.currentTarget.parentElement.getBoundingClientRect();
-  const x=((e.clientX-rect.left)/rect.width*100).toFixed(1);
-  const y=((e.clientY-rect.top)/rect.height*100).toFixed(1);
-  if(!S.markers[UI.fpFloor])S.markers[UI.fpFloor]=[];
-  S.markers[UI.fpFloor].push({id:mkGenId(),type:mkAddMode,x:parseFloat(x),y:parseFloat(y)});
-  await saveData();mkCancelAdd();
+  const x=+((e.clientX-rect.left)/rect.width*100).toFixed(1);
+  const y=+((e.clientY-rect.top)/rect.height*100).toFixed(1);
+  const m={id:mkGenId(),type:mkAddMode,x,y,code:facNextCode(mkAddMode),expiry_date:'',note:''};
+  if(!(await facSave(m, UI.fpFloor))) return;
+  (S.markers[UI.fpFloor]=S.markers[UI.fpFloor]||[]).push(m);
+  mkCancelAdd(); facEdit(m.id, true);
 }
-
-async function mkRemove(id){
-  if(!S.markers[UI.fpFloor])return;
-  S.markers[UI.fpFloor]=S.markers[UI.fpFloor].filter(m=>m.id!==id);
-  await saveData();renderFP('facility-fp',UI.fpFloor,true);
-}
-
-async function mkClearAll(){
-  if(!confirm('Clear all markers on this floor?'))return;
-  S.markers[UI.fpFloor]=[];
-  await saveData();renderFP('facility-fp',UI.fpFloor,true);toast('✓ Markers cleared');
-}
-
-function mkDragStart(e,id){
-  e.preventDefault();
+/* 拖：动了才存；没动（只是点一下）= 打开编辑 */
+function _mkBegin(id,cx,cy){
   const rect=document.getElementById('facility-fp').getBoundingClientRect();
-  const mk=(S.markers[UI.fpFloor]||[]).find(m=>m.id===id);
-  if(!mk)return;
-  mkDragging={id,startX:e.clientX,startY:e.clientY,origX:mk.x,origY:mk.y,rect};
-  document.onmousemove=mkDragMove;
-  document.onmouseup=mkDragEnd;
+  const mk=(S.markers[UI.fpFloor]||[]).find(m=>m.id===id); if(!mk) return false;
+  mkDragging={id,startX:cx,startY:cy,origX:mk.x,origY:mk.y,rect,moved:false}; return true;
 }
-
-function mkDragMove(e){
+function _mkMove(cx,cy){
   if(!mkDragging)return;
-  const dx=(e.clientX-mkDragging.startX)/mkDragging.rect.width*100;
-  const dy=(e.clientY-mkDragging.startY)/mkDragging.rect.height*100;
-  const mk=(S.markers[UI.fpFloor]||[]).find(m=>m.id===mkDragging.id);
-  if(!mk)return;
-  mk.x=Math.max(0,Math.min(98,mkDragging.origX+dx));
-  mk.y=Math.max(0,Math.min(98,mkDragging.origY+dy));
+  const dx=(cx-mkDragging.startX)/mkDragging.rect.width*100, dy=(cy-mkDragging.startY)/mkDragging.rect.height*100;
+  if(Math.abs(dx)+Math.abs(dy)>0.6) mkDragging.moved=true;
+  if(!mkDragging.moved) return;
+  const mk=(S.markers[UI.fpFloor]||[]).find(m=>m.id===mkDragging.id); if(!mk)return;
+  mk.x=+Math.max(0,Math.min(98,mkDragging.origX+dx)).toFixed(1); mk.y=+Math.max(0,Math.min(98,mkDragging.origY+dy)).toFixed(1);
   renderFP('facility-fp',UI.fpFloor,true);
 }
-
-async function mkDragEnd(){
-  if(mkDragging){await saveData();mkDragging=null;}
-  document.onmousemove=null;document.onmouseup=null;
+async function _mkEnd(){
+  const d=mkDragging; mkDragging=null; if(!d) return;
+  const mk=(S.markers[UI.fpFloor]||[]).find(m=>m.id===d.id); if(!mk) return;
+  if(d.moved){ if(!(await facSave(mk, UI.fpFloor))){ mk.x=d.origX; mk.y=d.origY; renderFacility(); } }
+  else facEdit(d.id);
 }
+function mkDragStart(e,id){ e.preventDefault(); if(!_mkBegin(id,e.clientX,e.clientY)) return;
+  document.onmousemove=ev=>_mkMove(ev.clientX,ev.clientY);
+  document.onmouseup=async()=>{ document.onmousemove=null; document.onmouseup=null; await _mkEnd(); }; }
+function mkTouchStart(e,id){ e.preventDefault(); const t=e.touches[0]; if(!_mkBegin(id,t.clientX,t.clientY)) return;
+  document.ontouchmove=ev=>{ ev.preventDefault(); const q=ev.touches[0]; _mkMove(q.clientX,q.clientY); };
+  document.ontouchend=async()=>{ document.ontouchmove=null; document.ontouchend=null; await _mkEnd(); }; }
 
-function mkTouchStart(e,id){
-  e.preventDefault();
-  const touch=e.touches[0];
-  const rect=document.getElementById('facility-fp').getBoundingClientRect();
-  const mk=(S.markers[UI.fpFloor]||[]).find(m=>m.id===id);
-  if(!mk)return;
-  mkDragging={id,startX:touch.clientX,startY:touch.clientY,origX:mk.x,origY:mk.y,rect};
-  document.ontouchmove=function(ev){
-    ev.preventDefault();
-    const t=ev.touches[0];
-    const dx=(t.clientX-mkDragging.startX)/mkDragging.rect.width*100;
-    const dy=(t.clientY-mkDragging.startY)/mkDragging.rect.height*100;
-    const m=(S.markers[UI.fpFloor]||[]).find(m=>m.id===mkDragging.id);
-    if(m){m.x=Math.max(0,Math.min(98,mkDragging.origX+dx));m.y=Math.max(0,Math.min(98,mkDragging.origY+dy));}
-    renderFP('facility-fp',UI.fpFloor,true);
-  };
-  document.ontouchend=async function(){
-    if(mkDragging){await saveData();mkDragging=null;}
-    document.ontouchmove=null;document.ontouchend=null;
-  };
+/* 印：空白 / 只有灭火器 / 只有 CCTV / 只有白板 —— 这一层楼，第二页附清单 */
+function facPrint(type){
+  const keep = UI.facShow; UI.facShow = type === 'none' ? '__none__' : type;
+  const fl = UI.fpFloor === '1F' ? '1st Floor' : '2nd Floor';
+  const title = type === 'none' ? 'Floor Plan' : (type==='fire'?'Fire Extinguishers':type==='cctv'?'CCTV':'Whiteboards');
+  document.getElementById('facility-print-hdr').textContent = 'Academee · '+title+' · '+fl;
+  renderFP('facility-fp', UI.fpFloor, true);
+  const pt = document.getElementById('fac-ptable');
+  const ms = type === 'none' ? [] : (S.markers[UI.fpFloor]||[]).filter(m => m.type === type).sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true}));
+  pt.className = 'fac-ptable'+(ms.length?' on':'');
+  pt.innerHTML = ms.length ? '<div class="print-hdr" style="display:block">'+title+' · '+fl+' · '+ms.length+' item'+(ms.length>1?'s':'')+'</div><table><tr><th>No.</th>'+(type==='fire'?'<th>Expiry</th><th>Status</th>':'')+'<th>Note</th></tr>'+
+    ms.map(m => { const st = facExpiry(m); return '<tr><td>'+esc(m.code||'')+'</td>'+(type==='fire'?'<td>'+facFmt(m.expiry_date)+'</td><td class="'+(st==='exp'?'exp':'')+'">'+(st==='exp'?'EXPIRED':st==='soon'?'Expires within 30 days':m.expiry_date?'OK':'—')+'</td>':'')+'<td>'+esc(m.note||'')+'</td></tr>'; }).join('')+'</table>' : '';
+  const restore = () => { UI.facShow = keep; document.getElementById('facility-print-hdr').textContent='MasterHub — Room · Facility · '+fl; pt.className='fac-ptable'; renderFacility(); window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  doPrint();
 }
 
 // ══ PRINT ══
@@ -1243,6 +1367,7 @@ async function initApp() {
   document.getElementById('loading-screen').style.display = 'flex';
   try { await loadData(); }
   catch(e){ document.getElementById('loading-screen').style.display = 'none'; showLoadFail(); return; }
+  await facLoad();   /* v17 · 设备（灭火器 / CCTV / 白板）从云端读 */
   document.getElementById('loading-screen').style.display = 'none';
   renderFP('clean-fp', UI.cleanFloor, false);
   _syncPaint();

@@ -144,7 +144,8 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const LIVE={
   'CORE-MasterAuth':   {href:'CORE/MasterAuth.html',   name:'MasterAuth',   ver:'v10', group:'CORE — Permissions',      color:'#5C1010', order:0},
   // 2026-10-03：Room v15 → v16（平面图位置改读 Room SSOT 的 plan_*）。
-  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v16', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
+  // 2026-10-03：Room v16 → v17（Facility 页：灭火器编号与过期日、CCTV 编号、白板；存云端 room_facility；四种 Print）。
+  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v17', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
   // 2026-09-13：Owner 部署 v26（241,549 B），实抓线上 APP_VERSION = 26。卡片原写 v23 → 已更正。
   // 2026-09-23：v27 → v28（离开流程 · 请假 / 暂停 · 删除改封存 · 存档不覆盖别人 · 结束班级 · 转班自动给空号）。
   // 2026-09-23：v28 → v29（存档失败不再静默：跳讯息＋红色横幅＋视窗不关 · 新增校外补习，存在独立表 hub_student_outside_tuition）。
