@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MasterHub — Room v15</title>
+<title>MasterHub — Room v16</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -189,7 +189,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══ NAV ══ -->
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home">←</button>
-  <div class="nav-logo">MasterHub — Room <span class="ver">v14</span></div>
+  <div class="nav-logo">MasterHub — Room <span class="ver">v16</span></div>
   <button class="ntab on" onclick="goPage('floorplan')">Floor Plan</button>
   <button class="ntab" onclick="goPage('facility')">Facility</button>
   <button class="ntab" onclick="goPage('list')">All Rooms</button>
@@ -286,7 +286,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
       <div>System: <b>MasterHub — Room</b></div>
       <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:3px;font-size:11px">masterhub_room_v11</code></div>
       <div>Records: <b id="manage-count">—</b></div>
-      <div>Version: <span class="ver">v14</span></div>
+      <div>Version: <span class="ver">v16</span></div>
     </div>
   </div>
   <div style="margin-top:40px;text-align:center">
@@ -318,7 +318,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <div class="toast" id="toast"></div>
 
 <script>
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 const STORAGE_KEY = 'masterhub_room_v11';
 const MARKERS_KEY = 'masterhub_room_markers';
 
@@ -700,15 +700,35 @@ function fpSimpleCard(r){
   </div>`;
 }
 
+/* v16 · 02-10-2026 · 平面图位置以 Room SSOT（rooms.plan_*）为准；没填位置的才用下面的内建 FLOOR_PLAN。
+   kind：structure = 灰块（楼梯）· walkway = 走廊（只显示）· room = 教室 */
+function fpPlan(floor){
+  const local = floor === '1F' ? FLOOR_PLAN_1F : FLOOR_PLAN_2F;
+  const db = (S.rooms||[]).filter(r => r.floor === floor && r.status !== 'archived');
+  const has = r => r && r.plan_x != null && r.plan_y != null && r.plan_w != null && r.plan_h != null;
+  const P = r => ({ x:+r.plan_x, y:+r.plan_y, w:+r.plan_w, h:+r.plan_h });
+  const byId = {}; db.forEach(r => byId[r.id] = r);
+  const out = local.map(l => { const d = byId[l.id]; if (!has(d)) return l;
+    if (d.kind === 'structure') return Object.assign({}, l, P(d), { grey:true });
+    return Object.assign({}, l, P(d)); });
+  const seen = new Set(local.map(l => l.id));
+  db.filter(r => !seen.has(r.id) && has(r)).forEach(r => {
+    if (r.kind === 'structure') out.push(Object.assign({ id:r.id, grey:true }, P(r)));
+    else if (r.kind === 'walkway') out.push(Object.assign({ id:r.id, noSlot:true }, P(r)));
+    else out.push(Object.assign({ id:r.id }, P(r)));
+  });
+  return out;
+}
 function renderFP(containerId, floor, showMarkers) {
   const el = document.getElementById(containerId);
-  const plan = floor === '1F' ? FLOOR_PLAN_1F : FLOOR_PLAN_2F;
+  const plan = fpPlan(floor);
   const simple = containerId === 'facility-fp';
 
   // Section dividers
   let html = '';
   if (floor === '1F') {
-    html += '<div style="position:absolute;left:49%;top:0;width:3px;height:100%;background:#333"></div>';
+    const hb = plan.find(r=>r.id==='1 Hall B');
+    html += '<div style="position:absolute;left:'+(hb?Math.max(0,hb.x-1):49)+'%;top:0;width:3px;height:100%;background:#333"></div>';
   } else {
     html += '<div style="position:absolute;left:39%;top:0;width:2px;height:100%;background:#555"></div>';
     html += '<div style="position:absolute;left:69%;top:0;width:2px;height:100%;background:#555"></div>';
@@ -933,7 +953,9 @@ const Store = {
       if (error) throw error;
       const rooms = (data ?? []).map(r => ({
         id: r.id, floor: r.floor, capacity: r.capacity ?? 0,
-        status: r.status ?? 'active', updatedAt: r.updated_at ?? new Date().toISOString()
+        status: r.status ?? 'active', updatedAt: r.updated_at ?? new Date().toISOString(),
+        /* v16 · 平面图位置与种类（只读显示；储存时不写回，不会被这页盖掉） */
+        kind: r.kind || 'room', plan_x: r.plan_x, plan_y: r.plan_y, plan_w: r.plan_w, plan_h: r.plan_h
       }));
       // markers stay in localStorage
       let markers = {'1F':[],'2F':[]};

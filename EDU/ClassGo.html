@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ClassGo System v482</title>
+<title>ClassGo System v483</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>'>
 <style>
 :root{
@@ -436,7 +436,7 @@ input.fi:focus,select.fi:focus{outline:none;border-color:var(--acc)}
 <div id="offline-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#FDF3E0;border-top:1px solid #E8C88A;color:#854F0B;font-size:11px;padding:7px 16px;text-align:center;font-weight:600"></div>
 
 <div class="nav">
-  <div class="nav-logo"><a href="../index.html" title="Back to Platform Home" style="color:inherit;text-decoration:none;margin-right:8px;opacity:.75" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">←</a>ClassGo <span style="font-size:10px;font-weight:400;opacity:.5">v482</span></div>
+  <div class="nav-logo"><a href="../index.html" title="Back to Platform Home" style="color:inherit;text-decoration:none;margin-right:8px;opacity:.75" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">←</a>ClassGo <span style="font-size:10px;font-weight:400;opacity:.5">v483</span></div>
   <button class="ntab on" onclick="goSection('today',this)">🏠 Today</button>
   <button class="ntab" onclick="goSection('schedules',this)">📅 Schedules</button>
   <button class="ntab" onclick="goSection('duty',this)">📋 Duty</button>
@@ -873,7 +873,7 @@ input.fi:focus,select.fi:focus{outline:none;border-color:var(--acc)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const APP_VERSION='v482';
+const APP_VERSION='v483';
 
 // ═══ v445 A 阶段: 合并登入 + role 上云 ═══════════════════════════════════════
 // 已用 pg_proc 查证 (2026-07-14):
@@ -1699,14 +1699,17 @@ let _cloudRoomIds = null;   // null = not loaded yet → fall back to FLOOR_PLAN
 async function _fetchRoomsFromCloud(){
   if(!P45_CLOUD_ROOMS) return;
   try{
-    const{data,error}=await _sb.from('rooms').select('id,floor,status,capacity').order('floor').order('id');
+    /* v483 · 02-10-2026 · 平面图位置也从 Room SSOT 读（plan_*）；kind 分 room / walkway / structure */
+    const{data,error}=await _sb.from('rooms').select('id,floor,status,capacity,kind,plan_x,plan_y,plan_w,plan_h').order('floor').order('id');
     if(error||!data||!data.length){console.warn('[P4.5] Rooms fetch failed, keeping local.',error);return;}
     const active=data.filter(r=>(r.status||'active')==='active');
     // capacity > 0 = teaching room (schedulable). capacity 0 = stairs / office /
     // reception / private room → rendered as a plain block, no drag slots.
+    const _row=r=>({id:r.id, kind:r.kind||'room', teach:(r.kind||'room')==='room'&&(r.capacity||0)>0,
+      p:(r.plan_x!=null&&r.plan_y!=null&&r.plan_w!=null&&r.plan_h!=null)?{x:+r.plan_x,y:+r.plan_y,w:+r.plan_w,h:+r.plan_h}:null});
     _cloudRoomIds={
-      '1F': active.filter(r=>r.floor==='1F').map(r=>({id:r.id, teach:(r.capacity||0)>0})),
-      '2F': active.filter(r=>r.floor==='2F').map(r=>({id:r.id, teach:(r.capacity||0)>0}))
+      '1F': active.filter(r=>r.floor==='1F').map(_row),
+      '2F': active.filter(r=>r.floor==='2F').map(_row)
     };
     console.log('[P4.5] Rooms loaded from Room master:',active.length);
     try{ if(document.getElementById('page-classrooms')?.classList.contains('on')){ renderFloorPlan(); renderRoomPool(); } }catch(e){}
@@ -1719,20 +1722,23 @@ function _floorRooms(floor, localPlan){
   const byId={}; localPlan.forEach(r=>{ byId[r.id]=r; });
   const out=[];
   let nx=2, ny=2;
-  rows.forEach(({id, teach})=>{
+  /* v483 · 位置以 Room SSOT 的 plan_* 为准；SSOT 没填位置才用本机 FLOOR_PLAN */
+  rows.forEach(({id, teach, kind, p})=>{
     const local=byId[id];
-    if(local){
-      // Master decides schedulability; ClassGo keeps the position.
-      out.push(teach ? local : {...local, noSlot:true});
-      return;
-    }
+    if(kind==='structure'){ const g=p?{id,...p}:local; if(g) out.push({...g,id,grey:true}); return; }   // 楼梯等：灰块
+    if(kind==='walkway'){ if(p) out.push({id,...p,noSlot:true,walk:true}); return; }                   // 走廊：只显示，不能排课
+    const base=p?{...(local||{}),id,...p}:local;
+    if(base){ out.push(teach ? base : {...base, noSlot:true}); return; }
     out.push({id, x:nx, y:ny, w:14, h:10, noSlot:true});  // new in master → default box
     nx+=15; if(nx>80){ nx=2; ny+=11; }
   });
-  // Grey structural blocks in the local plan (dividers etc.) are not master rooms — keep them.
-  localPlan.filter(r=>r.grey).forEach(r=>out.push(r));
+  // Grey structural blocks in the local plan that the master does not have yet — keep them.
+  const cloudIds=new Set(rows.map(r=>r.id));
+  localPlan.filter(r=>r.grey && !cloudIds.has(r.id)).forEach(r=>out.push(r));
   return out;
 }
+/* v483 · 1 楼 A/B 分界线跟着 1 Hall B 的位置走 */
+function _divider1F(){ const r=(_floorRooms('1F',FLOOR_PLAN_1F)||[]).find(x=>x.id==='1 Hall B'); return r?Math.max(0,r.x-1):49; }
 
 // == P1: Read Teachers from Supabase ==
 // Mapping layer: master stores BARE subject codes ('ENG','BM'); ClassGo needs
@@ -8000,7 +8006,7 @@ function renderFloorPlan(){
     h=`<div style="position:relative;width:100%;padding-bottom:74%;background:#f0eeea;border-radius:8px;overflow:hidden;border:1px solid #ccc">
       <!-- Section labels -->
       <!-- Main divider -->
-      <div style="position:absolute;left:49%;top:0;width:3px;height:100%;background:#333"></div>`;
+      <div style="position:absolute;left:${_divider1F()}%;top:0;width:3px;height:100%;background:#333"></div>`;
     // Render all rooms from FLOOR_PLAN + any assigned rooms not in FLOOR_PLAN
     const _plan1f=_floorRooms('1F',FLOOR_PLAN_1F);
     const fp1fIds=new Set(_plan1f.map(r=>r.id));
@@ -11715,7 +11721,7 @@ function setActFloor(fl,btn){
 function renderActFloorPlan(){
   const wrap=document.getElementById('act-floor-plan');
   if(!wrap)return;
-  const plan=actFloorTab==='1F'?FLOOR_PLAN_1F:FLOOR_PLAN_2F;
+  const plan=actFloorTab==='1F'?_floorRooms('1F',FLOOR_PLAN_1F):_floorRooms('2F',FLOOR_PLAN_2F);   // v483 · 同一份 SSOT 位置
   const type=S.actType||'sports';
 
   // Build a lookup: roomId → assignedKey and its display info

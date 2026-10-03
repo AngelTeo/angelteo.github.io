@@ -143,7 +143,8 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 //    2026-09-13 下午：NoticeGo-Holiday 与 MiscGo 都已补上 APP_VERSION，18 张卡全部可被程式核实。
 const LIVE={
   'CORE-MasterAuth':   {href:'CORE/MasterAuth.html',   name:'MasterAuth',   ver:'v10', group:'CORE — Permissions',      color:'#5C1010', order:0},
-  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v15', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
+  // 2026-10-03：Room v15 → v16（平面图位置改读 Room SSOT 的 plan_*）。
+  'CORE-Room':         {href:'CORE/Room.html',     name:'Room',         ver:'v16', group:'MasterHub — Master Data', color:'#E8A04E', order:1},
   // 2026-09-13：Owner 部署 v26（241,549 B），实抓线上 APP_VERSION = 26。卡片原写 v23 → 已更正。
   // 2026-09-23：v27 → v28（离开流程 · 请假 / 暂停 · 删除改封存 · 存档不覆盖别人 · 结束班级 · 转班自动给空号）。
   // 2026-09-23：v28 → v29（存档失败不再静默：跳讯息＋红色横幅＋视窗不关 · 新增校外补习，存在独立表 hub_student_outside_tuition）。
@@ -161,7 +162,8 @@ const LIVE={
   'OPR-NoticeGo-Holiday': {href:'OPR/NoticeGo-Holiday.html', name:'NoticeGo-Holiday', ver:'v38', group:'OPR — Operations',    color:'#8B6C2A', order:8},
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
-  'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v482', group:'EDU — Education',         color:'#236FAD', order:7},
+  // 2026-10-03：ClassGo v482 → v483（平面图位置改读 Room SSOT；走廊只显示、楼梯灰块）。
+  'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v483', group:'EDU — Education',         color:'#236FAD', order:7},
   // ── EDU-TrainGo · 老师入职训练 —— 2026-09-26 恢复上架 ──
   //    档名永远是 EDU/TrainGo.html，后面不加版本号 —— 换版只覆盖同一个档，这四行的 href 不必再动。
   //    版本号在档案里（topbar 显示），这里的 ver 只是首页卡片上的标示，换版时手动跟一下即可。
