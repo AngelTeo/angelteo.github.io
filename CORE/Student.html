@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v34</title>
+<title>MasterHub — Student v35</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 34;
+const APP_VERSION = 35;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -463,11 +463,86 @@ const STATUS_OPTIONS = [
 /* v28 · 离开的四种类型（Owner 09-22 定）。Paused = 请假/暂停，保留学位，班籍不结束。
    Archived = 封存（取代永久删除）。 */
 const LEAVE_TYPES = [
-  { value: 'Stopped',     label: 'Withdrawn / stopped coming' },
-  { value: 'Transferred', label: 'Moved to another centre' },
-  { value: 'Graduated',   label: 'Finished / graduated' },
-  { value: 'Moved',       label: 'Moved up to another department' },
+  { value: 'Stopped',     label: 'Stopped — not coming any more' },
+  { value: 'Transferred', label: 'Transferred — to another Smart Reader Kids' },
+  { value: 'Graduated',   label: 'Graduated — finished' },
 ];
+/* ═══ v35 · 学生状态规则（Owner 2026-10-03 定稿）═══
+   人工只改「课程那一行」：Enrolled / Paused（从哪天，回来日可空）/ Ended＋原因。
+   学生总状态由课程自动算（资料库 hub_student_recalc 同一套算法，每天 00:05 自动跑）。
+   end_date = 第一天「不在」这一班（全平台同一规矩）。画面问「最后一天」，存时 +1 天。 */
+const END_REASONS = [
+  { value: 'Changed Class', label: 'Changed Class — same dept, e.g. SR1 → SR2' },
+  { value: 'Up Level',      label: 'Up Level — e.g. LV3 → LV4' },
+  { value: 'Stopped',       label: 'Stopped — not taking this class any more' },
+  { value: 'Graduated',     label: 'Graduated — finished this class' },
+  { value: 'Transferred',   label: 'Transferred — to another Smart Reader Kids' },
+];
+function endReasonLabel(r){ const x = END_REASONS.find(o => o.value === r); return x ? x.value : (r || ''); }
+function addDays(ds, n){ const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function isPausedOn(m, t){ return !!(m && m.pause_from && m.pause_from <= t && (!m.pause_to || m.pause_to > t)); }
+/* 课程那一行今天的状态（跟资料库每天跑的规则一样） */
+function memStatusOf(m, t){
+  t = t || _today();
+  if (m.end_date && m.end_date <= t) return 'Ended';
+  if (isPausedOn(m, t)) return 'Paused';
+  return 'Enrolled';
+}
+function _isRsvpCls(m){ return /RSVP/i.test(String(m && m.class || '')); }
+/* 学生总状态（跟 hub_student_recalc 同一套）。pick = 行政手动选的 RSVP / Registered */
+function deriveStudentStatus(s, pick){
+  const t = _today();
+  const cur = pick || s.status || 'Active';
+  if (cur === 'Archived' || cur === 'Transferred') return cur;
+  const all = [].concat(s.memberships || [], s.memberships_history || []).filter(m => !_isRsvpCls(m));
+  if (!all.length) return cur;
+  const now = all.filter(m => (!m.start_date || m.start_date <= t) && (!m.end_date || m.end_date > t));
+  if (now.some(m => !isPausedOn(m, t))) return 'Active';
+  if (now.length) return 'Paused';
+  if (all.some(m => m.start_date && m.start_date > t)) return (cur === 'RSVP' || cur === 'Registered') ? cur : 'Registered';
+  const last = all.slice().sort((a, b) => String(b.end_date || '').localeCompare(String(a.end_date || '')))[0];
+  return (last && ['Stopped','Graduated','Transferred'].indexOf(last.end_reason) >= 0) ? last.end_reason : 'Stopped';
+}
+/* 部门页看的状态：只看这个部门的课 */
+function deptStatusOf(s, dept){
+  if (s.status === 'Archived' || s.status === 'Transferred') return s.status;
+  const t = _today();
+  const now = (s.memberships || []).filter(m => m.dept === dept && !_isRsvpCls(m));
+  if (!now.length) return s.status;
+  return now.some(m => !isPausedOn(m, t)) ? 'Active' : 'Paused';
+}
+function pausedTip(s, dept){
+  const t = _today();
+  const m = (s.memberships || []).find(x => (!dept || x.dept === dept) && isPausedOn(x, t));
+  return m ? ('Paused from ' + m.pause_from + (m.pause_to ? ' · back on ' + m.pause_to : ' · return date not set')) : '';
+}
+/* 每个动作留一笔（hub_student_event，只加不改）。失败不挡操作，但要看得见。 */
+async function logEvents(rows){
+  if (!rows || !rows.length) return [];
+  try {
+    const { data, error } = await _sb.from('hub_student_event').insert(rows).select('id');
+    if (error) throw error;
+    return data || [];
+  } catch (e) {
+    console.warn('[event log] 写不进 hub_student_event', e);
+    toast('⚠ Saved, but the history log failed: ' + (e.message || e), 5000);
+    return [];
+  }
+}
+async function voidEvents(ids){
+  ids = (ids || []).filter(Boolean); if (!ids.length) return;
+  try { const { error } = await _sb.from('hub_student_event').update({ status: 'voided' }).in('id', ids); if (error) throw error; }
+  catch (e) { console.warn('[event log] 作废失败', e); }
+}
+async function recalcStudent(id){
+  try {
+    const { data, error } = await _sb.rpc('hub_student_recalc_checked', { p_student_id: id });
+    if (error) throw error;
+    const s = (S.students || []).find(x => x.id === id);
+    if (s && data && s.status !== data) s.status = data;
+    return data;
+  } catch (e) { console.warn('[recalc] ', e); return null; }
+}
 const INACTIVE_STATUSES = ['Transferred','Stopped','Graduated','Moved','Archived'];
 function isInactiveStatus(st){ return INACTIVE_STATUSES.indexOf(st) >= 0; }
 
@@ -1239,7 +1314,7 @@ function renderDeptPage(dept) {
     var term = (S.ui.deptSearch || '').toLowerCase().trim();
     var DEPT_COLORS = {'SRK':'var(--d-srk)','GAK':'var(--d-gak)','ATC':'var(--d-atc)','SRT':'var(--d-srt)'};
     var deptStudents = getStudentsByDept(dept);
-    var activeInDept = deptStudents.filter(function(s) { return s.status === 'Active'; }).length;
+    var activeInDept = deptStudents.filter(function(s) { return deptStatusOf(s, dept) === 'Active'; }).length;   /* v35 · 部门状态 */
     var classList = getClasses(dept);
 
     var h = '';
@@ -1288,7 +1363,7 @@ function renderDeptPage(dept) {
     // Status row
     h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
     h += '<span style="font-size:11px;font-weight:500;min-width:60px;color:var(--txt)">STATUS</span>';
-    var statuses = [['all','All'],['Active','Active'],['RSVP','RSVP'],['Registered','Registered'],['Paused','Paused'],['Transferred','Transferred'],['Stopped','Stopped'],['Graduated','Graduated'],['Moved','Moved'],['Archived','Archived']];
+    var statuses = [['all','All'],['Active','Active'],['RSVP','RSVP'],['Registered','Registered'],['Paused','Paused'],['Transferred','Transferred'],['Stopped','Stopped'],['Graduated','Graduated'],['Archived','Archived']];
     statuses.forEach(function(st) { h += '<span class="dept-tag' + (fs===st[0] ? ' on' : '') + '" onclick="window.setFilterStatus(\'' + st[0] + '\')">' + st[1] + '</span>'; });
     h += '</div>';
 
@@ -1391,7 +1466,7 @@ function renderDeptAllTable(dept, term) {
   var fs = S.ui.filterStatus || 'all';
   if (fg !== 'all') students = students.filter(function(s) { return s.gender === fg; });
   if (fa !== 'all') students = students.filter(function(s) { return getAge(s.birth_year) == fa; });
-  if (fs !== 'all') students = students.filter(function(s) { return s.status === fs; });
+  if (fs !== 'all') students = students.filter(function(s) { return deptStatusOf(s, dept) === fs; });
   students.sort(function(a, b) { return a.name.localeCompare(b.name); });
   if (students.length === 0) return '<div class="empty">No students found</div>';
   var h = '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:28px"><col style="width:25%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:22%"><col style="width:15%"></colgroup>';
@@ -1409,11 +1484,24 @@ function renderDeptAllTable(dept, term) {
     h += '<td style="color:var(--mut)">' + (getAge(s.birth_year) != null ? getAge(s.birth_year) : '—') + '</td>';
     h += '<td>' + classChip + '</td>';
     h += '<td>' + crossChips + '</td>';
-    h += '<td>' + renderStatusBadge(s.status) + '</td>';
+    h += '<td title="' + esc(pausedTip(s, dept)) + '">' + renderStatusBadge(deptStatusOf(s, dept)) + '</td>';
     h += '</tr>';
   });
   h += '</tbody></table></div>';
   return h;
+}
+
+/* v35 · 班级画面那一行的状态：看「这一班」那一行课程 */
+function rowStatusOf(s, m){
+  if (s.status === 'Archived' || s.status === 'Transferred') return s.status;
+  return isPausedOn(m, _today()) ? 'Paused' : 'Active';
+}
+function rowStatusCell(s, m){
+  var t = _today(), note = '';
+  if (isPausedOn(m, t)) note = m.pause_to ? 'back ' + m.pause_to : 'no return date';
+  else if (m.pause_from && m.pause_from > t) note = 'pause from ' + m.pause_from;
+  if (m.end_date) note = (note ? note + ' · ' : '') + 'last day ' + addDays(m.end_date, -1) + (m.end_reason ? ' · ' + m.end_reason : '');
+  return renderStatusBadge(rowStatusOf(s, m)) + (note ? '<div style="font-size:9px;color:var(--warn);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(note) + '">' + esc(note) + '</div>' : '');
 }
 
 function renderDeptClassTable(dept, cls, term) {
@@ -1431,28 +1519,114 @@ function renderDeptClassTable(dept, cls, term) {
   var fs = S.ui.filterStatus || 'all';
   if (fg !== 'all') roster = roster.filter(function(r) { return r.student.gender === fg; });
   if (fa !== 'all') roster = roster.filter(function(r) { return getAge(r.student.birth_year) == fa; });
-  if (fs !== 'all') roster = roster.filter(function(r) { return r.student.status === fs; });
+  if (fs !== 'all') roster = roster.filter(function(r) { return rowStatusOf(r.student, r.membership) === fs; });
   if (roster.length === 0) return '<div class="empty">No students match filters</div>';
-  var h = '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:28px"><col style="width:24%"><col style="width:14%"><col style="width:10%"><col style="width:10%"><col style="width:27%"><col style="width:15%"></colgroup>';
-  h += '<thead><tr><th>#</th><th>Name</th><th>Chinese name</th><th>Age</th><th>Gender</th><th>Cross-Dept</th><th>Status</th></tr></thead><tbody>';
+  /* v35 · Up Level：整班勾选，一次升到另一班（同一天：旧班结束、新班开始） */
+  var sel = ulSel(dept, cls);
+  var canUl = roster.filter(function(r){ return !r.membership.end_date; });
+  var nSel = canUl.filter(function(r){ return sel.has(r.student.id); }).length;
+  var h = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 8px">';
+  h += '<button class="btn btn-pri" style="font-size:12px;padding:8px 14px"' + (nSel ? '' : ' disabled') + ' onclick="window.openUpLevel(\'' + esc(dept) + '\',\'' + esc(cls) + '\')">⬆ Up Level (' + nSel + ')</button>';
+  h += '<span style="font-size:11px;color:var(--mut)">Tick the students moving up together, then press Up Level.</span></div>';
+  var allOn = canUl.length && nSel === canUl.length;
+  h += '<div style="overflow-x:auto"><table class="data" style="table-layout:fixed"><colgroup><col style="width:34px"><col style="width:28px"><col style="width:24%"><col style="width:13%"><col style="width:8%"><col style="width:9%"><col style="width:24%"><col style="width:18%"></colgroup>';
+  h += '<thead><tr><th><input type="checkbox" style="width:18px;height:18px" ' + (allOn ? 'checked ' : '') + 'onclick="event.stopPropagation();window.ulToggleAll(\'' + esc(dept) + '\',\'' + esc(cls) + '\',this.checked)" title="Select all"></th><th>#</th><th>Name</th><th>Chinese name</th><th>Age</th><th>Gender</th><th>Cross-Dept</th><th>Status</th></tr></thead><tbody>';
   roster.forEach(function(r, i) {
     var s = r.student, m = r.membership;
     var exclKey = m.dept + '/' + m.class;
     var crossChips = renderDeptChips(s.memberships, exclKey) || '<span style="color:var(--mut)">—</span>';
     var genderDisplay = s.gender === 'B' ? '<span style="color:var(--boy)">Boy</span>' : (s.gender === 'G' ? '<span style="color:var(--girl)">Girl</span>' : '—');
     h += '<tr style="cursor:pointer" onclick="openStudent(\'' + s.id + '\')">';
+    h += '<td onclick="event.stopPropagation()">' + (m.end_date ? '' : '<input type="checkbox" style="width:18px;height:18px" ' + (sel.has(s.id) ? 'checked ' : '') + 'onclick="event.stopPropagation();window.ulToggle(\'' + esc(dept) + '\',\'' + esc(cls) + '\',\'' + esc(s.id) + '\',this.checked)">') + '</td>';
     h += '<td style="color:var(--mut)">' + (m.num || (i+1)) + '</td>';
     h += '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">' + esc(s.name) + '</td>';
     h += '<td style="color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s.name_cn || '') + '</td>';
     h += '<td style="color:var(--mut)">' + (getAge(s.birth_year) != null ? getAge(s.birth_year) : '—') + '</td>';
     h += '<td>' + genderDisplay + '</td>';
     h += '<td>' + crossChips + '</td>';
-    h += '<td>' + renderStatusBadge(s.status) + '</td>';
+    h += '<td>' + rowStatusCell(s, m) + '</td>';
     h += '</tr>';
   });
   h += '</tbody></table></div>';
   return h;
 }
+
+/* ═══ v35 · Up Level（整班升班）═══ */
+var _UL = {};   // 'dept|class' → Set(student id)
+function ulSel(dept, cls){ var k = dept + '|' + cls; if (!_UL[k]) _UL[k] = new Set(); return _UL[k]; }
+window.ulToggle = function(dept, cls, id, on){ var s = ulSel(dept, cls); if (on) s.add(id); else s.delete(id); renderDeptPage(S.ui.currentSub); };
+window.ulToggleAll = function(dept, cls, on){
+  var s = ulSel(dept, cls); s.clear();
+  if (on) getClassRoster(dept, cls).forEach(function(r){ if (!r.membership.end_date) s.add(r.student.id); });
+  renderDeptPage(S.ui.currentSub);
+};
+window.openUpLevel = function(dept, cls){
+  var sel = ulSel(dept, cls);
+  var picked = getClassRoster(dept, cls).filter(function(r){ return sel.has(r.student.id) && !r.membership.end_date; });
+  if (!picked.length) { toast('Tick at least one student', 2000); return; }
+  var opts = getClasses(dept).filter(function(c){ return c !== cls && !/RSVP/i.test(c); });
+  if (!opts.length) { toast('No other ' + dept + ' classes', 2500); return; }
+  var ov = document.createElement('div');
+  ov.className = 'modal-bg';
+  var h = '<div class="modal" style="max-width:480px"><div class="modal-hdr"><div class="modal-title">Up Level — ' + esc(clsName(dept, cls)) + '</div><button class="x-btn" onclick="this.closest(\'.modal-bg\').remove()">×</button></div><div class="modal-body">';
+  h += '<div class="form-row"><label>Move up to</label><select class="input" id="ul-to">';
+  opts.forEach(function(c){ h += '<option value="' + esc(c) + '">' + esc(clsName(dept, c)) + '</option>'; });
+  h += '</select></div>';
+  h += '<div class="form-row"><label>First day in the new class</label><input type="date" class="input" id="ul-date" value="' + _today() + '"></div>';
+  h += '<div style="font-size:11px;color:var(--mut);line-height:1.6;background:var(--sur2);padding:8px 10px;border-radius:6px;max-height:180px;overflow:auto"><b>' + picked.length + '</b> student' + (picked.length === 1 ? '' : 's') + ':<br>'
+     + picked.map(function(r){ return '· ' + esc(r.student.name); }).join('<br>') + '</div>';
+  h += '<div style="font-size:10px;color:var(--mut);line-height:1.5;margin-top:8px">' + esc(clsName(dept, cls)) + ' ends the day before; the new class starts on this date (a future date is fine). Each student gets the next free seat number. History is kept.</div>';
+  h += '</div><div class="modal-foot"><button class="btn" onclick="this.closest(\'.modal-bg\').remove()">Cancel</button><button class="btn btn-pri" id="ul-go">Confirm Up Level</button></div></div>';
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+  document.getElementById('ul-go').onclick = async function(){
+    var to = document.getElementById('ul-to').value;
+    var T = (document.getElementById('ul-date').value || '').trim();
+    if (!to || !T) { toast('Choose the class and the date', 2000); return; }
+    var early = picked.find(function(r){ return r.membership.start_date && T <= r.membership.start_date; });
+    if (early) { toast(early.student.name + ' only started ' + esc(clsName(dept, cls)) + ' on ' + early.membership.start_date + ' — choose a later date', 4000); return; }
+    var btn = this; btn.disabled = true; btn.textContent = 'Processing…';
+    var batch = (crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+    var used = seatsInClass(dept, to, null), done = [], skipped = [], failed = [];
+    try {
+      var ids = picked.map(function(r){ return r.student.id; });
+      var dup = await _sb.from('hub_student_memberships').select('student_id').in('student_id', ids).eq('dept', dept).eq('class_code', to).is('end_date', null);
+      if (dup.error) throw dup.error;
+      var already = new Set((dup.data || []).map(function(x){ return x.student_id; }));
+      for (var i = 0; i < picked.length; i++) {
+        var r = picked[i], sid = r.student.id;
+        if (already.has(sid)) { skipped.push(r.student.name); continue; }
+        try {
+          var u = await _sb.from('hub_student_memberships')
+            .update({ end_date: T, end_reason: 'Up Level', status: (T <= _today() ? 'Ended' : 'Enrolled'), pause_from: null, pause_to: null })
+            .eq('student_id', sid).eq('dept', dept).eq('class_code', cls).is('end_date', null).select('id');
+          if (u.error) throw u.error;
+          if (!u.data || !u.data.length) throw new Error('old class row not found');
+          var n = 1; while (used.indexOf(n) >= 0) n++; used.push(n);
+          var ins = { student_id: sid, dept: dept, class_code: to, start_date: T, num: n, status: 'Enrolled' };
+          if (r.membership.tier) ins.tier = r.membership.tier;
+          var iRes = await _sb.from('hub_student_memberships').insert(ins);
+          if (iRes.error) {   /* 新班写不进去 → 把旧班还原，不留半套 */
+            await _sb.from('hub_student_memberships').update({ end_date: null, end_reason: null, status: 'Enrolled' }).eq('id', u.data[0].id);
+            throw iRes.error;
+          }
+          done.push({ student_id: sid, dept: dept, class_code: cls, to_class_code: to, event: 'up_level', reason: 'Up Level', effective_date: T, batch_id: batch });
+        } catch (e1) { failed.push(r.student.name + ' (' + (e1.message || e1) + ')'); }
+      }
+      await logEvents(done);
+      ov.remove();
+      sel.clear();
+      await loadData(); migrateAll(); renderCurrentPage();
+      var msg = 'Up Level done: ' + done.length + ' → ' + clsName(dept, to) + ' from ' + T;
+      if (skipped.length) msg += '\n\nAlready in ' + clsName(dept, to) + ' (skipped): ' + skipped.join(', ');
+      if (failed.length) msg += '\n\nFAILED (nothing changed for these): ' + failed.join('; ') + '\nScreenshot this for Claude.';
+      if (skipped.length || failed.length) alert(msg); else toast(msg, 4000);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Confirm Up Level';
+      alert('Up Level FAILED:\n' + (e.message || e) + '\n\nScreenshot this for Claude.');
+    }
+  };
+};
 
 window.selectClass = function(c) { S.ui.selectedClass = c; renderDeptPage(S.ui.currentSub); };
 window.clearDeptSearch = function() { S.ui.deptSearch = ''; renderDeptPage(S.ui.currentSub); };
@@ -1692,26 +1866,17 @@ window.openStudent = function(id) {
     h += '<div class="form-row"><label>Gender</label><select class="input" id="ed-gender"><option value="">—</option><option value="B"' + (buf.gender==='B' ? ' selected':'') + '>Boy</option><option value="G"' + (buf.gender==='G' ? ' selected':'') + '>Girl</option></select></div>';
     h += '</div>';
 
+    /* v35 · 学生总状态由课程自动算，不能手动改。只有「还没开始上课」时可选 RSVP / Registered */
     h += '<div class="form-grid-2">';
-    h += '<div class="form-row"><label>Status</label><select class="input" id="ed-status" onchange="window.onStatusChange()">';
-    STATUS_OPTIONS.forEach(opt => {
-      h += '<option value="' + opt.value + '"' + (buf.status === opt.value ? ' selected' : '') + '>' + esc(opt.label) + '</option>';
-    });
-    h += '</select></div>';
-    const _noteStatuses = ['Transferred','Stopped','Graduated','Moved','Paused','Archived'];
-    const showNote = _noteStatuses.indexOf(buf.status) >= 0;
-    const noteLabel = buf.status === 'Transferred' ? 'Transfer To' : (buf.status === 'Paused' ? 'Paused until / reason' : (buf.status === 'Stopped' ? 'Reason' : 'Note'));
-    const notePh = buf.status === 'Transferred' ? 'e.g. Another centre in KL' : (buf.status === 'Paused' ? 'e.g. back in Nov / family travelling' : (buf.status === 'Stopped' ? 'e.g. Family relocated' : ''));
-    h += '<div class="form-row" id="ed-status-note-row" style="' + (showNote ? '' : 'display:none') + '">';
-    h += '<label id="ed-status-note-label">' + noteLabel + '</label>';
-    h += '<input class="input" id="ed-status-note" value="' + esc(buf.status_note || '') + '" placeholder="' + notePh + '">';
-    h += '</div>';
+    h += '<div class="form-row"><label>Status (automatic)</label><div id="ed-status-box"></div></div>';
+    h += '<div class="form-row"><label>Status note</label>';
+    h += '<input class="input" id="ed-status-note" value="' + esc(buf.status_note || '') + '" placeholder="e.g. family travelling / which branch"></div>';
     h += '</div>';
 
-    h += '<div class="form-row"><label>Classes / Cross-Class</label><div id="ed-memberships"></div>';
-    h += '<button class="btn btn-sm" onclick="window.addMembership()">+ Add Class</button></div>';
+    h += '<div class="form-row"><label>Classes</label><div id="ed-memberships"></div>';
+    h += '<button class="btn btn-sm" onclick="window.addMembership()" title="Register this student for a new class">+ Reg New</button></div>';
 
-    h += '<div class="form-row"><label>Transfer History</label><div id="ed-history"></div></div>';
+    h += '<div class="form-row"><label>Class history</label><div id="ed-history"></div></div>';
 
     /* v29 · 校外补习 */
     h += '<div class="form-row"><label>Outside tuition</label><div id="ed-outside"></div>';
@@ -1821,16 +1986,43 @@ window.openStudent = function(id) {
           h += '</select>';
         }
         h += '<input type="text" placeholder="#" style="width:50px" value="' + (m.num != null ? m.num : '') + '" oninput="window.updateMembership(' + idx + ',\'num\',this.value)">';
+        /* v35 · 课程那一行：Pause / Resume · Change Class · End class（要选原因） */
+        const _t = _today();
         if (m.end_date) {
-          h += '<button class="btn btn-sm" style="color:#A32D2D;border-color:#A32D2D" onclick="window.cancelTransfer(' + idx + ')" title="Cancel scheduled transfer">Cancel ' + esc(m.end_date) + '</button>';
+          h += '<button class="btn btn-sm" style="color:#A32D2D;border-color:#A32D2D" onclick="window.cancelTransfer(' + idx + ')" title="Undo the scheduled end">Cancel end ' + esc(addDays(m.end_date, -1)) + '</button>';
         } else {
-          h += '<button class="btn btn-sm" style="color:#7870CC;border-color:#7870CC" onclick="window.openTransfer(' + idx + ')" title="Transfer (keeps history)">Transfer</button>';
+          if (m.pause_from) h += '<button class="btn btn-sm" style="color:var(--ok);border-color:var(--ok)" onclick="window.resumeMembership(' + idx + ')" title="Back to class">Resume</button>';
+          else h += '<button class="btn btn-sm" style="color:var(--warn);border-color:var(--warn)" onclick="window.pauseMembership(' + idx + ')" title="Pause this class (keeps the seat)">Pause</button>';
+          h += '<button class="btn btn-sm" style="color:#7870CC;border-color:#7870CC" onclick="window.openTransfer(' + idx + ')" title="Same department, e.g. SR1 → SR2 (keeps history)">Change Class</button>';
         }
         h += '<button class="btn btn-sm btn-dng" onclick="window.removeMembership(' + idx + ')" title="End this class (keeps the record)">End class</button>';
+        /* 这一行现在的状况 */
+        let tag = '';
+        if (m.end_date) tag = 'Ends · last day ' + addDays(m.end_date, -1) + (m.end_reason ? ' · ' + endReasonLabel(m.end_reason) : '');
+        else if (isPausedOn(m, _t)) tag = 'Paused since ' + m.pause_from + (m.pause_to ? ' · back on ' + m.pause_to : ' · return date not set');
+        else if (m.pause_from) tag = 'Pause starts ' + m.pause_from + (m.pause_to ? ' · back on ' + m.pause_to : '');
+        if (tag) h += '<div style="flex-basis:100%;font-size:11px;color:var(--warn);padding:2px 0 0 2px">' + esc(tag) + '</div>';
         h += '</div>';
       });
     }
     safeSet('ed-memberships', h);
+    if (document.getElementById('ed-status-box')) renderStatusBox();
+  }
+  /* v35 · 状态格：显示系统算出来的状态；还没开始上课才可选 RSVP / Registered */
+  function renderStatusBox() {
+    const pickEl = document.getElementById('ed-status-pick');
+    const st = deriveStudentStatus(buf, pickEl ? pickEl.value : null);
+    const t = _today();
+    const hasNow = [].concat(buf.memberships || []).some(m => !_isRsvpCls(m) && (!m.start_date || m.start_date <= t) && (!m.end_date || m.end_date > t));
+    let h = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0">' + renderStatusBadge(st);
+    if (!hasNow && st !== 'Archived' && st !== 'Transferred' && ['RSVP','Registered'].indexOf(st) >= 0) {
+      h += '<select class="input" id="ed-status-pick" style="width:auto;padding:4px 8px">'
+         + '<option value="RSVP"' + (st === 'RSVP' ? ' selected' : '') + '>RSVP</option>'
+         + '<option value="Registered"' + (st === 'Registered' ? ' selected' : '') + '>Registered (Paid)</option></select>';
+    }
+    const tip = pausedTip(buf);
+    h += '<span style="font-size:10px;color:var(--mut)">' + (tip ? esc(tip) + ' · ' : '') + 'Set by the classes below</span></div>';
+    safeSet('ed-status-box', h);
   }
   function renderHistory() {
     const _t = _today();
@@ -1838,7 +2030,7 @@ window.openStudent = function(id) {
     const hist = (buf.memberships_history || []).slice().sort((a,b) => (keyOf(a) > keyOf(b) ? -1 : 1));
     let h = '';
     if (!hist.length) {
-      h = '<div style="font-size:10px;color:var(--hint);padding:4px 0">No transfer records</div>';
+      h = '<div style="font-size:10px;color:var(--hint);padding:4px 0">No ended or scheduled classes</div>';
     } else {
       hist.forEach(m => {
         if (m.start_date && m.start_date > _t) {
@@ -1851,8 +2043,9 @@ window.openStudent = function(id) {
           // Completed transfer — find the target (class starting on this end date)
           const tgt = (buf.memberships || []).find(a => a.dept === m.dept && a.start_date === m.end_date)
                    || (buf.memberships_history || []).find(a => a.dept === m.dept && a.start_date === m.end_date);
-          const arrow = tgt ? ' → ' + esc(clsName(tgt.dept, tgt.class)) : ' → (stopped / left centre)';
-          h += '<div style="font-size:10px;padding:3px 0;border-bottom:.5px solid var(--bdr)"><span style="color:#7870CC">🔄 ' + esc(m.end_date || '') + '</span> · ' + esc(m.dept) + ' ' + esc(clsName(m.dept, m.class)) + arrow + '</div>';
+          const arrow = tgt ? ' → ' + esc(clsName(tgt.dept, tgt.class)) : '';
+          const why = m.end_reason ? ' <b>' + esc(endReasonLabel(m.end_reason)) + '</b>' : '';
+          h += '<div style="font-size:10px;padding:3px 0;border-bottom:.5px solid var(--bdr)"><span style="color:#7870CC">🔄 last day ' + esc(m.end_date ? addDays(m.end_date, -1) : '') + '</span> · ' + esc(m.dept) + ' ' + esc(clsName(m.dept, m.class)) + arrow + why + '</div>';
         }
       });
     }
@@ -1887,21 +2080,109 @@ window.openStudent = function(id) {
     const existed = (s.memberships || []).some(function(o){
       return o.dept === m.dept && o.class === m.class && (o.start_date || '') === (m.start_date || '');
     });
-    if (!existed) { buf.memberships.splice(idx, 1); renderMemberships(); return; }
-    const d = prompt('End ' + clsName(m.dept, m.class) + ' — last day in this class (YYYY-MM-DD):', _today());
-    if (d === null) return;
-    const dd = String(d).trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dd)) { toast('Please use YYYY-MM-DD', 2500); return; }
-    if (m.start_date && dd < m.start_date) { toast('End date cannot be before the start date (' + m.start_date + ')', 3500); return; }
-    m.end_date = dd;
-    buf.memberships_history = buf.memberships_history || [];
-    buf.memberships_history.push(JSON.parse(JSON.stringify(m)));
-    buf.memberships.splice(idx, 1);
-    renderMemberships(); renderHistory();
-    toast('Class ended ' + dd + ' — record kept (saves automatically)', 3000);
+    if (!existed) { buf.memberships.splice(idx, 1); _forgetNew(m); renderMemberships(); return; }
+    /* v35 · 要选原因；画面问「最后一天」，存进 end_date 的是隔天（end_date 当天已不在班） */
+    let bh = '<div style="font-size:12px;margin-bottom:10px">End <b>' + esc(clsName(m.dept, m.class)) + '</b></div>';
+    bh += '<div class="form-row"><label>Reason</label><select class="input" id="ec-reason">'
+        + '<option value="Stopped">Stopped — not taking this class any more</option>'
+        + '<option value="Graduated">Graduated — finished this class</option></select></div>';
+    bh += '<div class="form-row"><label>Last day in this class</label><input type="date" class="input" id="ec-date" value="' + _today() + '"' + (m.start_date ? ' min="' + esc(m.start_date) + '"' : '') + '></div>';
+    bh += '<div style="font-size:10px;color:var(--mut);line-height:1.5">From the next day the student is no longer listed in this class. To move to another class use <b>Change Class</b>; to leave the centre use <b>Student leaving</b>. A future date is fine.</div>';
+    _miniModal('End class', bh, 'Confirm', function(){
+      const dd = (document.getElementById('ec-date').value || '').trim();
+      const why = document.getElementById('ec-reason').value;
+      if (!dd) { toast('Please choose the last day', 2000); return false; }
+      if (m.start_date && dd < m.start_date) { toast('Last day cannot be before the start date (' + m.start_date + ')', 3500); return false; }
+      m.end_date = addDays(dd, 1);
+      m.end_reason = why;
+      delete m.pause_from; delete m.pause_to;
+      if (m.end_date <= _today()) {
+        buf.memberships_history = buf.memberships_history || [];
+        buf.memberships_history.push(m);
+        buf.memberships.splice(idx, 1);
+      }
+      renderMemberships(); renderHistory();
+      logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'end', reason: why, effective_date: m.end_date, note: 'last day ' + dd }]);
+      _stQueue(200);
+      toast('Class ends · last day ' + dd + ' · ' + why, 3000);
+    });
   };
+  /* v35 · 暂停：从哪天开始（必填）、回来日（可空）。回来日到了，系统每天 00:05 自动恢复 */
+  window.pauseMembership = function(idx) {
+    const m = buf.memberships[idx];
+    if (!m) return;
+    if (isNew) { toast('Enter the English name first', 2500); return; }
+    let bh = '<div style="font-size:12px;margin-bottom:10px">Pause <b>' + esc(clsName(m.dept, m.class)) + '</b> — the seat is kept</div>';
+    bh += '<div class="form-row"><label>Paused from (first day away)</label><input type="date" class="input" id="pz-from" value="' + _today() + '"></div>';
+    bh += '<div class="form-row"><label>Back on (optional)</label><input type="date" class="input" id="pz-to"></div>';
+    bh += '<div style="font-size:10px;color:var(--mut);line-height:1.5">Leave "Back on" empty if you do not know yet — press <b>Resume</b> when the student comes back. If every class is paused, the student shows as Paused automatically.</div>';
+    _miniModal('Pause class', bh, 'Pause', function(){
+      const f = (document.getElementById('pz-from').value || '').trim();
+      const b = (document.getElementById('pz-to').value || '').trim();
+      if (!f) { toast('Please choose the first day away', 2000); return false; }
+      if (b && b <= f) { toast('"Back on" must be after the first day away', 3000); return false; }
+      m.pause_from = f; if (b) m.pause_to = b; else delete m.pause_to;
+      renderMemberships();
+      logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'pause', effective_date: f, pause_to: b || null }]);
+      _stQueue(200);
+      toast('Paused from ' + f + (b ? ' · back on ' + b : ''), 3000);
+    });
+  };
+  window.resumeMembership = function(idx) {
+    const m = buf.memberships[idx];
+    if (!m || !m.pause_from) return;
+    const t = _today();
+    if (m.pause_from > t) {   /* 还没开始的暂停 → 直接取消 */
+      if (!confirm('Cancel the pause planned from ' + m.pause_from + '?')) return;
+      const f = m.pause_from;
+      delete m.pause_from; delete m.pause_to;
+      renderMemberships();
+      logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'resume', effective_date: f, note: 'planned pause cancelled' }]);
+      _stQueue(200); toast('Pause cancelled', 2000); return;
+    }
+    let bh = '<div style="font-size:12px;margin-bottom:10px">Resume <b>' + esc(clsName(m.dept, m.class)) + '</b></div>';
+    bh += '<div class="form-row"><label>Back on</label><input type="date" class="input" id="rs-date" value="' + t + '"></div>';
+    bh += '<div style="font-size:10px;color:var(--mut);line-height:1.5">Today or earlier = back now. A future date = stays paused until then, then comes back automatically.</div>';
+    _miniModal('Resume class', bh, 'Resume', function(){
+      const b = (document.getElementById('rs-date').value || '').trim();
+      if (!b) { toast('Please choose the date', 2000); return false; }
+      if (b <= _today()) { delete m.pause_from; delete m.pause_to; } else { m.pause_to = b; }
+      renderMemberships();
+      logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'resume', effective_date: b }]);
+      _stQueue(200);
+      toast(b <= _today() ? 'Back in class' : ('Back on ' + b), 2500);
+    });
+  };
+  /* 小视窗（在学生视窗上面），onOk 回传 false = 不关 */
+  function _miniModal(title, bodyHtml, okLabel, onOk) {
+    const mv = document.createElement('div');
+    mv.className = 'modal-bg'; mv.style.zIndex = '1001';
+    mv.innerHTML = '<div class="modal" style="max-width:440px"><div class="modal-hdr"><div class="modal-title">' + esc(title) + '</div><button class="x-btn">×</button></div>'
+      + '<div class="modal-body">' + bodyHtml + '</div><div class="modal-foot"><button class="btn mm-cancel">Cancel</button><button class="btn btn-pri mm-ok">' + esc(okLabel) + '</button></div></div>';
+    document.body.appendChild(mv);
+    const close = () => mv.remove();
+    mv.querySelector('.x-btn').onclick = close;
+    mv.querySelector('.mm-cancel').onclick = close;
+    mv.querySelector('.mm-ok').onclick = function(){ if (onOk() !== false) close(); };
+    return mv;
+  }
+  /* v35 · Reg New：新加的那一行，第一次存进云端时记一笔 reg_new；还没存前改了班，作废旧的那笔 */
+  const _newRows = new Map();   // membership 物件 → {key, ids}
+  function _forgetNew(m){ const r = _newRows.get(m); if (r) { voidEvents(r.ids); _newRows.delete(m); } }
+  async function _logNewRows(){
+    for (const [m, r] of _newRows) {
+      if (!buf.memberships.includes(m)) { voidEvents(r.ids); _newRows.delete(m); continue; }
+      const key = m.dept + '|' + m.class + '|' + (m.start_date || '');
+      if (r.key === key) continue;
+      if (r.ids.length) voidEvents(r.ids);
+      const got = await logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'reg_new', effective_date: m.start_date || _today() }]);
+      r.key = key; r.ids = got.map(x => x.id);
+    }
+  }
   window.addMembership = function() {
-    buf.memberships.push({ dept: 'SRK', class: S.classes.SRK[0] || '', num: null, start_date: _today(), end_date: null });
+    const nm = { dept: 'SRK', class: S.classes.SRK[0] || '', num: null, start_date: _today(), end_date: null };
+    buf.memberships.push(nm);
+    _newRows.set(nm, { key: null, ids: [] });
     renderMemberships();
   };
   // ── Cancel a scheduled transfer: remove end_date from old class + delete the scheduled new class ──
@@ -1910,14 +2191,22 @@ window.openStudent = function(id) {
     if (!m || !m.end_date) return;
     if (isModalDirty()) { _stFlush(); toast(_stInvalid ? ('Please fix this first: ' + _stInvalid) : 'Saving… try again in a second', 3000); return; }
     const dept = m.dept, oldClass = m.class, endDate = m.end_date;
-    if (!confirm('Cancel the transfer scheduled on ' + endDate + '?\n\n' + dept + ' ' + oldClass + ' will stay as the current class.')) return;
+    if (!confirm('Cancel the scheduled end (last day ' + addDays(endDate, -1) + ')?\n\n' + clsName(dept, oldClass) + ' will stay as the current class.'
+        + (m.end_reason === 'Changed Class' || m.end_reason === 'Up Level' ? '\nThe new class that was going to start on ' + endDate + ' is removed.' : ''))) return;
     (async function() {
       try {
-        // 1. Remove end_date from old class
+        // 1. Remove end_date from old class（v35 · 原因、状态一起清掉）
         const { error: e1 } = await _sb.from('hub_student_memberships')
-          .update({ end_date: null })
+          .update({ end_date: null, end_reason: null, status: 'Enrolled' })
           .eq('student_id', s.id).eq('dept', dept).eq('class_code', oldClass).eq('end_date', endDate);
         if (e1) throw e1;
+        /* v35 · 那一笔动作作废（纪录只加不改） */
+        try {
+          const { data: evs } = await _sb.from('hub_student_event').select('id')
+            .eq('student_id', s.id).eq('class_code', oldClass).eq('effective_date', endDate).eq('status', 'active')
+            .in('event', ['end','changed_class','up_level','leave']);
+          await voidEvents((evs || []).map(x => x.id));
+        } catch (ev) { console.warn(ev); }
         // 2. Delete the scheduled new class (start_date = endDate, same dept)
         const { error: e2 } = await _sb.from('hub_student_memberships')
           .delete()
@@ -1925,10 +2214,11 @@ window.openStudent = function(id) {
         if (e2) throw e2;
         overlay.remove();
         document.removeEventListener('keydown', modalKeyHandler);
+        await recalcStudent(s.id);
         await loadData();
         migrateAll();
         renderCurrentPage();
-        toast('Cancelled — ' + dept + ' ' + oldClass + ' restored', 3000);
+        toast('Cancelled — ' + clsName(dept, oldClass) + ' restored', 3000);
       } catch (err) {
         alert('Cancel failed:\n' + (err.message || err));
       }
@@ -1945,7 +2235,7 @@ window.openStudent = function(id) {
     if (!opts.length) { toast('No other ' + dept + ' classes available', 2500); return; }
     const tov = document.createElement('div');
     tov.className = 'modal-bg'; tov.style.zIndex = '1001';
-    let th = '<div class="modal" style="max-width:420px"><div class="modal-hdr"><div class="modal-title">Transfer</div><button class="x-btn" onclick="this.closest(\'.modal-bg\').remove()">×</button></div><div class="modal-body">';
+    let th = '<div class="modal" style="max-width:420px"><div class="modal-hdr"><div class="modal-title">Change Class</div><button class="x-btn" onclick="this.closest(\'.modal-bg\').remove()">×</button></div><div class="modal-body">';
     th += '<div style="font-size:12px;margin-bottom:10px">' + esc(dept) + ' <b>' + esc(clsName(dept, oldClass)) + '</b> &rarr; New class:</div>';
     th += '<select class="input" id="tr-newclass">';
     opts.forEach(c => { th += '<option value="' + esc(c) + '">' + esc(clsName(dept, c)) + '</option>'; });
@@ -1953,8 +2243,8 @@ window.openStudent = function(id) {
     th += '<div style="font-size:12px;margin:12px 0 4px">Effective date:</div>';
     th += '<input type="date" class="input" id="tr-date" value="' + _today() + '"' + (oldStart ? (' min="' + esc(oldStart) + '"') : '') + '>';
     th += '<div style="font-size:10px;color:var(--mut);margin-top:6px;line-height:1.5">The student gets the next free seat number in the new class automatically.</div>';
-    th += '<div style="font-size:10px;color:var(--mut);margin-top:8px;line-height:1.5">Old class is kept until this date; the new class starts on this date. A future date schedules the move — the old class stays current until then. History is preserved.</div>';
-    th += '</div><div class="modal-foot"><button class="btn" onclick="this.closest(\'.modal-bg\').remove()">Cancel</button><button class="btn btn-pri" id="tr-confirm">Confirm Transfer</button></div></div>';
+    th += '<div style="font-size:10px;color:var(--mut);margin-top:8px;line-height:1.5">Same department, e.g. SR1 → SR2. The effective date is the <b>first day in the new class</b>; the old class ends the day before. A future date schedules the move. For a whole class moving up a level, use <b>Up Level</b> on the class page.</div>';
+    th += '</div><div class="modal-foot"><button class="btn" onclick="this.closest(\'.modal-bg\').remove()">Cancel</button><button class="btn btn-pri" id="tr-confirm">Confirm</button></div></div>';
     tov.innerHTML = th;
     document.body.appendChild(tov);
     document.getElementById('tr-confirm').onclick = async function() {
@@ -1975,7 +2265,7 @@ window.openStudent = function(id) {
           .select('id, num, start_date')
           .eq('student_id', s.id).eq('dept', dept).eq('class_code', newClass).is('end_date', null);
         if (dupChk && dupChk.length) {
-          this.disabled = false; this.textContent = 'Transfer';
+          this.disabled = false; this.textContent = 'Confirm';
           alert('Cannot transfer: ' + s.name + ' is already in ' + dept + ' ' + clsName(dept, newClass)
               + ' (no. ' + (dupChk[0].num == null ? '—' : dupChk[0].num)
               + ', since ' + dupChk[0].start_date + ').\n\n'
@@ -1983,13 +2273,13 @@ window.openStudent = function(id) {
           return;
         }
         const { error: e1 } = await _sb.from('hub_student_memberships')
-          .update({ end_date: T })
+          .update({ end_date: T, end_reason: 'Changed Class', status: (T <= _today() ? 'Ended' : 'Enrolled'), pause_from: null, pause_to: null })
           .eq('student_id', s.id).eq('dept', dept).eq('class_code', oldClass).is('end_date', null);
         if (e1) throw e1;
         /* v28 · 2026-09-23 · 旧版把旧班座号原封不动带进新班 → 同班两人同号
            （09-22 实查有 3 组）。现在改成自动取新班的下一个空号。 */
         const freeNum = nextFreeNum(dept, newClass, s.id);
-        const insRow = { student_id: s.id, dept: dept, class_code: newClass, start_date: T, num: freeNum };
+        const insRow = { student_id: s.id, dept: dept, class_code: newClass, start_date: T, num: freeNum, status: 'Enrolled' };
         const { error: e2 } = await _sb.from('hub_student_memberships').insert(insRow);
         if (e2) throw e2;
         // Verify write
@@ -1998,8 +2288,9 @@ window.openStudent = function(id) {
           .eq('student_id', s.id).eq('dept', dept);
         const ok1 = (vfy||[]).some(r => r.class_code === oldClass && r.end_date === T);
         const ok2 = (vfy||[]).some(r => r.class_code === newClass && r.start_date === T);
+        await logEvents([{ student_id: s.id, dept: dept, class_code: oldClass, to_class_code: newClass, event: 'changed_class', reason: 'Changed Class', effective_date: T }]);
         if (!ok1 || !ok2) {
-          alert('Transfer warning: write may not have persisted.\n' + oldClass + ' end_date=' + T + ': ' + (ok1?'OK':'MISSING') + '\n' + newClass + ' start_date=' + T + ': ' + (ok2?'OK':'MISSING') + '\nScreenshot this for Claude.');
+          alert('Change Class warning: write may not have persisted.\n' + oldClass + ' end_date=' + T + ': ' + (ok1?'OK':'MISSING') + '\n' + newClass + ' start_date=' + T + ': ' + (ok2?'OK':'MISSING') + '\nScreenshot this for Claude.');
         }
         tov.remove();
         overlay.remove();
@@ -2009,8 +2300,8 @@ window.openStudent = function(id) {
         renderCurrentPage();
         toast(clsName(dept, oldClass) + ' → ' + clsName(dept, newClass) + ' · ' + T + ' · seat #' + freeNum, 3500);
       } catch (err) {
-        this.disabled = false; this.textContent = 'Confirm Transfer';
-        alert('Transfer FAILED:\n' + (err.message || err) + '\n\nScreenshot this for Claude.');
+        this.disabled = false; this.textContent = 'Confirm';
+        alert('Change Class FAILED:\n' + (err.message || err) + '\n\nScreenshot this for Claude.');
       }
     };
   };
@@ -2029,32 +2320,37 @@ window.openStudent = function(id) {
     LEAVE_TYPES.forEach(t => { lh += '<option value="' + t.value + '">' + esc(t.label) + '</option>'; });
     lh += '</select></div>';
     lh += '<div class="form-row"><label>Last day at the centre</label><input type="date" class="input" id="lv-date" value="' + _today() + '"></div>';
-    lh += '<div class="form-row"><label>Note (optional)</label><input class="input" id="lv-note" placeholder="e.g. family relocated / moved to ATC"></div>';
+    lh += '<div class="form-row"><label>Note (optional)</label><input class="input" id="lv-note" placeholder="e.g. family relocated / which branch"></div>';
     lh += '<div style="font-size:11px;color:var(--mut);line-height:1.6;background:var(--sur2);padding:8px 10px;border-radius:6px">';
     lh += 'On that day the student is taken out of <b>' + live.length + '</b> class' + (live.length === 1 ? '' : 'es') + ':<br>';
     lh += live.length ? live.map(m => '· ' + esc(clsName(m.dept, m.class))).join('<br>') : '· (no open classes)';
-    lh += '<br><br>Every system (attendance, reports) stops listing the student from that day. Nothing is deleted.</div>';
+    lh += '<br><br>From the next day every system (attendance, reports) stops listing the student. Nothing is deleted. To stop only one class, close this and press <b>End class</b> on that row.</div>';
     lh += '</div><div class="modal-foot"><button class="btn" onclick="this.closest(\'.modal-bg\').remove()">Cancel</button><button class="btn btn-pri" id="lv-confirm">Confirm</button></div></div>';
     lov.innerHTML = lh;
     document.body.appendChild(lov);
     document.getElementById('lv-confirm').onclick = async function() {
       await _stFlush();   /* v32 · 先把视窗里还没送的送完 */
       const type = document.getElementById('lv-type').value;
-      const T = (document.getElementById('lv-date').value || '').trim();
+      const lastDay = (document.getElementById('lv-date').value || '').trim();
       const note = (document.getElementById('lv-note').value || '').trim();
-      if (!T) { toast('Please choose the last day', 2000); return; }
-      const bad = live.find(m => m.start_date && T < m.start_date);
+      if (!lastDay) { toast('Please choose the last day', 2000); return; }
+      const T = addDays(lastDay, 1);   /* v35 · end_date = 第一天不在班 */
+      const bad = live.find(m => m.start_date && lastDay < m.start_date);
       if (bad) { toast('Date cannot be before ' + clsName(bad.dept, bad.class) + ' started (' + bad.start_date + ')', 4000); return; }
       this.disabled = true; this.textContent = 'Processing…';
       try {
         const { error: e1 } = await _sb.from('hub_student_memberships')
-          .update({ end_date: T }).eq('student_id', s.id).is('end_date', null);
+          .update({ end_date: T, end_reason: type, status: (T <= _today() ? 'Ended' : 'Enrolled'), pause_from: null, pause_to: null })
+          .eq('student_id', s.id).is('end_date', null);
         if (e1) throw e1;
-        const lbl = (LEAVE_TYPES.find(x => x.value === type) || {}).label || type;
+        /* v35 · 学生状态不直接写死：到了那天由资料库自动算成 Stopped / Transferred / Graduated。
+           今天就生效的，马上重算一次。 */
         const { error: e2 } = await _sb.from('hub_students')
-          .update({ status: type, status_note: lbl + ' · last day ' + T + (note ? ' · ' + note : '') })
+          .update({ status_note: type + ' · last day ' + lastDay + (note ? ' · ' + note : '') })
           .eq('id', s.id);
         if (e2) throw e2;
+        await logEvents([{ student_id: s.id, event: 'leave', reason: type, effective_date: T, note: 'last day ' + lastDay + (note ? ' · ' + note : '') }]);
+        await recalcStudent(s.id);
         const { data: vfy } = await _sb.from('hub_student_memberships')
           .select('class_code,end_date').eq('student_id', s.id).is('end_date', null);
         if (vfy && vfy.length) {
@@ -2063,7 +2359,7 @@ window.openStudent = function(id) {
         lov.remove(); overlay.remove();
         document.removeEventListener('keydown', modalKeyHandler);
         await loadData(); migrateAll(); renderCurrentPage();
-        toast(esc(buf.name) + ' · left on ' + T + ' · ' + live.length + ' class record(s) closed', 4000);
+        toast(buf.name + ' · last day ' + lastDay + ' · ' + live.length + ' class record(s) closed', 4000);
       } catch (err) {
         this.disabled = false; this.textContent = 'Confirm';
         alert('Leaving failed:\n' + (err.message || err) + '\n\nScreenshot this for Claude.');
@@ -2080,6 +2376,7 @@ window.openStudent = function(id) {
   document.body.appendChild(overlay);
   renderMemberships();
   renderHistory();
+  renderStatusBox(); /* v35 */
   renderOutside();   /* v29 */
 
   // --- formDirty: snapshot original for comparison ---
@@ -2117,9 +2414,10 @@ window.openStudent = function(id) {
     const by = parseInt(document.getElementById('ed-byear').value);
     buf.birth_year = isNaN(by) ? null : by;
     buf.gender = document.getElementById('ed-gender').value || null;
-    buf.status = document.getElementById('ed-status').value || 'Active';
+    const pickEl = document.getElementById('ed-status-pick');
+    buf.status = deriveStudentStatus(buf, pickEl ? pickEl.value : null);   /* v35 · 自动算 */
     const noteEl = document.getElementById('ed-status-note');
-    buf.status_note = (['Transferred','Stopped','Graduated','Moved','Paused','Archived'].indexOf(buf.status) >= 0 && noteEl) ? noteEl.value.trim() : '';
+    buf.status_note = noteEl ? noteEl.value.trim() : (buf.status_note || '');
     if (buf.flags) delete buf.flags;
     buf.notes = document.getElementById('ed-notes').value;
   }
@@ -2156,6 +2454,8 @@ window.openStudent = function(id) {
       }
     }
     _stLast = sig;
+    try { await _logNewRows(); } catch (e) { console.warn(e); }   /* v35 */
+    renderStatusBox();
     const t = overlay.querySelector('.modal-title'); if (t) t.textContent = 'Student — ' + buf.name + (buf.name_cn ? ' ' + buf.name_cn : '');
     clash.length ? _stHint('Same seat number as ' + clash.join(', ') + ' — please check', true) : _stHint('');
   }
@@ -2210,7 +2510,8 @@ window.openStudent = function(id) {
   /* v32 · 旧的「Save」按钮处理已拿掉，改由 commitStudent() 自动存 */
 };
 
-window.onStatusChange = function() {
+window.onStatusChange = function() {   /* v35 · 状态改成自动算，这个只留着防旧按钮 */
+  if (!document.getElementById('ed-status')) return;
   const status = document.getElementById('ed-status').value;
   const row = document.getElementById('ed-status-note-row');
   const label = document.getElementById('ed-status-note-label');
@@ -2243,8 +2544,9 @@ window.archiveStudent = async function(id) {
   const s = S.students.find(x => x.id === id);
   if (!s) return;
   if (isInactiveStatus(s.status) && s.status === 'Archived') {
-    if (!confirm('Restore "' + s.name + '" back to Active?')) return;
+    if (!confirm('Restore "' + s.name + '"?\n\nThe status will be set automatically from the classes.')) return;
     s.status = 'Active';
+    s.status = deriveStudentStatus(s);   /* v35 */
     saveAll();
     const m0 = document.querySelector('.modal-bg'); if (m0) m0.remove();
     toast('Restored', 1500); renderCurrentPage(); return;
@@ -2421,6 +2723,9 @@ const Store = {
         (bucket[m.student_id]=bucket[m.student_id]||[]).push({
           dept: m.dept, class: m.class_code||'',
           start_date: m.start_date||null, end_date: m.end_date||null,
+          ...(m.end_reason ? {end_reason:m.end_reason} : {}),
+          ...(m.pause_from ? {pause_from:m.pause_from} : {}),
+          ...(m.pause_to ? {pause_to:m.pause_to} : {}),
           ...(m.num!=null ? {num:m.num} : {}),
           ...(m.tier ? {tier:m.tier} : {}),
           ...((m.extra && typeof m.extra==='object' && Object.keys(m.extra).length) ? m.extra : {})
@@ -2506,11 +2811,13 @@ const Store = {
       );
       for(const m of allMems){
         const extra = {};
-        for(const k in m){ if(!['dept','class','num','tier','start_date','end_date'].includes(k)) extra[k]=m[k]; }
+        for(const k in m){ if(!['dept','class','num','tier','start_date','end_date','status','end_reason','pause_from','pause_to'].includes(k)) extra[k]=m[k]; }
         memRows.push({
           student_id: s.id, dept: m.dept||'SRK', class_code: m.class||'',
           num: m.num!=null ? m.num : null, tier: m.tier||null,
           start_date: m.start_date || _today(), end_date: m.end_date || null,
+          status: memStatusOf(m), end_reason: m.end_reason || null,          /* v35 */
+          pause_from: m.pause_from || null, pause_to: m.pause_to || null,
           extra: Object.keys(extra).length ? extra : null
         });
       }
@@ -2572,8 +2879,11 @@ const Store = {
           if (!w) { toDelIds.push(c.id); return; }
           want.delete(k);
           if ((c.num ?? null) !== (w.num ?? null) || (c.tier || null) !== (w.tier || null)
-              || (c.end_date || null) !== (w.end_date || null) || !sameJson(c.extra, w.extra)) {
-            toUpd.push({ id: c.id, patch: { num: w.num ?? null, tier: w.tier || null, end_date: w.end_date || null, extra: w.extra } });
+              || (c.end_date || null) !== (w.end_date || null) || !sameJson(c.extra, w.extra)
+              || (c.status || 'Enrolled') !== w.status || (c.end_reason || null) !== w.end_reason
+              || (c.pause_from || null) !== w.pause_from || (c.pause_to || null) !== w.pause_to) {
+            toUpd.push({ id: c.id, patch: { num: w.num ?? null, tier: w.tier || null, end_date: w.end_date || null, extra: w.extra,
+                                            status: w.status, end_reason: w.end_reason, pause_from: w.pause_from, pause_to: w.pause_to } });
           }
         });
         const toIns = [...want.values()];
