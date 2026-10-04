@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v36</title>
+<title>MasterHub — Student v37</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 36;
+const APP_VERSION = 37;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -699,6 +699,7 @@ function _saveBanner(msg){
 }
 async function saveAll() {
   try {
+    applySeats(S.students);   /* v37 */
     const payload = { students: S.students, classes: S.classes, meta: { ...S.meta, last_updated: new Date().toISOString() } };
     await Store.set( JSON.stringify(payload));
     S.meta.last_updated = payload.meta.last_updated;
@@ -807,6 +808,46 @@ function migrateAll() {
   if (Array.isArray(S.students)) S.students.forEach(migrateStudent);
   if (S.classes) S.classes = _migrateClasses(S.classes);
   deriveClasses();  // classes always reflect actual memberships (D40)
+  applySeats(S.students);   /* v37 · 座号由系统排 */
+}
+/* ═══ v37 · 座号规则（Owner 2026-10-04 定）═══
+   每班「今天在上」的学生，号码永远 1 开始连续，照名字排：
+   · SRK 班：先读 GAK530 的 → 再 GAK300 → 最后只读 SRK 的，组内 A→Z
+   · GAK 班：先 530 → 再 300，组内 A→Z
+   · ATC / SRT 班：全班 A→Z
+   · RSVP 候位班不编号；已结束、还没开始的那一行不动（到开始那天再编）
+   比较用字码顺序（跟资料库 collate "C" 一样），资料库每天 00:05 用同一套再排一次，两边不会打架。 */
+function _tierRank(t){ return String(t) === '530' ? 0 : (String(t) === '300' ? 1 : 2); }
+function _cmpC(a, b){ a = String(a || ''); b = String(b || ''); return a < b ? -1 : (a > b ? 1 : 0); }
+function applySeats(students){
+  const t = _today(), live = [], gakG = {};
+  (students || []).forEach(function(s){
+    if (!s || s.status === 'Archived') return;
+    (s.memberships || []).forEach(function(m){
+      if (_isRsvpCls(m)) return;
+      if (m.start_date && m.start_date > t) return;
+      if (m.end_date && m.end_date <= t) return;
+      live.push({ s: s, m: m });
+      if (m.dept === 'GAK') gakG[s.id] = Math.min(gakG[s.id] == null ? 2 : gakG[s.id], _tierRank(m.tier));
+    });
+  });
+  const by = {};
+  live.forEach(function(x){ (by[x.m.dept + '|' + x.m.class] = by[x.m.dept + '|' + x.m.class] || []).push(x); });
+  let changed = 0;
+  Object.keys(by).forEach(function(k){
+    const dept = k.split('|')[0];
+    const grp = function(x){ return dept === 'SRK' ? (gakG[x.s.id] == null ? 2 : gakG[x.s.id]) : (dept === 'GAK' ? _tierRank(x.m.tier) : 0); };
+    by[k].sort(function(a, b){ return (grp(a) - grp(b)) || _cmpC(a.s.name, b.s.name) || _cmpC(a.s.id, b.s.id); });
+    by[k].forEach(function(x, i){ if (x.m.num !== i + 1) { x.m.num = i + 1; changed++; } });
+  });
+  return changed;
+}
+/* 直接写资料库的动作（换班、升班、离开、取消）做完：重读 → 重排号码 → 号码有变就存回去 */
+async function reloadAndReseat(){
+  await loadData();
+  const before = JSON.stringify(S.students);
+  migrateAll();
+  if (CLOUD_READ_OK && JSON.stringify(S.students) !== before) { window._stuAuto = true; try { await saveAll(); } finally { window._stuAuto = false; } }
 }
 
 async function initData() {
@@ -1538,7 +1579,7 @@ function renderDeptClassTable(dept, cls, term) {
     var genderDisplay = s.gender === 'B' ? '<span style="color:var(--boy)">Boy</span>' : (s.gender === 'G' ? '<span style="color:var(--girl)">Girl</span>' : '—');
     h += '<tr style="cursor:pointer" onclick="openStudent(\'' + s.id + '\')">';
     h += '<td onclick="event.stopPropagation()">' + (m.end_date ? '' : '<input type="checkbox" style="width:18px;height:18px" ' + (sel.has(s.id) ? 'checked ' : '') + 'onclick="event.stopPropagation();window.ulToggle(\'' + esc(dept) + '\',\'' + esc(cls) + '\',\'' + esc(s.id) + '\',this.checked)">') + '</td>';
-    h += '<td style="color:var(--mut)">' + (m.num || (i+1)) + '</td>';
+    h += '<td style="color:var(--mut)">' + (m.num != null ? m.num : '—') + '</td>';   /* v37 · 不再用行号凑数 */
     h += '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">' + esc(s.name) + '</td>';
     h += '<td style="color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(s.name_cn || '') + '</td>';
     h += '<td style="color:var(--mut)">' + (getAge(s.birth_year) != null ? getAge(s.birth_year) : '—') + '</td>';
@@ -1616,7 +1657,7 @@ window.openUpLevel = function(dept, cls){
       await logEvents(done);
       ov.remove();
       sel.clear();
-      await loadData(); migrateAll(); renderCurrentPage();
+      await reloadAndReseat(); renderCurrentPage();
       var msg = 'Up Level done: ' + done.length + ' → ' + clsName(dept, to) + ' from ' + T;
       if (skipped.length) msg += '\n\nAlready in ' + clsName(dept, to) + ' (skipped): ' + skipped.join(', ');
       if (failed.length) msg += '\n\nFAILED (nothing changed for these): ' + failed.join('; ') + '\nScreenshot this for Claude.';
@@ -1986,7 +2027,7 @@ window.openStudent = function(id) {
           });
           h += '</select>';
         }
-        h += '<input type="text" placeholder="#" style="width:50px" value="' + (m.num != null ? m.num : '') + '" oninput="window.updateMembership(' + idx + ',\'num\',this.value)">';
+        h += '<span title="Seat number — given by the system (alphabetical)" style="min-width:34px;font-size:11px;color:var(--mut);text-align:center">' + (m.num != null ? '#' + m.num : (_isRsvpCls(m) ? '' : '#—')) + '</span>';   /* v37 · 号码系统给，不能手改 */
         /* v35 · 课程那一行：Pause / Resume · Change Class · End class（要选原因） */
         const _t = _today();
         if (m.end_date) {
@@ -2070,12 +2111,7 @@ window.openStudent = function(id) {
     } else if (field === 'class') {
       const mm = buf.memberships[idx];
       mm.class = val;
-      /* v36 · Reg New 选好班 → 系统自动给下一个空座号（那班本来就不编号的，例如 GAK，就不给） */
-      if (val && _newRows.has(mm)) {
-        const roster = getClassRoster(mm.dept, val).filter(r => r.student.id !== buf.id);
-        const used = seatsInClass(mm.dept, val, buf.id);
-        mm.num = (roster.length && !used.length) ? null : nextFreeNum(mm.dept, val, buf.id);
-      }
+      /* v37 · 座号存档时由系统照名字排（applySeats），这里不给 */
       renderMemberships();
     } else if (field === 'tier') {
       buf.memberships[idx].tier = val;
@@ -2224,8 +2260,7 @@ window.openStudent = function(id) {
         overlay.remove();
         document.removeEventListener('keydown', modalKeyHandler);
         await recalcStudent(s.id);
-        await loadData();
-        migrateAll();
+        await reloadAndReseat();
         renderCurrentPage();
         toast('Cancelled — ' + clsName(dept, oldClass) + ' restored', 3000);
       } catch (err) {
@@ -2304,10 +2339,9 @@ window.openStudent = function(id) {
         tov.remove();
         overlay.remove();
         document.removeEventListener('keydown', modalKeyHandler);
-        await loadData();
-        migrateAll();
+        await reloadAndReseat();
         renderCurrentPage();
-        toast(clsName(dept, oldClass) + ' → ' + clsName(dept, newClass) + ' · ' + T + ' · seat #' + freeNum, 3500);
+        toast(clsName(dept, oldClass) + ' → ' + clsName(dept, newClass) + ' · ' + T, 3500);
       } catch (err) {
         this.disabled = false; this.textContent = 'Confirm';
         alert('Change Class FAILED:\n' + (err.message || err) + '\n\nScreenshot this for Claude.');
@@ -2367,7 +2401,7 @@ window.openStudent = function(id) {
         }
         lov.remove(); overlay.remove();
         document.removeEventListener('keydown', modalKeyHandler);
-        await loadData(); migrateAll(); renderCurrentPage();
+        await reloadAndReseat(); renderCurrentPage();
         toast(buf.name + ' · last day ' + lastDay + ' · ' + live.length + ' class record(s) closed', 4000);
       } catch (err) {
         this.disabled = false; this.textContent = 'Confirm';
@@ -2463,7 +2497,13 @@ window.openStudent = function(id) {
         return;
       }
     }
-    _stLast = sig;
+    /* v37 · 存档时号码重排过 → 抄回视窗 */
+    try {
+      const saved = S.students.find(x => x.id === buf.id);
+      if (saved) (buf.memberships || []).forEach((m, i) => { const o = saved.memberships[i]; if (o && o.dept === m.dept && o.class === m.class) m.num = o.num; });
+      renderMemberships();
+    } catch (e) { console.warn(e); }
+    _stLast = JSON.stringify(buf);
     try { await _logNewRows(); } catch (e) { console.warn(e); }   /* v35 */
     renderStatusBox();
     const t = overlay.querySelector('.modal-title'); if (t) t.textContent = 'Student — ' + buf.name + (buf.name_cn ? ' ' + buf.name_cn : '');
