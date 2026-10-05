@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v37</title>
+<title>MasterHub — Student v38</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 37;
+const APP_VERSION = 38;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -573,7 +573,7 @@ const OUTSIDE_EFFECTS = [
   { v:'absent',      l:'Does not come' },
 ];
 function outsideSubjectLabel(v){ const x = OUTSIDE_SUBJECTS.find(o=>o.v===v); return x ? x.l : (v||''); }
-function outsideDayLabel(v){ const x = OUTSIDE_DAYS.find(o=>o.v===Number(v)); return x ? x.l : String(v||''); }
+function outsideDayLabel(v){ const x = OUTSIDE_DAYS.find(o=>o.v===Number(v)); return x ? x.l : (v == null ? 'Day?' : String(v)); }
 let OUTSIDE = {};          // student_id -> [row, ...]（云端读回来的正本快照）
 let OUTSIDE_READ_OK = false;
 
@@ -588,7 +588,7 @@ async function saveOutsideRows(studentId, rows) {
     provider: (r.provider || '').trim() || null,
     subject: r.subject || 'OTHER',
     subject_note: (r.subject_note || '').trim() || null,
-    day_of_week: Number(r.day_of_week) || 1,
+    day_of_week: Number(r.day_of_week) || null,   /* v38 · 可以不填 */
     from_time: r.from_time || null,
     to_time: r.to_time || null,
     start_date: r.start_date || null,
@@ -1914,6 +1914,22 @@ window.openStudent = function(id) {
     h += '<input class="input" id="ed-status-note" value="' + esc(buf.status_note || '') + '" placeholder="e.g. family travelling / which branch"></div>';
     h += '</div>';
 
+    /* v38 · 学校 · 学校班级 · 搭车 · 洗澡 · 午餐 */
+    const svcSel = (id, val) => {
+      const opts = [['','—'],['yes','Yes'],['sometimes','Sometimes'],['no','No']];
+      if (val && !opts.some(o => o[0] === val)) opts.push([val, val]);
+      return '<select class="input" id="' + id + '">' + opts.map(o => '<option value="' + esc(o[0]) + '"' + ((val||'') === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select>';
+    };
+    h += '<div class="form-grid-2">';
+    h += '<div class="form-row"><label>School</label><input class="input" id="ed-school" value="' + esc(buf.school || '') + '" placeholder="e.g. 培养"></div>';
+    h += '<div class="form-row"><label>School class</label><input class="input" id="ed-school-class" value="' + esc(buf.school_class || '') + '" placeholder="e.g. 3H"></div>';
+    h += '</div>';
+    h += '<div class="form-grid-3">';
+    h += '<div class="form-row"><label>Transport (van)</label>' + svcSel('ed-transport', buf.transport) + '</div>';
+    h += '<div class="form-row"><label>Bath</label>' + svcSel('ed-bath', buf.bath) + '</div>';
+    h += '<div class="form-row"><label>Lunch</label>' + svcSel('ed-lunch', buf.lunch) + '</div>';
+    h += '</div>';
+
     h += '<div class="form-row"><label>Classes</label><div id="ed-memberships"></div>';
     h += '<button class="btn btn-sm" onclick="window.addMembership()" title="Register this student for a new class">+ Reg New</button></div>';
 
@@ -1948,6 +1964,7 @@ window.openStudent = function(id) {
         h += '<input type="text" placeholder="Which subject" style="width:120px" value="' + esc(r.subject_note || '') + '" oninput="window.updateOutside(' + i + ',\'subject_note\',this.value)">';
       }
       h += '<select onchange="window.updateOutside(' + i + ',\'day_of_week\',this.value)" style="width:80px">';
+      h += '<option value=""' + (r.day_of_week == null ? ' selected' : '') + '>Day?</option>';   /* v38 · 补习表有些没写星期几 */
       OUTSIDE_DAYS.forEach(o => { h += '<option value="' + o.v + '"' + (Number(r.day_of_week) === o.v ? ' selected' : '') + '>' + esc(o.l) + '</option>'; });
       h += '</select>';
       h += '<input type="time" style="width:100px" value="' + esc((r.from_time || '').slice(0,5)) + '" title="From" oninput="window.updateOutside(' + i + ',\'from_time\',this.value)">';
@@ -1974,7 +1991,7 @@ window.openStudent = function(id) {
   window.updateOutside = function(idx, field, val) {
     const r = (buf.outside || [])[idx];
     if (!r) return;
-    if (field === 'day_of_week') r[field] = Number(val);
+    if (field === 'day_of_week') r[field] = val ? Number(val) : null;
     else if (field === 'from_time' || field === 'to_time') r[field] = val || null;
     else r[field] = val;
     if (field === 'subject') renderOutside();
@@ -2463,6 +2480,10 @@ window.openStudent = function(id) {
     buf.status_note = noteEl ? noteEl.value.trim() : (buf.status_note || '');
     if (buf.flags) delete buf.flags;
     buf.notes = document.getElementById('ed-notes').value;
+    /* v38 */
+    const _v = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+    buf.school = _v('ed-school').trim(); buf.school_class = _v('ed-school-class').trim().toUpperCase();
+    buf.transport = _v('ed-transport'); buf.bath = _v('ed-bath'); buf.lunch = _v('ed-lunch');
   }
   async function commitStudent() {
     if (!document.body.contains(overlay)) return;
@@ -2785,7 +2806,9 @@ const Store = {
         id: r.id, name: r.name||'', name_cn: r.name_cn||'',
         gender: r.gender||null, birth_year: r.birth_year||null,
         status: r.status||'Active', status_note: r.status_note||'',
-        notes: r.notes||'', memberships: memMap[r.id]||[], memberships_history: histMap[r.id]||[]
+        notes: r.notes||'', memberships: memMap[r.id]||[], memberships_history: histMap[r.id]||[],
+        /* v38 · 学校与服务（ATC 资料表 10-05 起） */
+        school: r.school||'', school_class: r.school_class||'', transport: r.transport||'', bath: r.bath||'', lunch: r.lunch||''
       }));
       /* v27 · 班级清单与班名只从云端 hub_classes 来（全平台唯一来源），不再用本机快取。
          读班级失败不影响学生资料：班名照原代号显示，清单只剩有人的班。 */
@@ -2849,7 +2872,9 @@ const Store = {
       id: s.id, name: s.name||'', name_cn: s.name_cn||'',
       gender: s.gender||null, birth_year: s.birth_year||null,
       status: s.status||'Active', status_note: s.status_note||'',
-      notes: s.notes||''
+      notes: s.notes||'',
+      school: (s.school||'').trim()||null, school_class: (s.school_class||'').trim()||null,   /* v38 */
+      transport: s.transport||null, bath: s.bath||null, lunch: s.lunch||null
     }));
     // Write memberships — active + history, preserving start_date/end_date
     const memRows = [];

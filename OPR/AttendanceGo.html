@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v15</title>
+<title>OPR-AttendanceGo v16</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v15</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v16</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -201,7 +201,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
       <div style="margin-bottom:10px">
         <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px">Type</label>
         <select id="rm-type" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--bdr);font-size:13px;font-family:inherit">
-          <option value="absent">Absent</option><option value="early_leave">Early Leave</option>
+          <option value="absent">Absent</option><option value="early_leave">Early Leave</option><option value="late">Late</option>
         </select>
       </div>
       <div style="margin-bottom:10px">
@@ -247,7 +247,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=15;
+const APP_VERSION=16;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -308,7 +308,7 @@ async function initApp(){
   try{
     const[stuRes, memRes, calRes]=await Promise.all([
       _sb.from('hub_students').select('id,name,name_cn,status,status_note'),
-      _sb.from('hub_student_memberships').select('student_id,dept,class_code,num,start_date,end_date'),
+      _sb.from('hub_student_memberships').select('student_id,dept,class_code,num,start_date,end_date,pause_from,pause_to'),   /* v16 · 带请假起讫日 */
       _sb.from('calendar_events').select('type,name,start_date,end_date,depts')
     ]);
     /* v12 · 以前只收 active，行政把学生设成请假 → 那个孩子整个从点名名册消失，老师点不到他。
@@ -414,7 +414,8 @@ function getClassStudents(dept,classCode){
   return Object.keys(_pick).map(function(k){ return _pick[k]; }).map(m=>{
     const stu=allStudents.find(s=>s.id===m.student_id);
     if(!stu) return null;
-    return{...stu,num:m.num,dept,class_code:classCode};
+    /* v16 · 这一班、这一天是不是请假中（学生页课程那一行的 Pause 起讫日） */
+    return{...stu,num:m.num,dept,class_code:classCode,_paused:memPausedOn(m,selectedDate),_pauseFrom:m.pause_from||null,_pauseTo:m.pause_to||null};
   }).filter(Boolean).sort((a,b)=>(a.num??999)-(b.num??999));
 }
 
@@ -426,12 +427,29 @@ function getClassStudents(dept,classCode){
    hub_students.status 只说「现在是不是请假」，没有请假的起讫日，
    所以「请假期间」只能用「现在是请假 ＋ 那一格没人点」来近似。
    要真正按期间排除，得先有带日期的请假栏位 —— 那是 SSOT 的事，未做。 */
-function isPausedStu(s){ return String((s&&s.status)||'').toLowerCase()==='paused'; }
+/* v16 · 学生页 v35 起，请假记在「课程那一行」，有开始日（必填）和回来日（可空）。
+   现在按日期判断：那一班、那一天在请假期间才算请假。回来日那天起就恢复正常。 */
+/* v16 · 固定例外三种：迟到 / 早退 / 缺席（ATC 资料表 10-05 导入有「迟到」） */
+function ruleLabel(t){ return t==='early_leave'?'EARLY':(t==='late'?'LATE':'ABS'); }
+function memPausedOn(m,d){ return !!(m&&m.pause_from&&m.pause_from<=d&&(!m.pause_to||m.pause_to>d)); }
+function isPausedStu(s){
+  if(!s) return false;
+  if('_paused' in s) return !!s._paused;   /* 点名名册：看这一班、这一天 */
+  /* 首页总数：这个学生那天在上的班全部请假中，才不算进分母 */
+  const live=allMemberships.filter(m=>m.student_id===s.id&&m.start_date<=selectedDate&&(m.end_date==null||m.end_date>selectedDate)&&!String(m.class_code||'').includes('RSVP'));
+  if(live.length) return live.every(m=>memPausedOn(m,selectedDate));
+  return String(s.status||'').toLowerCase()==='paused';
+}
+function pauseText(s){
+  if(s&&s._pauseTo) return 'back on '+s._pauseTo;
+  if(s&&'_paused' in s&&s._paused) return 'return date not set';
+  return String((s&&s.status_note)||'').trim();
+}
 function _escHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 /* 灰底小标签：「请假中 · 几时回来」。说明取自 status_note（学生页写的） */
 function pausedTag(s){
   if(!isPausedStu(s)) return '';
-  const note=String((s&&s.status_note)||'').trim();
+  const note=pauseText(s);   /* v16 */
   /* 标签本身保持短 —— 手机上一行放不下长备注（375px 会把整列撑出画面）。
      完整备注放 tooltip，点名列另外用下面那行小字显示。 */
   return '<span class="stu-paused" title="'+_escHtml(note||'On leave (paused)')+'">On leave</span>';
@@ -439,7 +457,7 @@ function pausedTag(s){
 /* 「几时回来」独立一行小字，照这个档既有的缺席备注做法 */
 function pausedNote(s){
   if(!isPausedStu(s)) return '';
-  const note=String((s&&s.status_note)||'').trim();
+  const note=pauseText(s);   /* v16 */
   return note ? '<div style="font-size:9px;color:var(--mut);margin-top:2px">On leave · '+_escHtml(note)+'</div>' : '';
 }
 /* 该不该算进「还没点名」的分母：请假的不算 —— 除非今天真的已经有人帮他点了。
@@ -996,7 +1014,7 @@ function renderMark(){
       const note=rec?.note||'';
       const rule=getRule(s.id,currentDept,_dayOfWeek,currentSession);
       const ruleStyle=rule&&active===''?'background:rgba(0,0,0,.04);opacity:.6':'';
-      const ruleTag=rule&&active===''?`<span style="font-size:9px;color:var(--mut);margin-left:6px" title="${rule.reason||''}">${rule.rule_type==='early_leave'?'EARLY':'ABS'}${rule.reason?' \u00b7 '+rule.reason:''}</span>`:'';
+      const ruleTag=rule&&active===''?`<span style="font-size:9px;color:var(--mut);margin-left:6px" title="${rule.reason||''}">${ruleLabel(rule.rule_type)}${rule.reason?' \u00b7 '+rule.reason:''}</span>`:'';
       const mem=allMemberships.find(m=>m.student_id===s.id&&m.dept===currentDept&&m.class_code===code);
       const isTransferDay=mem&&mem.end_date===selectedDate;
       const transferTo=isTransferDay?getTransferTarget(s.id,currentDept,mem.end_date):null;
@@ -1239,7 +1257,8 @@ async function renderMonthly(){
     const mem=s.mem;
     const transferred=mem.end_date!=null;
     const transferTarget=transferred?getTransferTarget(s.id,monthlyDept,mem.end_date):null;
-    const nameLabel=s.name+pausedTag(s)+(transferred?' <span style="font-size:9px;color:var(--hint)">↗ '+( transferTarget?transferTarget.class_code:'Moved')+'</span>':'');
+    const pzMonth=mem.pause_from&&mem.pause_from<=monthEnd&&(!mem.pause_to||mem.pause_to>monthStart);   /* v16 */
+    const nameLabel=s.name+(pzMonth?'<span class="stu-paused" title="Paused from '+_escHtml(mem.pause_from)+(mem.pause_to?' · back on '+_escHtml(mem.pause_to):'')+'">On leave</span>':'')+(transferred?' <span style="font-size:9px;color:var(--hint)">↗ '+( transferTarget?transferTarget.class_code:'Moved')+'</span>':'');
     h+=`<tr><td style="padding:6px 8px;border-bottom:.5px solid var(--bdr);white-space:nowrap;position:sticky;left:0;background:var(--sur);z-index:1;font-size:11px">${nameLabel}</td>`;
     for(let d=1;d<=daysInMonth;d++){
       const dayStr=monthlyMonth+'-'+String(d).padStart(2,'0');
@@ -1270,7 +1289,9 @@ async function renderMonthly(){
         h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f5f5f5;color:var(--hint);font-size:9px">–</td>`;
       }else{
         const r=(recMap[s.id]||{})[d];
-        if(r){
+        if(!r&&memPausedOn(mem,dayStr)){   /* v16 · 请假期间没点 → 灰色 L，不算缺席 */
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:9px" title="On leave">L</td>`;
+        }else if(r){
           const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]||'·';
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'}" title="${r.note||r.status}">${display}</td>`;
         }else{
@@ -1746,9 +1767,9 @@ function renderRulesPage(){
           sessions.forEach(sess=>{
             const rule=activeRules.find(r=>r.day_of_week===day&&(r.session===sess||r.session===0));
             if(rule){
-              const bg=rule.rule_type==='early_leave'?'#FFF3E0':'#F5F5F5';
-              const label=rule.rule_type==='early_leave'?'EARLY':'ABS';
-              const color=rule.rule_type==='early_leave'?'#E65100':'#999';
+              const bg=rule.rule_type==='early_leave'?'#FFF3E0':(rule.rule_type==='late'?'#FFF8E1':'#F5F5F5');
+              const label=ruleLabel(rule.rule_type);
+              const color=rule.rule_type==='early_leave'?'#E65100':(rule.rule_type==='late'?'#854F0B':'#999');
               h+=`<td style="text-align:center;padding:6px;cursor:pointer;background:${bg};border-radius:4px" onclick="rulesEditCell('${rule.id}','${s.name}','${dayNames[day]}')">
                 <div style="font-size:11px;font-weight:700;color:${color}">${label}</div>
                 ${rule.reason?'<div style="font-size:9px;color:var(--mut);margin-top:1px">'+rule.reason+'</div>':''}
@@ -1774,7 +1795,7 @@ function renderRulesPage(){
             const sessText=isATC?(sessLabel[r.session]||'All'):'';
             const isActive=r.is_active&&(!r.end_date||r.end_date>_today);
             h+=`<div style="font-size:10px;color:${isActive?'var(--txt)':'var(--hint)'};padding:4px 0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.04)">
-              <span>${isActive?'🟢':'⚪'} ${dayNames[r.day_of_week]}${sessText?' · '+sessText:''} · ${r.rule_type==='early_leave'?'Early':'Abs'}${r.reason?' · '+r.reason:''}</span>
+              <span>${isActive?'🟢':'⚪'} ${dayNames[r.day_of_week]}${sessText?' · '+sessText:''} · ${{early_leave:'Early',late:'Late',absent:'Abs'}[r.rule_type]||r.rule_type}${r.reason?' · '+r.reason:''}</span>
               <span style="display:flex;align-items:center;gap:6px">
                 <span>${r.start_date} → ${r.end_date||'ongoing'}</span>
                 <button onclick="editHistoryRule('${r.id}')" style="background:var(--warn);color:#fff;border:none;border-radius:4px;padding:1px 6px;font-size:9px;cursor:pointer">✎</button>

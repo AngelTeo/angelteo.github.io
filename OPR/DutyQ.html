@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DutyQ v1</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+:root{
+  /* ══ LAYER ══ OPR */
+  --layer:#8B6C2A;
+  /* ══ 部门色 (永不改) ══ */
+  --d-srk:#C45C5C; --d-gak:#E8A04E; --d-atc:#7AB05A; --d-srt:#8B6CAE;
+  /* ══ 中性色 ══ */
+  --sur:#ffffff; --sur2:#f7f6f2; --bdr:#e0ddd6;
+  --txt:#1a1a1a; --mut:#888888; --hint:#bbbbbb;
+  /* ══ 语义色 ══ */
+  --ok:#0F6E56; --warn:#854F0B; --danger:#A32D2D; --info:#236FAD;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--sur2);color:var(--txt);font-size:13px;line-height:1.4}
+
+/* ══════ NAV (TOPBAR) ══════ */
+.nav{background:var(--layer);border-bottom:.5px solid rgba(0,0,0,.2);display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:50;overflow-x:auto;gap:0;min-height:56px}
+.nav-home{background:none;border:none;color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;min-width:44px;min-height:44px;padding:0 10px 0 0;flex-shrink:0}
+.nav-home:hover{color:#fff}
+.nav-logo{font-size:13px;font-weight:600;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.2);margin-right:4px;white-space:nowrap;flex-shrink:0;color:#fff}
+.ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
+.ntab{padding:0 14px;min-height:56px;font-size:12px;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:transparent;border-bottom:2.5px solid transparent;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.ntab:hover{color:#fff}
+.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.nav-r{margin-left:auto;display:flex;gap:6px;align-items:center;padding-left:24px;flex-shrink:0}
+.saved{font-size:10px;color:rgba(255,255,255,.6);white-space:nowrap}
+.btn-nav{min-height:44px;padding:0 12px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;display:inline-flex;align-items:center}
+.btn-nav:hover{opacity:.85}
+.sync{min-height:44px;padding:0 14px;border-radius:22px;border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:11px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sync .d{width:8px;height:8px;border-radius:50%;background:#7fd6b7}
+.sync.busy .d{background:#F9CB42}.sync.err .d{background:#ff8d8d}
+
+/* ══════ PAGES ══════ */
+.page{display:none;padding:16px;max-width:1200px;margin:0 auto}
+.page.on{display:block}
+.page.wide{max-width:none}
+
+/* ══════ BUTTONS ══════ */
+.btn{min-height:36px;padding:0 12px;border-radius:6px;border:.5px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--sur2)}
+.btn-pri{background:var(--layer);color:#fff;border-color:var(--layer);font-weight:600}
+.btn-pri:hover{opacity:.85}
+.btn-dng{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn-sm{min-height:28px;padding:0 8px;font-size:11px}
+
+/* ══════ CARDS ══════ */
+.card{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;padding:16px;margin-bottom:12px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:11px;font-weight:500;color:var(--mut);letter-spacing:.05em;text-transform:uppercase}
+
+/* ══════ TOOLBAR / PILLS ══════ */
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.dept-row{display:flex;gap:4px;flex-wrap:wrap}
+.dept-tag{min-height:36px;padding:0 14px;border-radius:18px;border:.5px solid var(--bdr);cursor:pointer;font-size:12px;background:var(--sur);color:var(--mut);font-family:inherit}
+.dept-tag:hover{border-color:var(--layer);color:var(--layer)}
+.dept-tag.on{background:var(--layer);border-color:var(--layer);color:#fff;font-weight:600}
+.dept-tag:disabled{opacity:.45;cursor:not-allowed}
+.pills{display:inline-flex;border:.5px solid var(--bdr);border-radius:8px;overflow:hidden;background:var(--sur2)}
+.pill{min-height:36px;padding:0 14px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--mut);font-family:inherit}
+.pill.on{background:var(--layer);color:#fff;font-weight:600}
+
+/* ══════ ALERT / CHIP / BADGE ══════ */
+.alert{padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+.alert-info{background:#E8F0F7;color:#236FAD;border-left:3px solid #236FAD}
+.alert-warn{background:#FFF3CD;color:var(--warn);border-left:3px solid var(--warn)}
+.alert-danger{background:#FCEBEB;color:var(--danger);border-left:3px solid var(--danger)}
+.alert-ok{background:#E1F5EE;color:var(--ok);border-left:3px solid var(--ok)}
+.chip{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:500;margin:2px}
+.chip-muted{background:var(--sur2);color:var(--mut)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-srt{background:rgba(139,108,174,.12);color:var(--d-srt)}
+.progress{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;margin:6px 0 0}
+.progress-fill{height:100%;border-radius:3px;background:var(--layer)}
+
+/* ══════ ACCORDION ══════ */
+.acc{border:.5px solid var(--bdr);border-radius:8px;margin-bottom:8px;overflow:hidden;background:var(--sur)}
+.acc-hdr{padding:10px 12px;font-size:12px;font-weight:600;cursor:pointer;user-select:none}
+.acc-hdr .row1{display:flex;align-items:center;gap:8px}
+.acc-hdr .cnt{margin-left:auto;font-size:11px;color:var(--mut);font-weight:500}
+.acc-arrow{font-size:10px;color:var(--mut);transition:transform .2s}
+.acc.open .acc-arrow{transform:rotate(90deg)}
+.acc-body{display:none;padding:10px 12px;border-top:.5px solid var(--bdr)}
+.acc.open .acc-body{display:block}
+.acc.done .acc-hdr{color:var(--mut);background:var(--sur2)}
+
+/* ══════ MODAL / TOAST ══════ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--sur);border-radius:10px;width:560px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.modal-hdr{padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center}
+.modal-title{font-size:14px;font-weight:600;flex:1}
+.modal-body{padding:16px 20px}
+.modal-foot{padding:12px 20px;border-top:.5px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px}
+.x-btn{background:none;border:none;font-size:20px;color:var(--mut);cursor:pointer;min-width:44px;min-height:44px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--txt);color:#fff;padding:8px 16px;border-radius:6px;font-size:12px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1}
+.form-label{font-size:11px;color:var(--mut);display:block;margin-bottom:4px}
+input[type=text],select{border:.5px solid var(--bdr);border-radius:6px;padding:8px 10px;font-size:12px;font-family:inherit;background:var(--sur);color:var(--txt);min-height:36px}
+input:focus,select:focus{outline:none;border-color:var(--layer)}
+.empty{text-align:center;padding:30px 16px;color:var(--hint);font-size:12px}
+.tip{font-size:11px;color:var(--mut);margin:6px 0}
+.tip a{color:var(--layer);font-weight:600}
+
+/* ══════ ARRANGE LAYOUT ══════ */
+.arr{display:flex;gap:12px;align-items:flex-start}
+.side{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;position:sticky;top:68px;max-height:calc(100vh - 80px);overflow-y:auto}
+.rside{width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;position:sticky;top:68px}
+.center{flex:1;min-width:0}
+.src{font-size:10px;background:#E8F0F7;color:var(--info);border-radius:10px;padding:2px 8px;font-weight:600}
+
+/* student chips in the class list */
+.pool{display:flex;flex-wrap:wrap;gap:5px;min-height:24px}
+.stu{display:inline-flex;align-items:center;gap:5px;border:1px solid #B5B0A5;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;background:#fff;cursor:grab;user-select:none;touch-action:none}
+.stu.placed{background:#EFEDE8;color:#9E9A91;border-color:#D8D4CB;cursor:default}
+.stu.ex{background:#E6E3DC;color:#A9A59C;border-style:dashed;cursor:not-allowed}
+.stu .q{display:inline-flex;min-width:16px;height:16px;border-radius:8px;background:#9E9A91;color:#fff;font-size:10px;align-items:center;justify-content:center;padding:0 3px}
+.w-hand{background:#F9E08B!important;border-color:#C9A227!important}
+.w-self{background:#A8DDD5!important;border-color:#3F8F85!important}
+
+/* teacher chips */
+.tgrid{display:flex;flex-wrap:wrap;gap:6px}
+.tch{display:inline-flex;flex-direction:column;border:1px solid var(--layer);background:#F3ECDD;border-radius:8px;padding:5px 9px;cursor:grab;user-select:none;touch-action:none;min-width:48px}
+.tch b{font-size:12px}.tch small{font-size:10px;color:#5C4718;font-weight:600}
+.tch.off{background:#fff;border-style:dashed;border-color:#C9C4B8}.tch.off small{color:var(--mut);font-weight:400}
+.tch.used{background:#EFEDE8;border-color:#D8D4CB}.tch.used b,.tch.used small{color:#9E9A91}
+.tch .q{display:inline-flex;margin-left:4px;min-width:15px;height:15px;border-radius:8px;background:#9E9A91;color:#fff;font-size:9px;align-items:center;justify-content:center;padding:0 3px}
+
+/* ══════ FLOOR PLAN ══════ */
+.planbar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.planwrap{overflow:auto;border:.5px solid var(--bdr);border-radius:10px;background:#EFEDE8;max-height:calc(100vh - 150px)}
+.plan-scale{position:relative}
+.plan{position:absolute}
+.room{position:absolute;border:2px solid #1E1E1C;border-radius:8px;background:#FAFAF8;overflow:hidden}
+.room.has{border-color:var(--layer)}
+.room .rh{background:#1E1E1C;color:#fff;font-size:15px;font-weight:600;padding:0 8px;height:34px;display:flex;align-items:center;justify-content:center;gap:8px;position:relative}
+.room .rh .add{position:absolute;right:6px;top:4px;height:26px;font-size:11px;font-weight:600;color:#1E1E1C;background:#F9CB42;border:none;border-radius:13px;padding:0 10px;cursor:pointer;font-family:inherit}
+.room.walkway{background:#FFF6DC;border-color:#C0452A}
+.room.walkway .rh{background:#C0452A}
+.room.structure{background:#CFCBC3;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:#55524B}
+.gap{position:absolute;left:0;right:0;background:#EFEDE8}
+.line{position:absolute;z-index:2;display:flex;border:2px dashed var(--layer);border-radius:8px;background:rgba(255,253,246,.95)}
+.line.wide{z-index:3;box-shadow:0 2px 10px rgba(0,0,0,.18);background:#FFFDF6}
+.line .lh{display:flex;gap:6px;align-items:center;padding:4px 6px;background:#F3ECDD;flex-shrink:0;flex-wrap:wrap}
+.line.v .lh{border-radius:6px 6px 0 0}
+.line.h .lh{flex-direction:column;justify-content:center;width:86px;align-items:flex-start}
+.line button.no{border:0;cursor:pointer;padding:0;font-family:inherit}.line button.no:hover{outline:2px solid #F2C14E}
+.line .no{width:24px;height:24px;border-radius:50%;background:var(--layer);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.line .ll{font-size:13px;font-weight:700;color:#5C4718}
+.line .lc{font-size:11px;color:var(--mut)}
+.line .lmenu{border:none;background:transparent;cursor:pointer;font-size:16px;min-width:28px;min-height:28px;color:#5C4718}
+.tslot{display:flex;gap:4px;flex-wrap:wrap;min-height:26px;min-width:60px;border:1px dashed var(--layer);border-radius:6px;padding:2px 4px;align-items:center}
+.tslot:empty::before{content:'+ Teacher';font-size:10px;color:var(--mut)}
+.tpin{display:inline-flex;align-items:center;gap:3px;background:#fff;border:1px solid var(--layer);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.tpin button{border:none;background:none;cursor:pointer;color:var(--mut);font-size:12px;padding:0}
+.lb{flex:1;display:flex;gap:4px;padding:6px;min-width:0;min-height:0;overflow:auto;align-items:stretch}
+.line.d-down .lb{flex-direction:column}.line.d-up .lb{flex-direction:column-reverse}
+.line.d-right .lb{flex-direction:row}.line.d-left .lb{flex-direction:row-reverse}
+.line.d-down{flex-direction:column}.line.d-up{flex-direction:column-reverse}
+.line.d-right{flex-direction:row}.line.d-left{flex-direction:row-reverse}
+.line.d-up .lh{border-radius:0 0 6px 6px}
+.card-s{border:1.5px solid #B5B0A5;border-radius:6px;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:grab;user-select:none;touch-action:none;position:relative;flex-shrink:0}
+.card-s i{font-style:normal;background:#1E1E1C;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;flex-shrink:0}
+.card-s .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line.v .card-s{font-size:12px;padding:3px 6px;gap:5px}
+.line.v .card-s .nm{white-space:normal;line-height:1.15;flex:1;min-width:0}
+.fold-hdr{cursor:pointer;margin-bottom:0;gap:8px;user-select:none}
+.fold-hdr .acc-arrow{transition:transform .15s;font-size:11px;color:var(--mut)}
+.fold.open .fold-hdr .acc-arrow{transform:rotate(90deg)}
+.fold-sum{font-size:12px;color:var(--mut);margin-right:auto}
+.fold .fold-body{display:none}.fold.open .fold-body{display:block}
+.card-s.tmark{background:var(--layer);border-color:var(--layer);color:#fff;justify-content:center}
+.card-s.tmark .nm{white-space:nowrap}
+.pr.tmark{background:#EFE6D2!important;font-weight:700}
+.card-s .wd{width:14px;height:14px;border-radius:50%;border:1.5px solid #8A867C;flex-shrink:0;cursor:pointer;background:#fff}
+.card-s .rm{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:9px;border:none;background:#1E1E1C;color:#fff;font-size:11px;line-height:18px;display:none;cursor:pointer;padding:0}
+.card-s:hover .rm{display:block}
+.line.h .card-s{writing-mode:vertical-rl;padding:6px 3px;font-size:12px;height:100%}
+.line.h .card-s i{writing-mode:horizontal-tb}
+.line.h .card-s .rm{writing-mode:horizontal-tb}
+.tail{color:#C0452A;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:2px}
+.drop-hint{border:1px dashed #B5B0A5;border-radius:6px;color:#8A867C;font-size:11px;display:flex;align-items:center;justify-content:center;padding:6px;flex-shrink:0}
+.sortable-ghost{opacity:.35}
+.sortable-chosen{box-shadow:0 2px 8px rgba(0,0,0,.2)}
+
+/* right panel */
+.ord{display:flex;align-items:center;gap:8px;padding:8px;border:.5px solid var(--bdr);border-radius:8px;background:var(--sur2);cursor:grab;margin-bottom:6px;touch-action:none}
+.ord .g{color:var(--mut)}.ord .t{display:flex;flex-direction:column}.ord small{color:var(--mut);font-size:11px}
+.legend div{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px}
+.sw{display:inline-block;width:20px;height:13px;border:1px solid}
+
+/* ══════ PRINT PAGE ══════ */
+.sheet{background:#fff;border:.5px solid var(--bdr);border-radius:10px;padding:24px;max-width:1000px;margin:0 auto}
+.sheet h2{margin:0;font-size:22px}
+.sheet .meta{color:var(--mut);font-size:12px;margin:4px 0 14px}
+.pord{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pord div{border:1.5px solid #1E1E1C;border-radius:8px;padding:6px 10px;display:flex;gap:8px;align-items:center}
+.pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pc{border:1.5px solid #1E1E1C;border-radius:8px;overflow:hidden;break-inside:avoid}
+.pc>b{display:flex;justify-content:space-between;gap:6px;background:#1E1E1C;color:#fff;padding:6px 10px;font-size:13px}
+.pr{display:flex;gap:8px;align-items:center;padding:5px 10px;border-top:1px solid #D8D3C7;font-size:12px}
+.pr i{font-style:normal;color:var(--mut);width:18px;text-align:right}.pr span{flex:1}
+.sheet .plan-print{border:.5px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:14px;background:#EFEDE8;height:var(--sh);width:var(--sw)}
+.sheet .plan-print>div{transform:scale(var(--ss));transform-origin:0 0}
+.print-only{display:none}
+.pfoot{margin-top:14px;font-size:10px;color:var(--mut);display:flex;justify-content:space-between}
+
+@media(max-width:900px){.arr{flex-direction:column;align-items:stretch}.side,.rside{width:100%;position:static;max-height:none}}
+@media print{
+  @page{margin:10mm;size:A4 portrait}
+  .nav,.toolbar,.btn,.toast,.no-print{display:none!important}
+  body{background:#fff;font-size:11pt}
+  .page{display:none!important;padding:0}
+  #page-print{display:block!important}
+  .sheet{border:none;padding:0;max-width:none}
+  .pr.w-hand,.pr.w-self,.card-s{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pc>b{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  /* 第一张：平面图（放到整页）；第二张起：队伍名单 */
+  .sheet .p1{break-after:page;page-break-after:always}
+  .sheet .plan-print{height:var(--ph);width:var(--pw);margin:0 auto}
+  .sheet .plan-print>div{transform:scale(var(--ps))}
+  .sheet .p1 .pord{margin-bottom:8px}
+  .print-only{display:block}
+  /* 名单页：紧凑一点，一张纸放得下更多队伍 */
+  .pgrid{gap:6px}
+  .pc>b{padding:4px 8px;font-size:11px}
+  .pr{padding:2px 8px;font-size:10px;gap:6px}
+  .pr span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pr small{font-size:8px}
+  .room,.line,.card-s,.room .rh,.room.structure,.room.walkway{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════ NAV (TOPBAR) ══════ -->
+<div class="nav" id="nav">
+  <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
+  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v1</span></div>
+  <button class="ntab on" data-p="arrange" onclick="goPage('arrange')">Arrange</button>
+  <button class="ntab" data-p="print" onclick="goPage('print')">Print</button>
+  <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')">Manage</button>
+  <div class="nav-r">
+    <span class="saved" id="last-saved"></span>
+    <button class="sync" id="sync" onclick="goPage('manage')"><span class="d"></span><span id="sync-t">Connecting…</span></button>
+    <button class="btn-nav" onclick="exportData()">↓ Export</button>
+    <label class="btn-nav" style="cursor:pointer" id="import-btn">↑ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+  </div>
+</div>
+
+<div id="gate" class="page on"><div class="loading" style="text-align:center;padding:60px;color:var(--mut)">Loading…</div></div>
+
+<!-- ══════ PAGE: ARRANGE ══════ -->
+<div class="page wide" id="page-arrange">
+  <div id="arr-alert"></div>
+  <div class="toolbar">
+    <div class="dept-row" id="dept-row"></div>
+    <div class="pills" id="sess-row"></div>
+    <span class="tip" id="sess-time" style="margin:0"></span>
+  </div>
+  <div class="arr">
+    <div class="side">
+      <div class="card fold" id="fold-stu" style="margin:0">
+        <div class="card-hdr fold-hdr" onclick="togglePanel('stu')"><span class="acc-arrow">▶</span><b style="font-size:14px">Students</b><span class="fold-sum" id="sum-stu"></span><span class="src">Student SSOT</span></div>
+        <div class="fold-body">
+        <label class="tip" style="display:flex;gap:6px;align-items:center;margin:6px 0 8px"><input type="checkbox" id="hide-placed" onchange="S.ui.hidePlaced=this.checked;renderPools()"> Hide students already in a line</label>
+        <div id="pools"></div>
+        </div>
+      </div>
+      <div class="card fold" id="fold-tch" style="margin:0">
+        <div class="card-hdr fold-hdr" onclick="togglePanel('tch')"><span class="acc-arrow">▶</span><b style="font-size:14px">Teachers</b><span class="fold-sum" id="sum-tch"></span><span class="src">Teacher SSOT + ClassGo</span></div>
+        <div class="fold-body">
+        <div class="tip" id="duty-note" style="margin:6px 0 8px"></div>
+        <div class="tgrid" id="teachers"></div>
+        </div>
+      </div>
+    </div>
+    <div class="center">
+      <div class="planbar">
+        <div class="pills" id="floor-row"></div>
+        <div class="pills">
+          <button class="pill" onclick="zoom(-1)" title="Zoom out">−</button>
+          <button class="pill" onclick="zoom(0)">Fit</button>
+          <button class="pill" onclick="zoom(1)" title="Zoom in">＋</button>
+        </div>
+      </div>
+      <div class="planwrap" id="planwrap"><div class="plan-scale" id="plan-scale"><div class="plan" id="plan"></div></div></div>
+    </div>
+    <div class="rside">
+      <div class="card" style="margin:0">
+        <div class="card-hdr" style="margin-bottom:6px"><b style="font-size:14px">Release order · <span id="order-floor"></span></b></div>
+        <div class="tip" style="margin:0 0 8px">Each floor starts from 1. Drag here, or tap a line’s number on the plan.</div>
+        <div id="order"></div>
+      </div>
+      <div class="card" style="margin:0" id="notready"></div>
+      <div class="card legend" style="margin:0">
+        <div><span class="sw" style="background:#F9E08B;border-color:#C9A227"></span>Hold teacher’s hand</div>
+        <div><span class="sw" style="background:#A8DDD5;border-color:#3F8F85"></span>Walks on own</div>
+        <div><span class="sw" style="background:#fff;border-color:#B5B0A5"></span>Not set — tap the dot</div>
+        <div><span class="no" style="width:20px;height:20px;border-radius:50%;background:var(--layer);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">1</span>Front of the line</div>
+        <div><span style="color:#C0452A;font-weight:900;width:20px;text-align:center">↓</span>Back of the line</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ PAGE: PRINT ══════ -->
+<div class="page" id="page-print">
+  <div class="toolbar no-print">
+    <div class="pills" id="print-floor"></div>
+    <button class="btn btn-pri" onclick="window.print()">Print</button>
+    <span class="tip" style="margin:0">A4 portrait. One sheet per floor.</span>
+  </div>
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<!-- ══════ PAGE: MANAGE ══════ -->
+<div class="page" id="page-manage">
+  <div class="card"><div class="card-hdr"><span class="card-title">① My access</span></div><div id="mg-me" style="font-size:12px;line-height:2"></div></div>
+  <div class="card"><div class="card-hdr"><span class="card-title">② System info</span></div><div id="mg-sys" style="font-size:12px;line-height:2"></div></div>
+  <div class="card"><div class="card-hdr"><span class="card-title">③ Cloud connection</span></div><div id="mg-cloud" style="font-size:12px;line-height:2"></div></div>
+  <div class="card"><div class="card-hdr"><span class="card-title">④ Sessions &amp; entrance gaps</span></div><div id="mg-data"></div></div>
+  <div class="card"><div class="card-hdr"><span class="card-title">⑤ Backup</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="exportData()">↓ Export JSON</button><button class="btn" onclick="exportCSV()">↓ Export CSV</button></div>
+    <div class="tip">Everything is saved to the cloud as you work. Export is only a copy for your records.</div>
+  </div>
+</div>
+
+<!-- ══════ MODAL ══════ -->
+<div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="modal-title"></span><button class="x-btn" onclick="closeModal()">×</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const APP_VERSION=1;
+const SYSTEM_CODE='OPR-DutyQ';
+const UI_KEY='dutyq_ui_v1';           // 只存画面偏好（部门、时段、楼层、缩放）；资料一律在云端
+const PLAN_W=2000, PLAN_H=2600;       // 平面图画布（Room SSOT 的位置是百分比）
+const DEPTS=['SRT','SRK','GAK'];
+/* ClassGo duty 位置的名字（照 ClassGo DOOR_ZONES；ClassGo 改名时这里要跟着改） */
+const ZONE_LABEL={ground_ctrl:'Ground Floor',srk_front_1:'SRK Front Walkway (1)',srk_front_2:'SRK Front Walkway (2)',bend_1:'Corner Walkway (1)',bend_2:'Corner Walkway (2)',
+  atc_front_1:'ATC Front Walkway (1)',atc_front_2:'ATC Front Walkway (2)',shoes:'Shoes Area',stairs_a1:'Stairs A - 1',stairs_a2:'Stairs A - 2',auto_gate:'Auto Gate',uturn:'U Turn',
+  recep_door:'Reception Door',hall:'Hall',floor_1:'1st Floor',floor_2:'2nd Floor'};
+const ARROW={up:'↑',down:'↓',left:'←',right:'→'};
+/* 拖拉：一律用 fallback（手指、平板、滑鼠都一样），拖的时候影子挂在 body 上，不会被捲动框切掉 */
+const SORT_OPTS={forceFallback:true,fallbackOnBody:true,fallbackTolerance:3,delayOnTouchOnly:true,delay:120};
+
+let S={
+  perm:{see:false,edit:false}, me:{email:''},
+  rooms:[], sessions:[], classFloor:{}, classes:[], students:{}, memberships:[], teachers:[], family:{}, familyPref:{}, walk:{}, gaps:{},
+  lines:[], members:[], duty:{},
+  ui:{dept:'SRT',session:null,floor:'1F',zoom:null,hidePlaced:false,showAll:false,open:{}},
+  ok:false, pending:0, lastSaved:null, loadError:''
+};
+try{ const u=JSON.parse(localStorage.getItem(UI_KEY)||'null'); if(u) S.ui=Object.assign(S.ui,u); }catch(e){}
+function saveUI(){ try{ localStorage.setItem(UI_KEY,JSON.stringify(S.ui)); }catch(e){} }
+
+/* ══ helpers ══ */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg,ms){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),ms||2000); }
+function today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function hhmm(d){ return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+function sess(){ return S.sessions.find(x=>x.code===S.ui.session)||null; }
+function canEdit(){ return S.ok && S.perm.edit; }
+/* 队伍中间的老师：存成一笔 member，student_id = 'T:老师缩写' */
+function isTch(id){ return String(id).startsWith('T:'); }
+function stuName(id){ if(isTch(id)) return String(id).slice(2); const s=S.students[id]; return s?(s.name||id):id; }
+function walkCls(id){ const w=S.walk[id]; return w==='hand'?'w-hand':w==='self'?'w-self':''; }
+
+/* ══ sync badge ══ */
+function setSync(){
+  const b=document.getElementById('sync'), t=document.getElementById('sync-t');
+  b.classList.remove('busy','err');
+  if(S.loadError){ b.classList.add('err'); t.textContent='Offline'; return; }
+  if(S.syncErr){ b.classList.add('err'); t.textContent='Save failed — tap'; return; }
+  if(S.pending>0){ b.classList.add('busy'); t.textContent='Saving…'; return; }
+  t.textContent='Synced';
+  if(S.lastSaved) document.getElementById('last-saved').textContent='Saved '+hhmm(S.lastSaved);
+}
+/* 写入一律排队、一次一笔，失败要看得见 */
+let _q=Promise.resolve();
+function write(label,fn){
+  if(!canEdit()){ toast('You can view only'); return Promise.resolve(false); }
+  S.pending++; setSync();
+  _q=_q.then(async()=>{
+    try{ const r=await fn(); if(r&&r.error) throw r.error; S.syncErr=null; S.lastSaved=new Date(); return true; }
+    catch(e){ console.error('[DutyQ] '+label,e); S.syncErr=e; toast('✕ Could not save ('+label+'). Nothing else was changed.',3500); return false; }
+    finally{ S.pending--; setSync(); }
+  });
+  return _q;
+}
+
+/* ══ auth + load ══ */
+async function boot(){
+  const {data:{session}}=await _sb.auth.getSession();
+  if(!session){ document.getElementById('gate').innerHTML='<div class="card" style="max-width:420px;margin:60px auto;text-align:center"><b style="font-size:15px">Please sign in on the Platform first</b><div class="tip">DutyQ uses your Academee Platform login.</div><button class="btn btn-pri" onclick="location.href=\'../index.html\'">← Go to Platform</button></div>'; setSyncText('Not signed in'); return; }
+  S.me.email=session.user.email||'';
+  const {data:perm,error:pe}=await _sb.rpc('can_access',{p_system:SYSTEM_CODE});
+  const p=(perm&&perm[0])||{};
+  S.perm={see:!!p.can_see,edit:!!p.can_edit};
+  if(pe||!S.perm.see){ document.getElementById('gate').innerHTML='<div class="card" style="max-width:420px;margin:60px auto;text-align:center"><div style="font-size:40px">🔒</div><b style="font-size:15px">No Access</b><div class="tip">You do not have permission to use DutyQ.</div><button class="btn btn-pri" onclick="location.href=\'../index.html\'">← Back to Platform</button></div>'; setSyncText('No access'); return; }
+  if(!S.perm.edit){ document.getElementById('import-btn').style.display='none'; }
+  await loadAll();
+}
+function setSyncText(t){ document.getElementById('sync-t').textContent=t; }
+
+async function loadAll(){
+  S.loadError='';
+  try{
+    const q=await Promise.all([
+      _sb.from('rooms').select('id,floor,status,kind,plan_x,plan_y,plan_w,plan_h'),
+      _sb.from('dutyq_session').select('*').eq('status','active').order('sort'),
+      _sb.from('hub_classes').select('id,code,dept,class_name,slot,status,sort_order'),
+      _sb.from('hub_student_memberships').select('student_id,class_id,dept,end_date,tier'),
+      _sb.from('hub_students').select('id,name,name_cn,status'),
+      _sb.from('teachers').select('id,name,status,resigned,centers'),
+      _sb.from('hub_student_family').select('student_id,family_id'),
+      _sb.from('dutyq_family_pref').select('family_id,mode'),
+      _sb.from('dutyq_walk').select('student_id,walk'),
+      _sb.from('dutyq_room_gap').select('room_id,gap_from,gap_to'),
+      _sb.from('dutyq_line').select('*').eq('status','active'),
+      _sb.from('dutyq_member').select('session_code,student_id,line_id,pos'),
+      _sb.from('dutyq_class_floor').select('session_code,class_id,floor')
+    ]);
+    const names=['Rooms','Sessions','Classes','Memberships','Students','Teachers','Siblings','Sibling choices','Walk flags','Entrance gaps','Lines','Line members','Class floors'];
+    q.forEach((r,i)=>{ if(r.error) throw new Error(names[i]+': '+r.error.message); });
+    const [rooms,ses,cls,mem,stu,tch,fam,fp,wk,gp,ln,mb,cf]=q.map(r=>r.data||[]);
+    /* 读到 0 笔就停：不画、不让改，避免拿空资料写回 */
+    if(!rooms.length) throw new Error('Rooms: 0 rows');
+    if(!ses.length) throw new Error('Sessions: 0 rows');
+    if(!cls.length||!stu.length||!mem.length) throw new Error('Students / classes: 0 rows');
+    S.rooms=rooms.filter(r=>(r.status||'active')==='active' && r.plan_x!=null);
+    S.sessions=ses; S.classes=cls.filter(c=>(c.status||'active')==='active');
+    S.students={}; stu.forEach(s=>{ const st=String(s.status||'').toLowerCase(); if(st==='active'||st==='paused') S.students[s.id]=s; });
+    const t=today(); S.memberships=mem.filter(m=>!m.end_date||m.end_date>=t);
+    S.teachers=tch.filter(x=>(x.status||'active')==='active' && !x.resigned);
+    S.family={}; fam.forEach(f=>{ S.family[f.student_id]=f.family_id; });
+    S.familyPref={}; fp.forEach(f=>{ S.familyPref[f.family_id]=f.mode; });
+    S.walk={}; wk.forEach(w=>{ S.walk[w.student_id]=w.walk; });
+    S.gaps={}; gp.forEach(g=>{ S.gaps[g.room_id]={from:+g.gap_from,to:+g.gap_to}; });
+    S.lines=ln; S.members=mb;
+    S.classFloor={}; cf.forEach(x=>{ (S.classFloor[x.session_code]=S.classFloor[x.session_code]||{})[x.class_id]=x.floor; });
+    S.ok=true;
+  }catch(e){
+    S.ok=false; S.loadError=String(e.message||e);
+  }
+  document.getElementById('gate').classList.remove('on');
+  if(!S.ui.session||!S.sessions.find(x=>x.code===S.ui.session)){ const f=S.sessions.find(x=>x.dept===S.ui.dept)||S.sessions[0]; S.ui.session=f?f.code:null; if(f) S.ui.dept=f.dept; }
+  await loadDuty();
+  setSync();
+  goPage(S.ui.page&&S.ui.page!=='gate'?S.ui.page:'arrange');
+}
+async function loadDuty(){
+  S.duty={}; const s=sess(); if(!s||!s.classgo_key) return;
+  const {data,error}=await _sb.rpc('dutyq_duty_positions',{p_key:s.classgo_key,p_slot:s.classgo_slot});
+  if(error){ console.warn('[DutyQ] duty positions',error); S.dutyErr=true; return; }
+  S.dutyErr=false; (data||[]).forEach(r=>{ (S.duty[r.teacher_id]=S.duty[r.teacher_id]||[]).push(r.zone); });
+}
+
+/* ══ derived data for the current session ══ */
+function sessClasses(){ const s=sess(); if(!s) return []; return S.classes.filter(c=>String(c.dept)===s.dept && (s.slot==='*'?!c.slot:c.slot===s.slot))   /* slot '*' = SRK / GAK 整个部门（班没有时段） */.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)); }
+/* 时段的排除规则：例如 SRK 中午（12:22）—— 有上 GAK 的学生下午才回家，不在这个时段排（Owner 01-10） */
+function sessExcluded(){ const s=sess(); const ex=new Map(); if(!s) return ex;
+  /* exclude_dept：有上这些部门的学生（例：SRK 中午排除 GAK）→ 标部门名 */
+  if(s.exclude_dept){ const deps=String(s.exclude_dept).split(',');
+    S.memberships.forEach(m=>{ const c=S.classes.find(c=>c.id===m.class_id); if(c&&deps.includes(String(c.dept))) ex.set(m.student_id,String(c.dept)); }); }
+  /* exclude_tier：本部门里某个 tier 的学生（例：GAK 下午排除 GAK300，3 点就回家）→ 标 部门+tier */
+  if(s.exclude_tier){ const tiers=String(s.exclude_tier).split(',');
+    S.memberships.forEach(m=>{ const c=S.classes.find(c=>c.id===m.class_id); if(c&&String(c.dept)===s.dept&&tiers.includes(String(m.tier||''))) ex.set(m.student_id,s.dept+m.tier); }); }
+  return ex; }
+function sessStudentsByClass(){
+  const out=[]; const seen=new Set(); const exSet=sessExcluded();
+  sessClasses().forEach(c=>{
+    const all=S.memberships.filter(m=>m.class_id===c.id && S.students[m.student_id]).map(m=>m.student_id).filter(id=>{ if(seen.has(id)) return false; seen.add(id); return true; });
+    all.sort((a,b)=>stuName(a).localeCompare(stuName(b)));
+    /* ids = 这个时段要排的；ex = 被排除的（例：有上 GAK 的，中午不回家）—— 灰色显示、不能拖 */
+    out.push({cls:c,ids:all.filter(id=>!exSet.has(id)),ex:all.filter(id=>exSet.has(id))});
+  });
+  return out;
+}
+function floorOf(clsId){ return (S.classFloor[S.ui.session]||{})[clsId]||null; }
+function floors(){ return [...new Set(S.rooms.map(r=>r.floor))].sort(); }
+function floorName(f){ return f==='1F'?'1st Floor':f==='2F'?'2nd Floor':f; }
+function classIdOf(sid){ const m=S.memberships.find(m=>m.student_id===sid && sessClasses().some(c=>c.id===m.class_id)); return m?m.class_id:null; }
+function lineFloor(l){ const r=S.rooms.find(r=>r.id===l.room_id); return r?r.floor:null; }
+function sessLines(){ return S.lines.filter(l=>l.session_code===S.ui.session && l.status==='active'); }
+function lineMembers(lid){ return S.members.filter(m=>m.line_id===lid).sort((a,b)=>a.pos-b.pos); }
+function memberOf(sid){ return S.members.find(m=>m.session_code===S.ui.session && m.student_id===sid)||null; }
+/* 放人顺序：每层楼各自从 1 号算 */
+function floorLines(f){ return sessLines().filter(l=>lineFloor(l)===f).sort((a,b)=>(a.release_order||0)-(b.release_order||0)||String(a.created_at).localeCompare(String(b.created_at))); }
+function releaseNo(lid){ const l=S.lines.find(x=>x.id===lid); if(!l) return 0; return floorLines(lineFloor(l)).findIndex(x=>x.id===lid)+1; }
+function releaseTag(lid){ const l=S.lines.find(x=>x.id===lid); const f=l&&lineFloor(l); return (f&&f!==S.ui.floor?f+'·':'')+releaseNo(lid); }
+function classOf(sid){ const s=sess(); const m=S.memberships.find(m=>m.student_id===sid && sessClasses().some(c=>c.id===m.class_id)); const c=m&&S.classes.find(c=>c.id===m.class_id); return c?c.class_name:''; }
+
+/* ══ pages ══ */
+function goPage(p){
+  if(p==='manage'&&!S.perm.see) p='arrange';
+  S.ui.page=p; saveUI();
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(el=>el.classList.toggle('on',el.dataset.p===p));
+  document.getElementById('page-'+p).classList.add('on');
+  if(p==='arrange') renderArrange();
+  if(p==='print') renderPrint();
+  if(p==='manage') renderManage();
+}
+
+/* ══ ARRANGE ══ */
+function renderArrange(){
+  const al=document.getElementById('arr-alert');
+  if(!S.ok){ al.innerHTML='<div class="alert alert-danger">✕ Could not load: '+esc(S.loadError)+'. Nothing was changed. Refresh to try again.</div>'; }
+  else if(!S.perm.edit){ al.innerHTML='<div class="alert alert-info">View only.</div>'; }
+  else al.innerHTML='';
+  document.getElementById('dept-row').innerHTML=DEPTS.map(d=>{ const has=S.sessions.some(s=>s.dept===d); return '<button class="dept-tag'+(S.ui.dept===d?' on':'')+'" '+(has?'':'disabled title="Coming soon"')+' onclick="setDept(\''+d+'\')">'+d+'</button>'; }).join('');
+  document.getElementById('sess-row').innerHTML=S.sessions.filter(s=>s.dept===S.ui.dept).map(s=>'<button class="pill'+(s.code===S.ui.session?' on':'')+'" onclick="setSession(\''+s.code+'\')">'+esc(s.label)+'</button>').join('');
+  const s=sess();
+  document.getElementById('sess-time').textContent=s?[s.dismiss_time?'Class dismissal '+s.dismiss_time:'',s.down_time?'Duty go down '+s.down_time:''].filter(Boolean).join(' · '):'';
+  const floors=[...new Set(S.rooms.map(r=>r.floor))].sort();
+  if(!floors.includes(S.ui.floor)) S.ui.floor=floors[0]||'1F';
+  document.getElementById('floor-row').innerHTML=floors.map(f=>'<button class="pill'+(f===S.ui.floor?' on':'')+'" onclick="setFloor(\''+f+'\')">'+(f==='1F'?'1st Floor':f==='2F'?'2nd Floor':f)+'</button>').join('');
+  document.getElementById('hide-placed').checked=!!S.ui.hidePlaced;
+  renderPools(); renderTeachers(); renderPlan(); renderOrder(); renderNotReady();
+}
+async function setDept(d){ S.ui.dept=d; const f=S.sessions.find(s=>s.dept===d); S.ui.session=f?f.code:null; S.ui.zoom=null; saveUI(); await loadDuty(); renderArrange(); }
+async function setSession(c){ S.ui.session=c; S.ui.zoom=null; saveUI(); await loadDuty(); renderArrange(); }
+function setFloor(f){ S.ui.floor=f; S.ui.zoom=null; saveUI(); renderArrange(); }
+
+function togglePanel(k){ S.ui.panels=S.ui.panels||{}; S.ui.panels[k]=!S.ui.panels[k]; saveUI(); applyPanels(); }
+function applyPanels(){ const P=S.ui.panels||{}; ['stu','tch'].forEach(k=>{ const el=document.getElementById('fold-'+k); if(el) el.classList.toggle('open',!!P[k]); }); }
+function renderPools(){
+  const box=document.getElementById('pools');
+  /* 没有学生的空班不显示；设成 Skip 的班＝不用管理（自己下楼），不算没排好 */
+  const all=sessStudentsByClass().filter(g=>g.ids.length||g.ex.length);
+  { const act=all.filter(g=>floorOf(g.cls.id)!=='skip'); const tot=act.reduce((a,g)=>a+g.ids.length,0), pl=act.reduce((a,g)=>a+g.ids.filter(id=>memberOf(id)).length,0);
+    const unsetN=act.filter(g=>g.ids.length&&!floorOf(g.cls.id)).length;
+    document.getElementById('sum-stu').textContent=pl+' / '+tot+' placed'+(unsetN?' · '+unsetN+' class'+(unsetN>1?'es':'')+' need a floor':''); applyPanels(); }
+  if(!all.length){ box.innerHTML='<div class="empty">No classes in this session</div>'; return; }
+  /* 整班都被排除（例：全班都上 GAK）的班，跟 Skip 的班一起放在最下面 */
+  const skipped=all.filter(g=>floorOf(g.cls.id)==='skip'||!g.ids.length), act=all.filter(g=>floorOf(g.cls.id)!=='skip'&&g.ids.length);
+  const here=act.filter(g=>floorOf(g.cls.id)===S.ui.floor), unset=act.filter(g=>!floorOf(g.cls.id)), other=act.filter(g=>floorOf(g.cls.id)&&floorOf(g.cls.id)!==S.ui.floor);
+  const fpills=(g)=>{ const cur=floorOf(g.cls.id); return '<span class="pills" style="margin-left:auto" onclick="event.stopPropagation()">'+floors().concat(['skip']).map(f=>'<button class="pill'+(cur===f?' on':'')+'" style="min-height:26px;padding:0 8px;font-size:11px" title="'+(f==='skip'?'Not managed — goes down on their own':'Queue on '+floorName(f))+'" '+(canEdit()?'':'disabled')+' onclick="setClassFloor(\''+g.cls.id+'\',\''+f+'\')">'+(f==='skip'?'Skip':f)+'</button>').join('')+'</span>'; };
+  const card=(g)=>{
+    const placed=g.ids.filter(id=>memberOf(id)).length, n=g.ids.length, done=n>0&&placed===n;
+    const open=!!S.ui.open[g.cls.id];
+    let chips='';
+    const exM=sessExcluded(); const exTag=[...new Set(g.ex.map(id=>exM.get(id)))].join('/');
+    if(open){ chips=g.ids.filter(id=>!(S.ui.hidePlaced&&memberOf(id))).map(id=>{ const m=memberOf(id); return m?'<span class="stu placed '+walkCls(id)+'" data-sid="'+id+'">'+esc(stuName(id))+'<span class="q">'+releaseNo(m.line_id)+'</span></span>':'<span class="stu '+walkCls(id)+'" data-sid="'+id+'">'+esc(stuName(id))+'</span>'; }).join(''); }
+    if(open&&g.ex.length) chips+=g.ex.map(id=>'<span class="stu placed ex" data-sid="'+id+'" title="'+esc(exM.get(id))+' — not going home in this session">'+esc(stuName(id))+'<span class="q">'+esc(exM.get(id))+'</span></span>').join('');
+    return '<div class="acc'+(open?' open':'')+(done?' done':'')+'"><div class="acc-hdr" onclick="toggleCls(\''+g.cls.id+'\')"><div class="row1"><span class="acc-arrow">▶</span>'+esc(g.cls.class_name)+fpills(g)+'</div><div class="row1" style="margin-top:4px"><span class="cnt" style="margin-left:0">'+(n===0&&g.ex.length?'All '+g.ex.length+' · '+esc(exTag):(done?'Done ✓':placed+' / '+n+' placed')+(g.ex.length?' · '+g.ex.length+' '+esc(exTag):''))+'</span></div><div class="progress"><div class="progress-fill" style="width:'+(n?Math.round(placed*100/n):0)+'%"></div></div></div><div class="acc-body"><div class="pool" data-pool="1">'+(chips||'<span class="tip">Everyone is in a line</span>')+'</div></div></div>';
+  };
+  let h='';
+  if(unset.length) h+='<div class="alert alert-warn" style="margin-bottom:8px">Choose a floor for '+unset.length+' class'+(unset.length>1?'es':'')+' below.</div>'+unset.map(card).join('');
+  h+=here.length?'<div class="tip" style="margin:6px 0">Queue on '+floorName(S.ui.floor)+'</div>'+here.map(card).join(''):(unset.length?'':'<div class="empty">No classes queue on '+floorName(S.ui.floor)+'</div>');
+  if(skipped.length) h+='<div class="tip" style="margin:14px 0 6px">Not managed (Skip, or nobody in the class goes home now)</div>'+skipped.map(card).join('');
+  if(other.length) h+='<div class="tip" style="margin-top:10px">On other floors: '+other.map(g=>'<a href="javascript:void 0" onclick="setFloor(\''+floorOf(g.cls.id)+'\')">'+esc(g.cls.class_name)+' ('+floorOf(g.cls.id)+')</a>').join(' · ')+'</div>';
+  box.innerHTML=h;
+  box.querySelectorAll('.pool').forEach(el=>{
+    if(!canEdit()) return;
+    Sortable.create(el,{...SORT_OPTS,group:{name:'stu',pull:'clone',put:['stu']},sort:false,filter:'.placed',preventOnFilter:false,animation:120,
+      onAdd:ev=>{ const sid=ev.item.dataset.sid; ev.item.remove(); if(sid) removeFromLine(sid); }});
+  });
+}
+function setClassFloor(cid,f){
+  if(!canEdit()) return;
+  (S.classFloor[S.ui.session]=S.classFloor[S.ui.session]||{})[cid]=f; refresh();
+  write('floor',()=>_sb.from('dutyq_class_floor').upsert({session_code:S.ui.session,class_id:cid,floor:f,updated_at:new Date().toISOString()},{onConflict:'session_code,class_id'})).then(ok=>ok&&toast('✓ Saved'));
+}
+function toggleCls(id){ S.ui.open[id]=!S.ui.open[id]; saveUI(); renderPools(); }
+
+function renderTeachers(){
+  const box=document.getElementById('teachers'); const s=sess();
+  document.getElementById('duty-note').textContent=S.dutyErr?'Could not read ClassGo duty positions.':('Duty positions from ClassGo'+(s?' · '+s.label:''));
+  const inLine={}; sessLines().forEach(l=>(l.teacher_ids||[]).forEach(t=>{ (inLine[t]=inLine[t]||[]).push(releaseTag(l.id)); }));
+  S.members.filter(m=>m.session_code===S.ui.session&&isTch(m.student_id)).forEach(m=>{ const t=m.student_id.slice(2); (inLine[t]=inLine[t]||[]).push(releaseTag(m.line_id)); });
+  const dept=s?s.dept:'';
+  const list=S.teachers.filter(t=>!dept||!(t.centers&&t.centers.length)||t.centers.includes(dept));
+  const onDuty=list.filter(t=>S.duty[t.id]).sort((a,b)=>a.id.localeCompare(b.id));
+  const off=list.filter(t=>!S.duty[t.id]).sort((a,b)=>a.id.localeCompare(b.id));
+  const chip=(t,duty)=>{ const u=inLine[t.id]; return '<span class="tch'+(duty?'':' off')+(u?' used':'')+'" data-tid="'+esc(t.id)+'" title="'+esc(t.name)+'"><b>'+esc(t.id)+(u?'<span class="q">'+u.join(',')+'</span>':'')+'</b><small>'+(duty?esc(S.duty[t.id].map(z=>ZONE_LABEL[z]||z).join(' · ')):'No duty')+'</small></span>'; };
+  document.getElementById('sum-tch').textContent=onDuty.length+' on duty · '+Object.keys(inLine).length+' in lines';
+  box.innerHTML=(onDuty.length?onDuty.map(t=>chip(t,true)).join(''):'<span class="tip">No duty set in ClassGo for this session</span>')+
+    '<div class="tip" style="width:100%;margin:6px 0 2px">Not on duty</div>'+off.map(t=>chip(t,false)).join('');
+  { const o=Sortable.get(box); if(o) o.destroy(); }
+  if(canEdit()) Sortable.create(box,{...SORT_OPTS,group:{name:'tch',pull:'clone',put:false},sort:false,animation:120});
+}
+
+/* ── plan geometry ── */
+function roomRect(r){ return {x:r.plan_x/100*PLAN_W,y:r.plan_y/100*PLAN_H,w:r.plan_w/100*PLAN_W,h:r.plan_h/100*PLAN_H}; }
+function linesInRoom(rid){ return sessLines().filter(l=>l.room_id===rid).sort((a,b)=>a.sort_in_room-b.sort_in_room||String(a.created_at).localeCompare(String(b.created_at))); }
+/* 房间里的队伍自动排位：横的队伍一条一条叠；直的队伍并排。走廊有出入口空位：往上的排在空位上方，往下的排在下方 */
+function layoutRoom(r){
+  const R=roomRect(r), pad=10, top=34+pad;
+  const inner={x:R.x+pad,y:R.y+top,w:R.w-2*pad,h:R.h-top-pad};
+  const ls=linesInRoom(r.id); const out={};
+  const hs=ls.filter(l=>l.direction==='left'||l.direction==='right'), vs=ls.filter(l=>l.direction==='up'||l.direction==='down');
+  const gap=S.gaps[r.id];
+  /* 队伍的长度跟着人数走（多留一格给新拖进来的），不会一条队伍就占满整间 */
+  const vLen=l=>46+lineMembers(l.id).length*32+30+44;
+  const hLen=l=>98+lineMembers(l.id).length*36+30+48;
+  let vArea=inner;
+  if(hs.length){
+    const hTotal=vs.length?inner.h*0.5:inner.h; const rowH=Math.min(170,(hTotal-(hs.length-1)*10)/hs.length);
+    hs.forEach((l,i)=>{ const w=Math.min(inner.w,Math.max(260,hLen(l))); const x=l.direction==='left'?inner.x+inner.w-w:inner.x; out[l.id]={x,y:inner.y+i*(rowH+10),w,h:rowH}; });
+    if(vs.length) vArea={x:inner.x,y:inner.y+hs.length*(rowH+10),w:inner.w,h:inner.h-hs.length*(rowH+10)};
+  }
+  if(vs.length){
+    const place=(arr,y0,y1)=>{ if(!arr.length) return; const cw=Math.min(r.kind==='walkway'?vArea.w:260,(vArea.w-(arr.length-1)*8)/arr.length);
+      arr.forEach((l,i)=>{ const h=Math.min(y1-y0,Math.max(170,vLen(l))); const y=l.direction==='up'?y1-h:y0; out[l.id]={x:vArea.x+i*(cw+8),y,w:cw,h}; }); };
+    if(gap && r.kind==='walkway'){
+      const gy0=R.y+R.h*gap.from/100, gy1=R.y+R.h*gap.to/100;
+      place(vs.filter(l=>l.direction==='up'),vArea.y,gy0-8); place(vs.filter(l=>l.direction==='down'),gy1+8,R.y+R.h-pad);
+    }else place(vs,vArea.y,vArea.y+vArea.h);
+  }
+  /* 走廊很窄（平面图上只有约 130px）：队伍框加宽到 280px、盖在旁边的楼梯/房间上面，名字才看得清楚 */
+  if(r.kind==='walkway') vs.forEach(l=>{ const b=out[l.id]; if(!b||b.w>=280||!lineMembers(l.id).length) return;
+    /* 只盖楼梯，或没有队伍的房间的身体；绝不盖住别的房间标题（+ Add line 在那里） */
+    const hit=(a,q)=>a.x<q.x+q.w&&q.x<a.x+a.w&&a.y<q.y+q.h&&q.y<a.y+a.h;
+    const ok=box=>floorRooms().every(o=>{ if(o.id===r.id||o.kind==='structure') return true; const Q=roomRect(o);
+      if(!hit(box,Q)) return true; if(linesInRoom(o.id).length) return false; return !hit(box,{x:Q.x,y:Q.y,w:Q.w,h:40}); });
+    const R1={x:b.x,y:b.y,w:280,h:b.h}, L1={x:b.x+b.w-280,y:b.y,w:280,h:b.h};
+    if(ok(R1)){ b.w=280; b.wide=true; } else if(ok(L1)){ b.x=L1.x; b.w=280; b.wide=true; } });
+  return out;
+}
+function floorRooms(){ return S.rooms.filter(r=>r.floor===S.ui.floor); }
+function viewBox(){
+  const rs=floorRooms(); if(!rs.length) return {x:0,y:0,w:PLAN_W,h:PLAN_H};
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; const add=(R)=>{ x0=Math.min(x0,R.x);y0=Math.min(y0,R.y);x1=Math.max(x1,R.x+R.w);y1=Math.max(y1,R.y+R.h); };
+  /* 永远画整层楼（不再自动裁成只看有队伍的那一块）：放大缩小都看得到全部，印出来也是整层 */
+  rs.forEach(r=>add(roomRect(r))); return {x:x0,y:y0,w:x1-x0,h:y1-y0};
+}
+function fitZoom(vb){
+  const wrap=document.getElementById('planwrap');
+  /* Fit = 整层楼刚好放满宽度，上下用捲动看 */
+  return Math.max(0.25,Math.min(1.2,(wrap.clientWidth-4)/vb.w));
+}
+function planHTML(forPrint){
+  let h='';
+  const vb=viewBox();
+  floorRooms().forEach(r=>{
+    const R=roomRect(r);
+    if(r.kind==='structure'){ h+='<div class="room structure" style="left:'+R.x+'px;top:'+R.y+'px;width:'+R.w+'px;height:'+R.h+'px">'+esc(r.id)+'</div>'; return; }
+    const ls=linesInRoom(r.id);
+    const add=(!forPrint&&canEdit())?'<button class="add" title="Add line" onclick="openAddLine(\''+esc(r.id)+'\')">'+(R.w<260?'+':'+ Add line')+'</button>':'';
+    h+='<div class="room'+(r.kind==='walkway'?' walkway':'')+(ls.length?' has':'')+'" style="left:'+R.x+'px;top:'+R.y+'px;width:'+R.w+'px;height:'+R.h+'px"><div class="rh">'+esc(r.id)+add+'</div></div>';
+    const g=S.gaps[r.id];
+    if(g&&r.kind==='walkway') h+='<div class="gap" style="left:'+R.x+'px;width:'+R.w+'px;top:'+(R.y+R.h*g.from/100)+'px;height:'+(R.h*(g.to-g.from)/100)+'px"></div>';
+    const L=layoutRoom(r);
+    ls.forEach(l=>{ const b=L[l.id]; if(!b) return; h+=lineHTML(l,b,forPrint); });
+  });
+  return {html:h,vb};
+}
+function lineHTML(l,b,forPrint){
+  const v=(l.direction==='up'||l.direction==='down');
+  const ms=lineMembers(l.id);
+  const no=releaseNo(l.id);
+  const tp=(l.teacher_ids||[]).map(t=>'<span class="tpin">'+esc(t)+(forPrint||!canEdit()?'':'<button onclick="removeTeacher(\''+l.id+'\',\''+esc(t)+'\')" title="Remove">×</button>')+'</span>').join('');
+  const menu=(forPrint||!canEdit())?'':'<button class="lmenu" onclick="openEditLine(\''+l.id+'\')" title="Edit line">⋯</button>';
+  let k=0;
+  const cards=ms.map(m=>isTch(m.student_id)
+    ? '<div class="card-s tmark" data-sid="'+esc(m.student_id)+'" title="Teacher in the line"><span class="nm">👤 '+esc(stuName(m.student_id))+'</span>'+(forPrint||!canEdit()?'':'<button class="rm" onclick="removeFromLine(\''+esc(m.student_id)+'\')" title="Take out">×</button>')+'</div>'
+    : '<div class="card-s '+walkCls(m.student_id)+'" data-sid="'+m.student_id+'" title="'+esc(stuName(m.student_id))+'"><i>'+(++k)+'</i><span class="nm">'+esc(stuName(m.student_id))+'</span>'+(forPrint||!canEdit()?'':'<span class="wd" title="Hold hand / walks on own" onclick="cycleWalk(event,\''+m.student_id+'\')"></span><button class="rm" onclick="removeFromLine(\''+m.student_id+'\')" title="Take out">×</button>')+'</div>').join('');
+  const tail='<div class="tail" data-tail="1">'+ARROW[l.direction]+'</div>';
+  const hint=(!forPrint&&canEdit()&&!ms.length)?'<div class="drop-hint" data-tail="1">Drag students here</div>':'';
+  return '<div class="line '+(v?'v':'h')+(b.wide?' wide':'')+' d-'+l.direction+'" data-lid="'+l.id+'" style="left:'+b.x+'px;top:'+b.y+'px;width:'+b.w+'px;height:'+b.h+'px">'+
+    '<div class="lh">'+((forPrint||!canEdit())?'<span class="no">'+no+'</span>':'<button class="no" onclick="openReleaseNo(\''+l.id+'\')" title="Change release number">'+no+'</button>')+'<span class="ll">'+esc(l.label||'Line')+'</span><span class="lc">'+ms.filter(m=>!isTch(m.student_id)).length+'</span>'+menu+'<div class="tslot" data-tslot="'+l.id+'">'+tp+'</div></div>'+
+    '<div class="lb" data-lb="'+l.id+'">'+cards+hint+tail+'</div></div>';
+}
+function renderPlan(){
+  const {html,vb}=planHTML(false);
+  const plan=document.getElementById('plan'), sc=document.getElementById('plan-scale'), wrap=document.getElementById('planwrap');
+  plan.innerHTML=html; plan.style.left=(-vb.x)+'px'; plan.style.top=(-vb.y)+'px';
+  const z=S.ui.zoom||fitZoom(vb);
+  /* 用 CSS zoom（不是 transform）：拖拉的位置计算才准 */
+  sc.style.width=vb.w+'px'; sc.style.height=vb.h+'px'; sc.style.zoom=z;
+  if(!floorRooms().length) plan.innerHTML='<div class="empty" style="position:absolute;left:'+vb.x+'px;top:'+vb.y+'px;width:600px">No rooms with floor plan positions on this floor (Room SSOT)</div>';
+  if(!canEdit()) return;
+  plan.querySelectorAll('.lb').forEach(el=>{
+    Sortable.create(el,{...SORT_OPTS,group:{name:'stu',pull:true,put:['stu','tch']},animation:120,filter:'.tail,.drop-hint,.wd,.rm',preventOnFilter:false,draggable:'.card-s',
+      onAdd:ev=>{ const tid=ev.item.dataset.tid; const sid=tid?'T:'+tid:ev.item.dataset.sid; const idx=[...el.querySelectorAll('.card-s,.tch')].indexOf(ev.item); ev.item.remove(); placeStudent(sid,el.dataset.lb,idx,!!tid); },
+      onEnd:ev=>{ if(ev.from===ev.to && ev.oldIndex!==ev.newIndex){ const ids=[...el.querySelectorAll('.card-s')].map(x=>x.dataset.sid); reorderLine(el.dataset.lb,ids); } }});
+  });
+  plan.querySelectorAll('.tslot').forEach(el=>{
+    Sortable.create(el,{...SORT_OPTS,emptyInsertThreshold:10,group:{name:'tch',pull:false,put:['tch']},sort:false,animation:120,
+      onAdd:ev=>{ const tid=ev.item.dataset.tid; ev.item.remove(); addTeacher(el.dataset.tslot,tid); }});
+  });
+}
+function zoom(d){
+  const vb=viewBox(); const fit=fitZoom(vb);
+  if(d===0) S.ui.zoom=null; else S.ui.zoom=Math.max(0.25,Math.min(2,(S.ui.zoom||fit)*(d>0?1.2:1/1.2)));
+  saveUI(); renderPlan();
+}
+
+function renderOrder(){
+  const box=document.getElementById('order');
+  const ls=floorLines(S.ui.floor);
+  const t=document.getElementById('order-floor'); if(t) t.textContent=floorName(S.ui.floor);
+  if(!ls.length){ box.innerHTML='<div class="tip">No lines on this floor yet. Tap “+ Add line” on a room.</div>'; return; }
+  box.innerHTML=ls.map((l,i)=>'<div class="ord" data-lid="'+l.id+'"><span class="g">≡</span><span class="no" style="width:24px;height:24px;border-radius:50%;background:var(--layer);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+(i+1)+'</span><div class="t"><b>'+esc(l.label||'Line')+'</b><small>'+esc(l.room_id)+((l.teacher_ids||[]).length?' · '+esc(l.teacher_ids.join(' · ')):'')+'</small></div></div>').join('');
+  { const o=Sortable.get(box); if(o) o.destroy(); }  /* 同一个框只挂一个拖拉，不然一次拖会存好几次 */
+  if(canEdit()) Sortable.create(box,{...SORT_OPTS,animation:120,onEnd:()=>{ const ids=[...box.querySelectorAll('.ord')].map(x=>x.dataset.lid); saveReleaseOrder(ids); }});
+}
+function renderNotReady(){
+  const box=document.getElementById('notready');
+  const groups=sessStudentsByClass().filter(g=>g.ids.length&&floorOf(g.cls.id)!=='skip'); const issues=[];
+  const unset=groups.filter(g=>!floorOf(g.cls.id));
+  if(unset.length) issues.push('Floor not set: '+unset.map(g=>esc(g.cls.class_name)).join(', '));
+  floors().forEach(f=>{
+    groups.filter(g=>floorOf(g.cls.id)===f).forEach(g=>{ const left=g.ids.filter(id=>!memberOf(id)).length; if(left) issues.push(floorName(f)+' · '+esc(g.cls.class_name)+': '+left+' not in a line'); });
+    sessLines().filter(l=>lineFloor(l)===f).forEach(l=>{ if(!(l.teacher_ids||[]).length) issues.push(floorName(f)+' · Line '+releaseNo(l.id)+' ('+esc(l.label||'Line')+'): no teacher'); });
+  });
+  { const ex=sessExcluded(); const s=sess(); const bad=S.members.filter(m=>m.session_code===S.ui.session&&ex.has(m.student_id));
+    if(bad.length) issues.unshift(bad.length+' student'+(bad.length>1?'s':'')+' in a line are not going home in this session: '+bad.slice(0,5).map(m=>esc(stuName(m.student_id))).join(', ')+(bad.length>5?'…':'')); }
+  box.style.background=issues.length?'#FFF3CD':'#E1F5EE';
+  box.innerHTML='<b style="font-size:14px">'+(issues.length?'Not ready':'All set ✓')+'</b>'+(issues.length?'<div style="font-size:12px;line-height:1.8;margin-top:6px">'+issues.slice(0,14).join('<br>')+(issues.length>14?'<br>…and '+(issues.length-14)+' more':'')+'</div>':'<div class="tip">Every student is in a line and every line has a teacher.</div>');
+}
+function refresh(){ renderPools(); renderTeachers(); renderPlan(); renderOrder(); renderNotReady(); }
+
+/* ══ edits ══ */
+function membersPayload(lid){ return lineMembers(lid).map((m,i)=>({session_code:S.ui.session,student_id:m.student_id,line_id:lid,pos:i+1})); }
+function setLineOrder(lid,ids){
+  const sc=S.ui.session;
+  S.members=S.members.filter(m=>!(m.session_code===sc && (m.line_id===lid || ids.includes(m.student_id))));
+  ids.forEach((sid,i)=>S.members.push({session_code:sc,student_id:sid,line_id:lid,pos:i+1}));
+}
+function placeStudent(sid,lid,idx,skipFamily){
+  if(!sid||!lid) return;
+  const prev=memberOf(sid); const prevLine=prev&&prev.line_id!==lid?prev.line_id:null;
+  const ids=lineMembers(lid).map(m=>m.student_id).filter(x=>x!==sid);
+  ids.splice(Math.max(0,Math.min(idx==null?ids.length:idx,ids.length)),0,sid);
+  setLineOrder(lid,ids);
+  if(prevLine){ const rest=lineMembers(prevLine).map(m=>m.student_id); setLineOrder(prevLine,rest); }
+  refresh();
+  const rows=membersPayload(lid).concat(prevLine?membersPayload(prevLine):[]);
+  write('line',()=>_sb.from('dutyq_member').upsert(rows,{onConflict:'session_code,student_id'}));
+  const cf=floorOf(classIdOf(sid)), lf=lineFloor(S.lines.find(l=>l.id===lid)||{});
+  if(cf&&lf&&cf!=='skip'&&cf!==lf) toast('Note: '+classOf(sid)+' is set to queue on '+floorName(cf),3000);
+  if(!skipFamily) askFamily(sid,lid);
+}
+function reorderLine(lid,ids){ setLineOrder(lid,ids); refresh(); write('order',()=>_sb.from('dutyq_member').upsert(membersPayload(lid),{onConflict:'session_code,student_id'})); }
+function removeFromLine(sid){
+  const m=memberOf(sid); if(!m) { refresh(); return; }
+  const lid=m.line_id;
+  S.members=S.members.filter(x=>!(x.session_code===S.ui.session && x.student_id===sid));
+  const rest=lineMembers(lid).map(x=>x.student_id); setLineOrder(lid,rest); refresh();
+  write('take out',async()=>{ const r=await _sb.from('dutyq_member').delete().eq('session_code',S.ui.session).eq('student_id',sid); if(r.error) return r;
+    const p=membersPayload(lid); return p.length?_sb.from('dutyq_member').upsert(p,{onConflict:'session_code,student_id'}):r; });
+}
+function cycleWalk(ev,sid){
+  ev.stopPropagation(); if(!canEdit()) return;
+  const cur=S.walk[sid]; const nx=cur==='hand'?'self':cur==='self'?null:'hand';
+  if(nx) S.walk[sid]=nx; else delete S.walk[sid];
+  refresh();
+  write('walk',()=>nx?_sb.from('dutyq_walk').upsert({student_id:sid,walk:nx,updated_at:new Date().toISOString()},{onConflict:'student_id'}):_sb.from('dutyq_walk').delete().eq('student_id',sid));
+}
+function addTeacher(lid,tid){
+  const l=S.lines.find(x=>x.id===lid); if(!l||!tid) return;
+  if((l.teacher_ids||[]).includes(tid)){ toast(tid+' is already in this line'); refresh(); return; }
+  l.teacher_ids=(l.teacher_ids||[]).concat([tid]); refresh();
+  write('teacher',()=>_sb.from('dutyq_line').update({teacher_ids:l.teacher_ids,updated_at:new Date().toISOString()}).eq('id',lid));
+}
+function removeTeacher(lid,tid){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return;
+  l.teacher_ids=(l.teacher_ids||[]).filter(x=>x!==tid); refresh();
+  write('teacher',()=>_sb.from('dutyq_line').update({teacher_ids:l.teacher_ids,updated_at:new Date().toISOString()}).eq('id',lid));
+}
+function saveReleaseOrder(ids){
+  /* ids = 这一层楼的全部队伍，照新顺序 */
+  ids.forEach((id,i)=>{ const l=S.lines.find(x=>x.id===id); if(l) l.release_order=i+1; });
+  refresh();
+  write('release order',async()=>{ for(let i=0;i<ids.length;i++){ const r=await _sb.from('dutyq_line').update({release_order:i+1,updated_at:new Date().toISOString()}).eq('id',ids[i]); if(r.error) return r; } return {}; });
+}
+
+function openReleaseNo(lid){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return;
+  const f=lineFloor(l), ls=floorLines(f), cur=releaseNo(lid);
+  openModal('Release number · '+esc(l.label||'Line'),
+    '<div class="tip" style="margin:0 0 10px">'+esc(floorName(f))+' · '+ls.length+' lines. 1 goes down first. The other lines move to make room.</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+ls.map((x,i)=>'<button class="btn'+(i+1===cur?' btn-pri':'')+'" style="min-width:48px;min-height:44px;font-size:16px;font-weight:700" onclick="setReleaseNo(\''+lid+'\','+(i+1)+')">'+(i+1)+'</button>').join('')+'</div>',
+    '<button class="btn" onclick="closeModal()">Cancel</button>');
+}
+function setReleaseNo(lid,n){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return;
+  const ids=floorLines(lineFloor(l)).map(x=>x.id).filter(x=>x!==lid);
+  ids.splice(n-1,0,lid); closeModal(); saveReleaseOrder(ids); toast('✓ Now number '+n);
+}
+
+/* ── siblings ── */
+function askFamily(sid,lid){
+  const fid=S.family[sid]; if(!fid) return;
+  const inSession=new Set(sessStudentsByClass().flatMap(g=>g.ids));
+  const sibs=Object.keys(S.family).filter(x=>x!==sid && S.family[x]===fid && inSession.has(x));
+  const notHere=sibs.filter(x=>{ const m=memberOf(x); return !m||m.line_id!==lid; });
+  if(!notHere.length) return;
+  const pref=S.familyPref[fid];
+  if(pref==='apart') return;
+  if(pref==='together'){ putTogether(sid,lid,notHere); return; }
+  const l=S.lines.find(x=>x.id===lid);
+  openModal('Siblings',
+    '<div style="font-size:14px;line-height:1.7"><b>'+esc(stuName(sid))+'</b> has '+(notHere.length>1?'siblings':'a sibling')+' in this session:<br>'+
+    notHere.map(x=>'<b>'+esc(stuName(x))+'</b> <span class="tip">('+esc(classOf(x))+(memberOf(x)?' · now in line '+releaseTag(memberOf(x).line_id):' · not in a line yet')+')</span>').join('<br>')+
+    '<br>Put them together in <b>'+esc(l?l.label||'this line':'this line')+'</b>?</div>'+
+    '<label class="tip" style="display:flex;gap:6px;align-items:center;margin-top:12px"><input type="checkbox" id="fam-remember"> Don’t ask again for this family</label>',
+    '<button class="btn" onclick="famAnswer(\''+fid+'\',\'apart\')">Keep apart</button><button class="btn btn-pri" onclick="famAnswer(\''+fid+'\',\'together\')">Put together</button>');
+  S._fam={sid,lid,notHere};
+}
+function famAnswer(fid,mode){
+  const rem=document.getElementById('fam-remember')&&document.getElementById('fam-remember').checked;
+  const f=S._fam; closeModal();
+  if(rem){ S.familyPref[fid]=mode; write('sibling choice',()=>_sb.from('dutyq_family_pref').upsert({family_id:fid,mode,updated_at:new Date().toISOString()},{onConflict:'family_id'})); }
+  if(mode==='together'&&f) putTogether(f.sid,f.lid,f.notHere);
+}
+function putTogether(sid,lid,sibs){
+  let idx=lineMembers(lid).findIndex(m=>m.student_id===sid)+1;
+  sibs.forEach(x=>{ placeStudent(x,lid,idx++,true); });
+  toast('✓ Siblings put together');
+}
+
+/* ── lines ── */
+function dirPicker(cur){ return '<div class="pills" id="dir-pick">'+['up','down','left','right'].map(d=>'<button class="pill'+(d===cur?' on':'')+'" data-d="'+d+'" onclick="pickDir(this)" style="font-size:18px;min-width:56px">'+ARROW[d]+'</button>').join('')+'</div><div class="tip">Arrow = the line grows this way. Student 1 stands at the start of the arrow.</div>'; }
+function pickDir(b){ document.querySelectorAll('#dir-pick .pill').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }
+function curDir(){ const b=document.querySelector('#dir-pick .pill.on'); return b?b.dataset.d:null; }
+function openAddLine(rid){
+  if(!canEdit()) return;
+  const n=linesInRoom(rid).length+1;
+  openModal('Add line · '+esc(rid),
+    '<div style="margin-bottom:12px"><label class="form-label">Line name <span style="color:var(--danger)">*</span></label><input type="text" id="ln-label" style="width:100%" value="Line '+n+'"></div>'+
+    '<label class="form-label">Direction <span style="color:var(--danger)">*</span></label>'+dirPicker(linesInRoom(rid)[0]?linesInRoom(rid)[0].direction:'down'),
+    '<button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveNewLine(\''+esc(rid)+'\')">Add</button>');
+  setTimeout(()=>{ const i=document.getElementById('ln-label'); if(i){ i.focus(); i.select(); } },50);
+}
+async function saveNewLine(rid){
+  const label=(document.getElementById('ln-label').value||'').trim(), dir=curDir();
+  if(!label){ toast('Enter a line name'); return; }
+  const maxRel=Math.max(0,...sessLines().map(l=>l.release_order||0));
+  const row={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),session_code:S.ui.session,room_id:rid,direction:dir,label,sort_in_room:linesInRoom(rid).length+1,release_order:maxRel+1,teacher_ids:[],status:'active',created_at:new Date().toISOString()};
+  closeModal(); S.lines.push(row); refresh();
+  const ok=await write('add line',()=>_sb.from('dutyq_line').insert({id:row.id,session_code:row.session_code,room_id:rid,direction:dir,label,sort_in_room:row.sort_in_room,release_order:row.release_order}));
+  if(ok) toast('✓ Line added'); else { S.lines=S.lines.filter(l=>l.id!==row.id); refresh(); }
+}
+function openEditLine(lid){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return;
+  openModal('Edit line',
+    '<div style="margin-bottom:12px"><label class="form-label">Line name <span style="color:var(--danger)">*</span></label><input type="text" id="ln-label" style="width:100%" value="'+esc(l.label||'')+'"></div>'+
+    '<label class="form-label">Direction</label>'+dirPicker(l.direction)+
+    '<div style="margin-top:12px"><label class="form-label">Room</label><select id="ln-room" style="width:100%">'+S.rooms.filter(r=>r.kind!=='structure').map(r=>'<option'+(r.id===l.room_id?' selected':'')+'>'+esc(r.id)+'</option>').join('')+'</select></div>',
+    '<button class="btn btn-dng btn-sm" style="margin-right:auto" onclick="deleteLine(\''+lid+'\')">Delete</button><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveEditLine(\''+lid+'\')">Save</button>');
+}
+function saveEditLine(lid){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return;
+  const label=(document.getElementById('ln-label').value||'').trim(); if(!label){ toast('Enter a line name'); return; }
+  l.label=label; l.direction=curDir()||l.direction; l.room_id=document.getElementById('ln-room').value||l.room_id;
+  closeModal(); refresh();
+  write('edit line',()=>_sb.from('dutyq_line').update({label:l.label,direction:l.direction,room_id:l.room_id,updated_at:new Date().toISOString()}).eq('id',lid)).then(ok=>ok&&toast('✓ Saved'));
+}
+function deleteLine(lid){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return;
+  const n=lineMembers(lid).length;
+  if(!confirm('Delete “'+(l.label||'Line')+'”?'+(n?'\n\nThe '+n+' students in it go back to the class list.':''))) return;
+  closeModal();
+  const ms=lineMembers(lid).map(m=>m.student_id);
+  S.members=S.members.filter(m=>m.line_id!==lid); l.status='archived'; refresh();
+  write('delete line',async()=>{ if(ms.length){ const r=await _sb.from('dutyq_member').delete().eq('line_id',lid); if(r.error) return r; } return _sb.from('dutyq_line').update({status:'archived',updated_at:new Date().toISOString()}).eq('id',lid); })
+    .then(ok=>ok&&toast('✓ Line deleted'));
+}
+
+/* ══ modal ══ */
+function openModal(t,body,foot){ document.getElementById('modal-title').innerHTML=t; document.getElementById('modal-body').innerHTML=body; document.getElementById('modal-foot').innerHTML=foot; document.getElementById('modal').style.display='flex'; }
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ══ PRINT ══ */
+function renderPrint(){
+  const s=sess(); const box=document.getElementById('sheet');
+  if(!s){ box.innerHTML='<div class="empty">Choose a session on Arrange first</div>'; return; }
+  document.getElementById('print-floor').innerHTML=floors().map(f=>'<button class="pill'+(f===S.ui.floor?' on':'')+'" onclick="S.ui.floor=\''+f+'\';saveUI();renderPrint()">'+floorName(f)+'</button>').join('');
+  const ls=sessLines().filter(l=>lineFloor(l)===S.ui.floor).sort((a,b)=>a.release_order-b.release_order||String(a.created_at).localeCompare(String(b.created_at)));
+  const {html,vb}=planHTML(true);
+  const scale=Math.min(1,960/vb.w);
+  /* A4 直印可用约 710 × 870px（扣掉标题与下楼顺序）：平面图照比例放到最大 */
+  const pscale=Math.min(710/vb.w,860/vb.h);
+  const title=esc(s.dept)+' · '+esc(s.label)+' · '+floorName(S.ui.floor);
+  box.innerHTML='<div class="p1"><h2>'+title+'</h2>'+
+    '<div class="meta">'+['Classes: '+(sessClasses().filter(c=>floorOf(c.id)===S.ui.floor).map(c=>esc(c.class_name)).join(', ')||'—'),s.dismiss_time?'Class dismissal '+esc(s.dismiss_time):'',s.down_time?'Duty go down '+esc(s.down_time):''].filter(Boolean).join(' · ')+'</div>'+
+    (ls.length?'<div class="pord">'+ls.map((l,i)=>'<div><span class="no" style="width:22px;height:22px;border-radius:50%;background:#1E1E1C;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+(i+1)+'</span><span><b>'+esc(l.label||'Line')+'</b><br><small>'+esc(l.room_id)+((l.teacher_ids||[]).length?' · '+esc(l.teacher_ids.join(' · ')):'')+'</small></span></div>').join('')+'</div>':'<div class="empty">No lines yet</div>')+
+    '<div class="plan-print" style="position:relative;--sh:'+(vb.h*scale)+'px;--sw:auto;--ss:'+scale+';--ph:'+(vb.h*pscale)+'px;--pw:'+(vb.w*pscale)+'px;--ps:'+pscale+'"><div style="width:'+vb.w+'px;height:'+vb.h+'px;position:relative"><div class="plan" style="left:'+(-vb.x)+'px;top:'+(-vb.y)+'px">'+html+'</div></div></div></div>'+
+    '<h2 class="print-only" style="margin:0 0 10px">'+title+' · Lines</h2>'+
+    '<div class="pgrid">'+ls.map((l,i)=>'<div class="pc"><b><span>'+(i+1)+' · '+esc(l.label||'Line')+' '+ARROW[l.direction]+'</span><span>'+esc((l.teacher_ids||[]).join(' · '))+'</span></b>'+
+      (()=>{ let k=0; return lineMembers(l.id).map(m=>isTch(m.student_id)?'<div class="pr tmark"><i>👤</i><span>Teacher '+esc(stuName(m.student_id))+'</span><small></small></div>':'<div class="pr '+walkCls(m.student_id)+'"><i>'+(++k)+'</i><span>'+esc(stuName(m.student_id))+'</span><small>'+esc(classOf(m.student_id))+'</small></div>').join(''); })()+'</div>').join('')+'</div>'+
+    '<div class="pfoot"><span>DutyQ · '+esc(s.dept)+' · '+esc(s.label)+' · '+floorName(S.ui.floor)+'</span><span>Printed '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'</span></div>';
+}
+
+/* ══ MANAGE ══ */
+function renderManage(){
+  document.getElementById('mg-me').innerHTML='<div>Signed in: <strong>'+esc(S.me.email)+'</strong></div><div>Access: <strong>'+(S.perm.edit?'Can edit':'View only')+'</strong></div>';
+  const n=sessLines().length;
+  document.getElementById('mg-sys').innerHTML='<div>System: <strong>DutyQ</strong></div><div>Version: <strong>v'+APP_VERSION+'</strong></div><div>Layer: <strong>OPR</strong></div><div>Reads: Room SSOT · Student SSOT · Teacher SSOT · ClassGo duty</div><div>Lines in this session: <strong>'+n+'</strong></div>';
+  document.getElementById('mg-cloud').innerHTML=S.loadError?'<div class="alert alert-danger">✕ '+esc(S.loadError)+'. Nothing was changed.</div><button class="btn" onclick="location.reload()">Retry</button>':
+    '<div>Status: <strong>'+(S.syncErr?'Last save failed':'Connected')+'</strong></div><div>Last saved: <strong>'+(S.lastSaved?hhmm(S.lastSaved):'—')+'</strong></div>'+(S.syncErr?'<button class="btn" onclick="location.reload()">Reload from cloud</button>':'');
+  const rows=S.sessions.map(s=>'<tr><td style="padding:6px 8px"><b>'+esc(s.dept)+'</b> '+esc(s.label)+'</td><td style="padding:6px 8px"><input type="text" value="'+esc(s.dismiss_time||'')+'" data-code="'+esc(s.code)+'" data-f="dismiss_time" onchange="saveSessionField(this)" style="width:110px" '+(canEdit()?'':'disabled')+'></td><td style="padding:6px 8px"><input type="text" value="'+esc(s.down_time||'')+'" data-code="'+esc(s.code)+'" data-f="down_time" onchange="saveSessionField(this)" style="width:110px" '+(canEdit()?'':'disabled')+'></td></tr>').join('');
+  const walks=S.rooms.filter(r=>r.kind==='walkway');
+  document.getElementById('mg-data').innerHTML='<table style="border-collapse:collapse;font-size:12px"><tr><th style="text-align:left;padding:6px 8px">Session</th><th style="text-align:left;padding:6px 8px">Class dismissal</th><th style="text-align:left;padding:6px 8px">Duty go down</th></tr>'+rows+'</table>'+
+    '<div style="margin-top:14px;font-weight:600">Entrance gaps (no queuing)</div>'+
+    (walks.length?walks.map(r=>{ const g=S.gaps[r.id]||{from:'',to:''}; return '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span style="min-width:120px">'+esc(r.id)+'</span>From <input type="text" style="width:70px" value="'+g.from+'" id="gf-'+esc(r.id)+'" '+(canEdit()?'':'disabled')+'>% to <input type="text" style="width:70px" value="'+g.to+'" id="gt-'+esc(r.id)+'" '+(canEdit()?'':'disabled')+'>% of the corridor <button class="btn btn-sm" onclick="saveGap(\''+esc(r.id)+'\')">Save</button></div>'; }).join(''):'<div class="tip">No corridor in Room SSOT yet.</div>');
+}
+function saveSessionField(inp){
+  const s=S.sessions.find(x=>x.code===inp.dataset.code); if(!s) return;
+  s[inp.dataset.f]=inp.value.trim()||null;
+  write('session',()=>_sb.from('dutyq_session').update({[inp.dataset.f]:s[inp.dataset.f],updated_at:new Date().toISOString()}).eq('code',s.code)).then(ok=>ok&&toast('✓ Saved'));
+}
+function saveGap(rid){
+  const f=parseFloat(document.getElementById('gf-'+rid).value), t=parseFloat(document.getElementById('gt-'+rid).value);
+  if(!(f>=0&&t<=100&&t>f)){ toast('Enter From and To between 0 and 100'); return; }
+  S.gaps[rid]={from:f,to:t};
+  write('gap',()=>_sb.from('dutyq_room_gap').upsert({room_id:rid,gap_from:f,gap_to:t,updated_at:new Date().toISOString()},{onConflict:'room_id'})).then(ok=>ok&&toast('✓ Saved'));
+}
+
+/* ══ EXPORT / IMPORT ══ */
+function stamp(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0'); }
+function dl(name,blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+function exportData(){
+  const data={meta:{system:'DutyQ',version:APP_VERSION,exportTime:new Date().toISOString(),itemCount:S.lines.length},sessions:S.sessions,lines:S.lines.filter(l=>l.status==='active'),members:S.members,classFloor:S.classFloor,walk:S.walk,familyPref:S.familyPref,gaps:S.gaps};
+  dl('DutyQ_'+stamp()+'.json',new Blob([JSON.stringify(data,null,2)],{type:'application/json'})); toast('✓ Exported');
+}
+function csvCell(v){ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function exportCSV(){
+  const rows=[['Session','Floor','Release','Line','Room','Direction','Teachers','Position','Student','Class','Walk']];
+  S.sessions.forEach(s=>{ const all=S.lines.filter(l=>l.session_code===s.code&&l.status==='active');
+    floors().forEach(f=>{ const ls=all.filter(l=>lineFloor(l)===f).sort((a,b)=>(a.release_order||0)-(b.release_order||0)||String(a.created_at).localeCompare(String(b.created_at)));
+    ls.forEach((l,i)=>S.members.filter(m=>m.line_id===l.id).sort((a,b)=>a.pos-b.pos).forEach(m=>rows.push([s.dept+' '+s.label,f,i+1,l.label,l.room_id,l.direction,(l.teacher_ids||[]).join(' '),m.pos,stuName(m.student_id),'',S.walk[m.student_id]||'']))); }); });
+  dl('DutyQ_'+stamp()+'.csv',new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\n')],{type:'text/csv'})); toast('✓ Exported');
+}
+/* Import = 只合并「牵手 / 自己走」，不动队伍（队伍一律在画面上排） */
+function importData(e){
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let p; try{ p=JSON.parse(r.result); }catch(err){ toast('✕ Not a DutyQ file. Nothing was changed.'); return; }
+    if(!p||!p.meta||p.meta.system!=='DutyQ'||!p.walk){ toast('✕ Not a DutyQ file. Nothing was changed.'); return; }
+    const ent=Object.entries(p.walk).filter(([sid,w])=>S.students[sid]&&(w==='hand'||w==='self'));
+    const nw=ent.filter(([sid])=>!S.walk[sid]).length, up=ent.filter(([sid,w])=>S.walk[sid]&&S.walk[sid]!==w).length, same=ent.length-nw-up;
+    if(!nw&&!up){ toast('Nothing to import ('+same+' unchanged)'); return; }
+    if(!confirm('Import hand / walk settings?\n\n'+nw+' new · '+up+' update · '+same+' unchanged\n\nLines are not changed.')) return;
+    const rows=ent.filter(([sid,w])=>S.walk[sid]!==w).map(([sid,w])=>({student_id:sid,walk:w,updated_at:new Date().toISOString()}));
+    rows.forEach(x=>S.walk[x.student_id]=x.walk); refresh();
+    write('import',()=>_sb.from('dutyq_walk').upsert(rows,{onConflict:'student_id'})).then(ok=>ok&&toast('✓ Imported '+rows.length));
+  };
+  r.readAsText(f);
+}
+
+window.addEventListener('resize',()=>{ if(S.ui.page==='arrange'&&!S.ui.zoom) renderPlan(); });
+_sb.auth.onAuthStateChange((ev)=>{ if(ev==='SIGNED_OUT') location.href='../index.html'; });
+boot();
+</script>
+</body>
+</html>
