@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v18</title>
+<title>OPR-AttendanceGo v19</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v18</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v19</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -240,6 +240,18 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
     </div>
   </div>
   <div class="page" id="page-atcweek"><div id="atcweek-content"></div></div>
+  <!-- v19 · 补课 / 换时段 modal -->
+  <div id="sw-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:210;justify-content:center;align-items:center" onclick="if(event.target===this)swClose()">
+    <div style="background:#fff;border-radius:12px;padding:20px;width:400px;max-width:92vw;max-height:90vh;overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:14px;font-weight:700" id="sw-title">Add visitor</div><button onclick="swClose()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--mut)">✕</button></div>
+      <div style="font-size:11px;color:var(--mut);margin-bottom:12px" id="sw-sub"></div>
+      <div id="sw-body"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="swClose()" style="flex:1;min-height:44px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+        <button id="sw-save" onclick="swSave()" style="flex:1;min-height:44px;border-radius:8px;border:none;background:var(--layer);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Save</button>
+      </div>
+    </div>
+  </div>
   <div class="page" id="page-manage"><div id="manage-content"></div></div>
 </div>
 
@@ -249,7 +261,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=18;
+const APP_VERSION=19;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -328,6 +340,8 @@ async function initApp(){
     // Load attendance rules
     const{data:rulesData}=await _sb.from('attendance_rules').select('*').eq('is_active',true);
     allRules=rulesData||[];
+    /* v19 · SRT 补课 / 临时换时段登记 */
+    try{ const{data:sw}=await _sb.from('attendance_swap').select('*').eq('status','active'); allSwaps=sw||[]; }catch(e){ allSwaps=[]; }
     /* v17 · ATC 课表（ClassGo 是课表正本）：每班每天 s1 = 功课班老师，s2 = 科目 + 老师 */
     try{ const{data:tt}=await _sb.from('classgo_timetable').select('class_id,day,session,teacher,subj').eq('dept','ATC'); allTimetable=tt||[]; }catch(e){ allTimetable=[]; }
     console.log('Loaded:',allStudents.length,'students,',allMemberships.length,'memberships,',allCalendar.length,'calendar events,',allRules.length,'rules');
@@ -441,6 +455,9 @@ function ruleLabel(t){ return t==='early_leave'?'EARLY':(t==='late'?'LATE':'ABS'
    Monthly / Tracker 只找本班 class_code → 空白（10-03 SRT LV5 Celeste、Hng You Kai）。
    规则：纪录上那一班在那天还有效 → 照写的；否则 → 算那天学生实际在上的那一班（只有一班时）。 */
 function attClassOf(r){
+  /* v19 · 补课 / 换时段：在来访那班点的，算回原本那一班 */
+  const sw=allSwaps.find(w=>w.student_id===r.student_id&&w.dept===r.dept&&w.to_date===r.date&&w.to_class===r.class_code);
+  if(sw) return sw.from_class;
   const ms=allMemberships.filter(m=>m.student_id===r.student_id&&m.dept===r.dept);
   if(ms.some(m=>m.class_code===r.class_code&&m.start_date<=r.date&&(m.end_date==null||m.end_date>=r.date))) return r.class_code;
   const live=ms.filter(m=>m.start_date<=r.date&&(m.end_date==null||m.end_date>r.date)&&!String(m.class_code||'').includes('RSVP'));
@@ -790,7 +807,7 @@ function goPage(p){
   if(p==='tracker') renderTracker();
   if(p==='rules') renderRulesPage();
   if(p==='atcweek') renderAtcWeek();   /* v17 */
-  if(p==='manage'){ renderManage(); fuRenderAdmin(); }
+  if(p==='manage'){ renderManage(); fuRenderAdmin(); swRenderAdmin(); }   /* v19 */
 }
 
 
@@ -933,6 +950,179 @@ function awExport(){
   const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; a.click();
   if(typeof toast==='function') toast('✓ Exported');
+}
+
+
+/* ═══ v19 · SRT 补课 / 临时换时段（Owner 10-05 定稿）═══════════════════
+   Replacement（补课）：X 日没来自己的班，Y 日去别班 / 别的时段补。原本 X 日照样缺席，标「已补」。
+   Temp（临时换时段）：那一天改上别的时段。原本那班当天显示「换到…」，不能点、不算缺席。
+   来访学生在去的那班名单最下面，照样点名，但不进那班出席率（attClassOf 算回原本那班）。
+   登记：行政在 Manage 事先排；老师在点名页「+ Add visitor」当场加。只作废不删（attendance_swap）。 */
+let allSwaps=[];
+function swJ(v){ return String(JSON.stringify(v===undefined?null:v)).replace(/&/g,'&amp;').replace(/'/g,'&#39;'); }   /* 放进 onclick='…' 用 */
+const SW_LABEL={replacement:'Replacement',temp:'Temp slot'};
+function swCls(c){ return String(c||'').replace(/^SRT-SRT_/,'').replace(/^SRT_/,''); }
+function swAwayOn(stuId,cls,date){ return allSwaps.find(w=>w.status==='active'&&w.kind==='temp'&&w.student_id===stuId&&w.from_class===cls&&w.from_date===date)||null; }
+function swMadeUp(stuId,cls,date){ return allSwaps.find(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===stuId&&w.from_class===cls&&w.from_date===date)||null; }
+function swInto(cls,date){ return allSwaps.filter(w=>w.status==='active'&&w.to_class===cls&&w.to_date===date); }
+/* Monthly 格子下面的小字：在别班上的那天 → 补 / 换；缺席那天已经补了 → 已补 */
+function swMarkFor(stuId,cls,date,status){
+  const into=allSwaps.find(w=>w.status==='active'&&w.student_id===stuId&&w.from_class===cls&&w.to_date===date);
+  if(into) return into.kind==='replacement'?{k:'补',t:'Replacement in '+swCls(into.to_class)}:{k:'换',t:'Temp slot in '+swCls(into.to_class)};
+  const mu=swMadeUp(stuId,cls,date);
+  if(mu) return {k:'已补',t:'Made up on '+mu.to_date+' '+swCls(mu.to_class)};
+  return null;
+}
+function swStudent(id){ return allStudents.find(s=>s.id===id)||{id,name:id,name_cn:''}; }
+function swVisitorsHtml(code){
+  const vs=swInto(code,selectedDate);
+  const _dow=new Date(selectedDate+'T12:00:00').getDay();
+  let h=`<div style="margin:10px 16px 0;padding-top:10px;border-top:1px dashed var(--bdr)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:700;color:#7870CC">Visitors${vs.length?' · '+vs.filter(w=>getStatus(w.student_id,'SRT',0)!=='unmarked').length+'/'+vs.length:''}</span>
+      <button onclick='swOpen("mark",${swJ(code)})' style="min-height:32px;padding:4px 12px;border-radius:8px;border:1px solid #7870CC;background:#fff;color:#7870CC;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">+ Add visitor</button>
+    </div>
+    <div style="font-size:9px;color:var(--hint);margin-bottom:4px">Replacement / temp slot students. Marked here, counted in their own class.</div>`;
+  vs.forEach(w=>{
+    const s=swStudent(w.student_id);
+    const st=getStatus(s.id,'SRT',0); const active=st==='unmarked'?'':st;
+    const LABELS_ROW={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
+    const from=w.kind==='replacement'?('from '+swCls(w.from_class)+(w.from_date?' · missed '+w.from_date:'')):('from '+swCls(w.from_class)+(w.from_date!==selectedDate?' · '+w.from_date:''));
+    h+=`<div class="stu-row">
+      <div class="stu-num" style="color:#7870CC">+</div>
+      <div class="stu-name">${_escHtml(s.name)}${s.name_cn?' <span class="stu-cn">'+_escHtml(s.name_cn)+'</span>':''}
+        <span style="font-size:9px;background:#F3F1FB;color:#7870CC;border-radius:8px;padding:1px 7px;margin-left:4px;font-weight:600">${SW_LABEL[w.kind]}</span>
+        <div style="font-size:9px;color:var(--mut);margin-top:2px">${_escHtml(from)}${w.note?' · '+_escHtml(w.note):''}</div></div>
+      <div class="sb-wrap">${STATUSES.map(status=>`<button class="status-btn${active===status?' s-'+status:''}" onclick='markStudent(${swJ(s.id)},${swJ(s.name)},"SRT",${swJ(code)},${swJ(status)})'><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${status==='early_leave'?'Early':status==='mc'?'MC':status.charAt(0).toUpperCase()+status.slice(1)}</span></button>`).join('')}</div>
+    </div>`;
+  });
+  return h+`</div>`;
+}
+/* ── 登记 modal ── mode 'mark'：去的班 / 日子固定（点名页）；'manage'：全部可选（行政事先排） */
+let SW={mode:'mark',to_class:'',to_date:'',stu:'',kind:'replacement',q:''};
+function swSrtClassesOn(date){
+  return [...new Set(allMemberships.filter(m=>m.dept==='SRT'&&m.start_date<=date&&(m.end_date==null||m.end_date>date)&&!String(m.class_code).includes('RSVP')).map(m=>m.class_code))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+}
+function swStuClasses(stuId,date){
+  return allMemberships.filter(m=>m.student_id===stuId&&m.dept==='SRT'&&m.start_date<=date&&(m.end_date==null||m.end_date>date)&&!String(m.class_code).includes('RSVP')).map(m=>m.class_code);
+}
+function swOpen(mode,toClass){
+  SW={mode,to_class:toClass||'',to_date:mode==='mark'?selectedDate:todayStr(),stu:'',kind:'replacement',q:'',from_class:'',from_date:'',note:''};
+  document.getElementById('sw-title').textContent=mode==='mark'?'Add visitor':'Arrange replacement / temp slot';
+  document.getElementById('sw-sub').textContent=mode==='mark'?('To '+swCls(toClass)+' · '+selectedDate):'SRT only. The student will appear in that class roster on that day.';
+  document.getElementById('sw-modal').style.display='flex';
+  swRenderBody();
+}
+function swClose(){ document.getElementById('sw-modal').style.display='none'; }
+function swRenderBody(){
+  const inp='width:100%;padding:8px;border-radius:8px;border:1px solid var(--bdr);font-size:13px;font-family:inherit;box-sizing:border-box';
+  const lab=t=>`<label style="display:block;font-size:11px;color:var(--mut);margin:10px 0 4px">${t}</label>`;
+  let h='';
+  // 1 学生
+  h+=lab('Student');
+  if(SW.stu){
+    const s=swStudent(SW.stu);
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border:1px solid var(--bdr);border-radius:8px"><span style="font-size:13px;font-weight:600">${_escHtml(s.name)}</span><button onclick="SW.stu='';SW.from_class='';swRenderBody()" style="border:none;background:none;color:var(--info);font-size:12px;cursor:pointer">Change</button></div>`;
+  }else{
+    h+=`<input id="sw-q" style="${inp}" placeholder="Type a name…" value="${_escHtml(SW.q)}" oninput="SW.q=this.value;swRenderList()">`;
+    h+=`<div id="sw-list" style="max-height:180px;overflow:auto;margin-top:4px"></div>`;
+  }
+  // 2 类型
+  h+=lab('Type');
+  h+=`<div style="display:flex;gap:6px">${['replacement','temp'].map(k=>`<button onclick="SW.kind='${k}';swRenderBody()" style="flex:1;min-height:40px;border-radius:8px;border:1px solid ${SW.kind===k?'transparent':'var(--bdr)'};background:${SW.kind===k?'#7870CC':'#fff'};color:${SW.kind===k?'#fff':'var(--txt)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${SW_LABEL[k]}</button>`).join('')}</div>`;
+  h+=`<div style="font-size:10px;color:var(--hint);margin-top:4px">${SW.kind==='replacement'?'Missed own class on another day and makes it up here.':'This day only: attends this slot instead of own slot.'}</div>`;
+  // 3 去哪（manage 才可改）
+  if(SW.mode==='manage'){
+    h+=lab('Attends — date');
+    h+=`<input type="date" style="${inp}" value="${SW.to_date}" onchange="SW.to_date=this.value;swRenderBody()">`;
+    const cls=swSrtClassesOn(SW.to_date||todayStr());
+    h+=lab('Attends — class');
+    h+=`<select style="${inp}" onchange="SW.to_class=this.value"><option value="">Choose…</option>${cls.map(c=>`<option value="${_escHtml(c)}"${c===SW.to_class?' selected':''}>${_escHtml(swCls(c))}</option>`).join('')}</select>`;
+  }
+  // 4 原本的班 + 日子
+  if(SW.stu){
+    const own=swStuClasses(SW.stu,SW.from_date||SW.to_date);
+    if(!SW.from_class) SW.from_class=own[0]||'';
+    h+=lab('Own class');
+    h+=`<select style="${inp}" onchange="SW.from_class=this.value">${(own.length?own:[SW.from_class]).filter(Boolean).map(c=>`<option value="${_escHtml(c)}"${c===SW.from_class?' selected':''}>${_escHtml(swCls(c))}</option>`).join('')||'<option value="">— no SRT class —</option>'}</select>`;
+  }
+  if(SW.kind==='temp'&&!SW.from_date) SW.from_date=SW.to_date;
+  h+=lab(SW.kind==='replacement'?'Missed date (optional)':'Own class date (the day he skips)');
+  h+=`<input type="date" style="${inp}" value="${SW.from_date||''}" onchange="SW.from_date=this.value">`;
+  if(SW.kind==='replacement'&&SW.stu){
+    const miss=swRecentAbsences(SW.stu);
+    if(miss.length) h+=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">${miss.map(d=>`<button onclick="SW.from_date='${d}';swRenderBody()" style="padding:3px 8px;border-radius:6px;border:1px solid var(--bdr);background:${SW.from_date===d?'var(--sur2)':'#fff'};font-size:10px;cursor:pointer;font-family:inherit">absent ${d}</button>`).join('')}</div>`;
+  }
+  h+=lab('Note (optional)');
+  h+=`<input style="${inp}" value="${_escHtml(SW.note||'')}" oninput="SW.note=this.value" placeholder="e.g. parent asked">`;
+  document.getElementById('sw-body').innerHTML=h;
+  if(!SW.stu) swRenderList();
+}
+function swRecentAbsences(stuId){
+  /* 只看已载入的：今天这页的纪录不够，所以向资料库要最近 60 天的缺席（非同步，补进来再画一次） */
+  if(!SW._abs||SW._abs.id!==stuId){
+    SW._abs={id:stuId,list:[]};
+    const from=new Date(Date.now()-60*86400000).toISOString().slice(0,10);
+    _sb.from('attendance').select('date,status,class_code').eq('student_id',stuId).eq('dept','SRT').gte('date',from).then(({data})=>{
+      if(SW._abs&&SW._abs.id===stuId){ SW._abs.list=(data||[]).filter(r=>r.status==='absent'||r.status==='mc').map(r=>r.date).sort().reverse().slice(0,6); if(document.getElementById('sw-modal').style.display==='flex') swRenderBody(); }
+    });
+  }
+  return SW._abs.list;
+}
+function swRenderList(){
+  const el=document.getElementById('sw-list'); if(!el) return;
+  const q=(SW.q||'').trim().toLowerCase();
+  if(q.length<2){ el.innerHTML='<div style="font-size:11px;color:var(--hint);padding:6px">Type at least 2 letters</div>'; return; }
+  const d=SW.to_date||selectedDate;
+  const ids=new Set(allMemberships.filter(m=>m.dept==='SRT'&&m.start_date<=d&&(m.end_date==null||m.end_date>d)).map(m=>m.student_id));
+  const list=allStudents.filter(s=>ids.has(s.id)&&((s.name||'').toLowerCase().includes(q)||(s.name_cn||'').includes(SW.q.trim()))).slice(0,30);
+  el.innerHTML=list.length?list.map(s=>`<div onclick='SW.stu=${swJ(s.id)};SW.from_class="";swRenderBody()' style="padding:8px;border-bottom:.5px solid var(--bdr);cursor:pointer;font-size:12px">${_escHtml(s.name)} <span style="color:var(--mut);font-size:11px">${_escHtml(s.name_cn||'')} · ${_escHtml(swStuClasses(s.id,d).map(swCls).join(', '))}</span></div>`).join(''):'<div style="font-size:11px;color:var(--hint);padding:6px">No matching results</div>';
+}
+async function swSave(){
+  if(!SW.stu){ toast('Choose a student'); return; }
+  if(!SW.to_class||!SW.to_date){ toast('Choose the class and date he attends'); return; }
+  if(!SW.from_class){ toast('Own class is missing'); return; }
+  if(SW.kind==='temp'&&!SW.from_date){ toast('Temp slot needs the own class date'); return; }
+  if(SW.from_class===SW.to_class&&(SW.from_date||'')===SW.to_date){ toast('That is his own class on that day'); return; }
+  if(allSwaps.some(w=>w.student_id===SW.stu&&w.to_date===SW.to_date&&w.status==='active')){ toast('Already arranged for that day'); return; }
+  const row={kind:SW.kind,student_id:SW.stu,dept:'SRT',from_class:SW.from_class,from_date:SW.from_date||null,to_class:SW.to_class,to_date:SW.to_date,note:(SW.note||'').trim()||null,client_uid:(crypto.randomUUID?crypto.randomUUID():undefined)};
+  const btn=document.getElementById('sw-save'); btn.disabled=true;
+  const{data,error}=await _sb.from('attendance_swap').insert(row).select();
+  btn.disabled=false;
+  if(error){ console.error(error); toast('✕ Save failed'); return; }
+  allSwaps.push({status:'active',created_by:userEmail,...row,...((data&&data[0])||{})});
+  swClose(); toast('✓ Saved');
+  if(document.getElementById('page-mark').classList.contains('on')) renderMark();
+  if(document.getElementById('page-manage').classList.contains('on')) swRenderAdmin();
+}
+async function swCancel(id){
+  const w=allSwaps.find(x=>x.id===id); if(!w) return;
+  if(!confirm('Cancel this arrangement? (A mark already saved stays.)')) return;
+  const{error}=await _sb.from('attendance_swap').update({status:'cancelled'}).eq('id',id);
+  if(error){ console.error(error); toast('✕ Cancel failed'); return; }
+  allSwaps=allSwaps.filter(x=>x.id!==id); toast('✓ Cancelled'); swRenderAdmin();
+}
+function swRenderAdmin(){
+  const host=document.getElementById('manage-content'); if(!host) return;
+  let box=document.getElementById('sw-admin');
+  if(!box){ box=document.createElement('div'); box.id='sw-admin'; box.className='card'; host.insertBefore(box,host.firstChild); }
+  const from=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const list=allSwaps.filter(w=>w.to_date>=from).sort((a,b)=>a.to_date.localeCompare(b.to_date)||a.to_class.localeCompare(b.to_class));
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="mg-title" style="margin:0">SRT · Replacement / Temp slot</div>
+    <button onclick="swOpen('manage','')" style="min-height:36px;padding:6px 14px;border-radius:8px;border:none;background:var(--layer);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Add</button></div>`;
+  if(!list.length) h+=`<div style="font-size:12px;color:var(--mut);padding:8px 0">No records yet (last 30 days and upcoming).</div>`;
+  else{
+    h+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px"><tr>${['Attends','Student','Type','Own class','By',''].map(t=>`<th style="text-align:left;padding:6px;font-size:10px;color:var(--mut);border-bottom:.5px solid var(--bdr)">${t}</th>`).join('')}</tr>`;
+    list.forEach(w=>{ const s=swStudent(w.student_id);
+      h+=`<tr><td style="padding:6px;border-bottom:.5px solid var(--bdr);white-space:nowrap">${_escHtml(w.to_date)}<br><span style="color:var(--mut)">${_escHtml(swCls(w.to_class))}</span></td>
+        <td style="padding:6px;border-bottom:.5px solid var(--bdr)">${_escHtml(s.name)}${w.note?'<div style="font-size:10px;color:var(--mut)">'+_escHtml(w.note)+'</div>':''}</td>
+        <td style="padding:6px;border-bottom:.5px solid var(--bdr)"><span style="font-size:10px;background:#F3F1FB;color:#7870CC;border-radius:8px;padding:1px 7px;font-weight:600;white-space:nowrap">${SW_LABEL[w.kind]}</span></td>
+        <td style="padding:6px;border-bottom:.5px solid var(--bdr);white-space:nowrap">${_escHtml(swCls(w.from_class))}${w.from_date?'<br><span style="color:var(--mut)">'+(w.kind==='replacement'?'missed ':'')+_escHtml(w.from_date)+'</span>':''}</td>
+        <td style="padding:6px;border-bottom:.5px solid var(--bdr);font-size:10px;color:var(--mut)">${_escHtml(markerNames[w.created_by]||w.created_by||'')}</td>
+        <td style="padding:6px;border-bottom:.5px solid var(--bdr);text-align:right"><button onclick='swCancel(${swJ(w.id)})' style="padding:4px 10px;border-radius:6px;border:1px solid var(--bdr);background:#fff;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button></td></tr>`; });
+    h+=`</table></div>`;
+  }
+  box.innerHTML=h;
 }
 
 // ═══════════════════════════════════════
@@ -1138,7 +1328,7 @@ function renderMark(){
     // Row 3: Class buttons within category
     h+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">`;
     filteredClasses.forEach(code=>{
-      const sts=getClassStudents(currentDept,code);
+      const sts=getClassStudents(currentDept,code).filter(s=>!swAwayOn(s.id,code,selectedDate));   /* v19 */
       const mc=sts.filter(s=>getStatus(s.id,currentDept,currentSession)!=='unmarked').length;
       const _exp=expectedCount(sts,currentDept,currentSession);   /* v12 · 请假的不算，否则这班永远点不完 */
       /* v14 · Follow-Up 没做完，这班点名不算完成（Owner 27-09 裁定） */
@@ -1152,8 +1342,9 @@ function renderMark(){
     // Show selected class only
     const code=markClass;
     const students=getClassStudents(currentDept,code);
-    const markedCount=students.filter(s=>getStatus(s.id,currentDept,currentSession)!=='unmarked').length;
-    const expectCount=expectedCount(students,currentDept,currentSession);   /* v12 · 请假的不算进分母 */
+    const homeStu=students.filter(s=>!swAwayOn(s.id,code,selectedDate));   /* v19 · 今天换去别的时段的，不算这一班 */
+    const markedCount=homeStu.filter(s=>getStatus(s.id,currentDept,currentSession)!=='unmarked').length;
+    const expectCount=expectedCount(homeStu,currentDept,currentSession);   /* v12 · 请假的不算进分母 */
     const fuOk=fuClassDone(students,currentDept,code,selectedDate,currentSession);   /* v14 */
     const allMarked=markedCount===expectCount&&expectCount>0&&fuOk;
     h+=`<div class="card" style="padding:0">
@@ -1175,6 +1366,8 @@ function renderMark(){
       const ruleTag=rule&&active===''?`<span style="font-size:9px;color:var(--mut);margin-left:6px" title="${rule.reason||''}">${ruleLabel(rule.rule_type)}${rule.reason?' \u00b7 '+rule.reason:''}</span>`:'';
       const mem=allMemberships.find(m=>m.student_id===s.id&&m.dept===currentDept&&m.class_code===code);
       const isTransferDay=mem&&mem.end_date===selectedDate;
+      const away=swAwayOn(s.id,code,selectedDate);            /* v19 */
+      const madeUp=swMadeUp(s.id,code,selectedDate);          /* v19 */
       const transferTo=isTransferDay?getTransferTarget(s.id,currentDept,mem.end_date):null;
       const transferTag=isTransferDay?'<span style="font-size:9px;color:#7870CC;margin-left:6px">\u2192 '+(transferTo?transferTo.class_code:'Moved')+'</span>':'';
       const lateMatch=(note||'').match(/Late:\s*(\d{1,2}:\d{2})/);
@@ -1182,16 +1375,19 @@ function renderMark(){
       const lateTx=(active==='late'&&lateMatch)?lateMatch[1]:'';
       const LABELS_ROW={present:'\u2713',absent:'\u2715',late:'\u23f0',early_leave:'\ud83d\udeaa',mc:'\ud83e\udd12'};
       const showNote=note&&(active==='absent'||active==='early_leave')&&!isTransferDay;
-      h+=`<div class="stu-row" style="${ruleStyle}${isTransferDay?'opacity:.5':''}">
+      h+=`<div class="stu-row" style="${ruleStyle}${(isTransferDay||away)?'opacity:.5':''}">
         <div class="stu-num">${s.num??''}</div>
-        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${ruleTag}${transferTag}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+note+'</div>':''}${pausedNote(s)}</div>
-        ${isTransferDay
+        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${ruleTag}${transferTag}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+note+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
+        ${away
+          ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap;text-align:right">Temp slot<br>→ '+_escHtml(swCls(away.to_class))+(away.to_date!==selectedDate?' · '+_escHtml(away.to_date):'')+'</div>'
+          :isTransferDay
           ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap">Class changed</div>'
           :`<div class="sb-wrap">${STATUSES.map(status=>
             `<button class="status-btn${active===status?' s-'+status:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${status==='late'&&lateTx?lateTx:STATUS_TX[status]}</span></button>`
           ).join('')}</div>`}
       </div>`;
     });
+    if(currentDept==='SRT') h+=swVisitorsHtml(code);   /* v19 · 来访：补课 / 临时换时段 */
     h+=`</div></div>`;
   }
   el.innerHTML=h;
@@ -1283,7 +1479,7 @@ async function markStudent(studentId,studentName,dept,classCode,status){
 async function markAll(dept,classCode,status){
   const scrollY=window.scrollY;
   const openIds=[...document.querySelectorAll('.class-body.open')].map(el=>el.id);
-  const students=getClassStudents(dept,classCode);
+  const students=getClassStudents(dept,classCode).filter(s=>!swAwayOn(s.id,classCode,selectedDate));   /* v19 · 换走的不点，免得盖掉他在来访班的纪录 */
   for(const s of students){
     const existing=todayRecords.findIndex(r=>r.student_id===s.id&&r.dept===dept&&(r.session??0)===currentSession);
     if(existing>=0) todayRecords[existing].status=status;
@@ -1449,10 +1645,15 @@ async function renderMonthly(){
         const r=(recMap[s.id]||{})[d];
         if(!r&&memPausedOn(mem,dayStr)){   /* v16 · 请假期间没点 → 灰色 L，不算缺席 */
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:9px" title="On leave">L</td>`;
+        }else if(!r&&swAwayOn(s.id,monthlyClass,dayStr)){   /* v19 · 换到别的日子上，这天没纪录 */
+          const aw=swAwayOn(s.id,monthlyClass,dayStr);
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">换</td>`;
         }else if(r){
           const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]||'·';
-          const oth=r.other?' · marked in '+r.other:'';   /* v18 */
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'};${r.other?'box-shadow:inset 0 -2px 0 #7870CC':''}" title="${_escHtml((r.note||r.status)+oth)}">${display}</td>`;
+          const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status);   /* v19 · 补 / 换 / 已补 */
+          if(_sw){ r.other=r.other||''; }
+          const oth=(r.other?' · marked in '+r.other:'')+(_sw?' · '+_sw.t:'');   /* v18 / v19 */
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth)}">${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)">·</td>`;
         }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DutyQ v1</title>
+<title>DutyQ v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
@@ -242,7 +242,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══════ NAV (TOPBAR) ══════ -->
 <div class="nav" id="nav">
   <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
-  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v1</span></div>
+  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v2</span></div>
   <button class="ntab on" data-p="arrange" onclick="goPage('arrange')">Arrange</button>
   <button class="ntab" data-p="print" onclick="goPage('print')">Print</button>
   <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')">Manage</button>
@@ -264,6 +264,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
     <div class="pills" id="sess-row"></div>
     <span class="tip" id="sess-time" style="margin:0"></span>
   </div>
+  <div id="arr-swap"></div>
   <div class="arr">
     <div class="side">
       <div class="card fold" id="fold-stu" style="margin:0">
@@ -346,7 +347,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=1;
+const APP_VERSION=2;
 const SYSTEM_CODE='OPR-DutyQ';
 const UI_KEY='dutyq_ui_v1';           // 只存画面偏好（部门、时段、楼层、缩放）；资料一律在云端
 const PLAN_W=2000, PLAN_H=2600;       // 平面图画布（Room SSOT 的位置是百分比）
@@ -455,6 +456,10 @@ async function loadAll(){
     S.lines=ln; S.members=mb;
     S.classFloor={}; cf.forEach(x=>{ (S.classFloor[x.session_code]=S.classFloor[x.session_code]||{})[x.class_id]=x.floor; });
     S.ok=true;
+    /* v2 · AttendanceGo 的补课 / 临时换时段（SRT）。读不到不挡整个画面，只是不显示这一块 */
+    try{ const fr=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+      const {data:sw,error:se}=await _sb.from('attendance_swap').select('student_id,kind,from_class,from_date,to_class,to_date,note').eq('status','active').gte('to_date',fr);
+      S.swaps=se?[]:(sw||[]); }catch(e){ S.swaps=[]; }
   }catch(e){
     S.ok=false; S.loadError=String(e.message||e);
   }
@@ -506,6 +511,43 @@ function releaseNo(lid){ const l=S.lines.find(x=>x.id===lid); if(!l) return 0; r
 function releaseTag(lid){ const l=S.lines.find(x=>x.id===lid); const f=l&&lineFloor(l); return (f&&f!==S.ui.floor?f+'·':'')+releaseNo(lid); }
 function classOf(sid){ const s=sess(); const m=S.memberships.find(m=>m.student_id===sid && sessClasses().some(c=>c.id===m.class_id)); const c=m&&S.classes.find(c=>c.id===m.class_id); return c?c.class_name:''; }
 
+
+/* ══ v2 · 补课 / 临时换时段（资料来自 AttendanceGo 的 attendance_swap，只读）══
+   只影响「那一天」，固定的排队不改。
+   换走的：那天不跟这个时段下楼。来访的：不在任何一条队里，跟他去的那一班一起放。
+   同一个时段里换班（例 LV4.SAT.AM → LV5.SAT.AM）放学时间一样，不列。 */
+S.swaps=[]; S.swDate='';
+function swParse(code){ const t=String(code||'').replace(/^SRT-SRT_/,'').replace(/^SRT_/,''); const p=t.split('_'); return {name:p.join('.'),slot:p.slice(-2).join('.')}; }
+function swNextDate(slot){ const want={MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6,SUN:0}[String(slot||'').split('.')[0]];
+  const d=new Date(); if(want==null) return today();
+  for(let i=0;i<7;i++){ const x=new Date(d.getTime()+i*86400000); if(x.getDay()===want) return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+  return today(); }
+function swChanges(){
+  const s=sess(); if(!s||s.dept!=='SRT') return null;
+  if(!S.swDate||S._swFor!==s.code){ S.swDate=swNextDate(s.slot); S._swFor=s.code; }
+  const d=S.swDate, out=[], inn=[];
+  (S.swaps||[]).forEach(w=>{ const f=swParse(w.from_class), t=swParse(w.to_class);
+    if(f.slot===t.slot) return;   /* 同一个时段：放学时间一样，排队不变 */
+    if(w.kind==='temp'&&w.from_date===d&&f.slot===s.slot&&!(t.slot===s.slot&&w.to_date===d)) out.push({w,f,t});
+    if(w.to_date===d&&t.slot===s.slot&&!(f.slot===s.slot&&(w.from_date||'')===d)) inn.push({w,f,t}); });
+  return {d,out,inn};
+}
+function swFmt(d){ return new Date(d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}); }
+function swLineTag(sid){ const m=memberOf(sid); if(!m) return 'not in a line'; return 'line '+releaseTag(m.line_id); }
+function swapBoxHTML(forPrint){
+  const ch=swChanges(); if(!ch) return '';
+  if(forPrint&&!ch.out.length&&!ch.inn.length) return '';
+  let h='<div class="card" style="margin:0 0 10px;border-left:3px solid #7870CC;padding:10px 14px">';
+  h+='<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px"><b style="font-size:13px;color:#7870CC">Changes on '+esc(swFmt(ch.d))+'</b>'+
+     (forPrint?'':'<input type="date" value="'+esc(ch.d)+'" onchange="S.swDate=this.value;renderSwapBox()" style="padding:4px 6px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;font-family:inherit">')+
+     '<span class="tip" style="margin:0">Replacement / temp slot from AttendanceGo. This day only — lines stay the same.</span></div>';
+  if(!ch.out.length&&!ch.inn.length) h+='<div class="tip" style="margin:0">No changes for this day.</div>';
+  if(ch.out.length) h+='<div style="font-size:12px;margin-top:4px"><b>Not going down with this session</b>'+ch.out.map(x=>'<div style="padding:2px 0">• '+esc(stuName(x.w.student_id))+' <span style="color:var(--mut)">('+esc(x.f.name)+', '+esc(swLineTag(x.w.student_id))+')</span> → <b>'+esc(x.t.slot)+'</b>'+(x.w.to_date!==ch.d?' on '+esc(swFmt(x.w.to_date)):'')+'</div>').join('')+'</div>';
+  if(ch.inn.length) h+='<div style="font-size:12px;margin-top:6px"><b>Joining this session</b> <span style="color:var(--mut)">— not in any line; release with the class they attend</span>'+ch.inn.map(x=>'<div style="padding:2px 0">• '+esc(stuName(x.w.student_id))+' <span style="background:#F3F1FB;color:#7870CC;border-radius:8px;padding:0 6px;font-size:10px;font-weight:600">'+(x.w.kind==='replacement'?'Replacement':'Temp slot')+'</span> with <b>'+esc(x.t.name)+'</b> <span style="color:var(--mut)">(own class '+esc(x.f.name)+')</span></div>').join('')+'</div>';
+  return h+'</div>';
+}
+function renderSwapBox(){ const el=document.getElementById('arr-swap'); if(el) el.innerHTML=swapBoxHTML(false); }
+
 /* ══ pages ══ */
 function goPage(p){
   if(p==='manage'&&!S.perm.see) p='arrange';
@@ -533,6 +575,7 @@ function renderArrange(){
   document.getElementById('floor-row').innerHTML=floors.map(f=>'<button class="pill'+(f===S.ui.floor?' on':'')+'" onclick="setFloor(\''+f+'\')">'+(f==='1F'?'1st Floor':f==='2F'?'2nd Floor':f)+'</button>').join('');
   document.getElementById('hide-placed').checked=!!S.ui.hidePlaced;
   renderPools(); renderTeachers(); renderPlan(); renderOrder(); renderNotReady();
+  renderSwapBox();   /* v2 */
 }
 async function setDept(d){ S.ui.dept=d; const f=S.sessions.find(s=>s.dept===d); S.ui.session=f?f.code:null; S.ui.zoom=null; saveUI(); await loadDuty(); renderArrange(); }
 async function setSession(c){ S.ui.session=c; S.ui.zoom=null; saveUI(); await loadDuty(); renderArrange(); }
@@ -895,6 +938,7 @@ function renderPrint(){
   box.innerHTML='<div class="p1"><h2>'+title+'</h2>'+
     '<div class="meta">'+['Classes: '+(sessClasses().filter(c=>floorOf(c.id)===S.ui.floor).map(c=>esc(c.class_name)).join(', ')||'—'),s.dismiss_time?'Class dismissal '+esc(s.dismiss_time):'',s.down_time?'Duty go down '+esc(s.down_time):''].filter(Boolean).join(' · ')+'</div>'+
     (ls.length?'<div class="pord">'+ls.map((l,i)=>'<div><span class="no" style="width:22px;height:22px;border-radius:50%;background:#1E1E1C;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+(i+1)+'</span><span><b>'+esc(l.label||'Line')+'</b><br><small>'+esc(l.room_id)+((l.teacher_ids||[]).length?' · '+esc(l.teacher_ids.join(' · ')):'')+'</small></span></div>').join('')+'</div>':'<div class="empty">No lines yet</div>')+
+    swapBoxHTML(true)+   /* v2 · 那一天的补课 / 换时段 */
     '<div class="plan-print" style="position:relative;--sh:'+(vb.h*scale)+'px;--sw:auto;--ss:'+scale+';--ph:'+(vb.h*pscale)+'px;--pw:'+(vb.w*pscale)+'px;--ps:'+pscale+'"><div style="width:'+vb.w+'px;height:'+vb.h+'px;position:relative"><div class="plan" style="left:'+(-vb.x)+'px;top:'+(-vb.y)+'px">'+html+'</div></div></div></div>'+
     '<h2 class="print-only" style="margin:0 0 10px">'+title+' · Lines</h2>'+
     '<div class="pgrid">'+ls.map((l,i)=>'<div class="pc"><b><span>'+(i+1)+' · '+esc(l.label||'Line')+' '+ARROW[l.direction]+'</span><span>'+esc((l.teacher_ids||[]).join(' · '))+'</span></b>'+
@@ -906,7 +950,7 @@ function renderPrint(){
 function renderManage(){
   document.getElementById('mg-me').innerHTML='<div>Signed in: <strong>'+esc(S.me.email)+'</strong></div><div>Access: <strong>'+(S.perm.edit?'Can edit':'View only')+'</strong></div>';
   const n=sessLines().length;
-  document.getElementById('mg-sys').innerHTML='<div>System: <strong>DutyQ</strong></div><div>Version: <strong>v'+APP_VERSION+'</strong></div><div>Layer: <strong>OPR</strong></div><div>Reads: Room SSOT · Student SSOT · Teacher SSOT · ClassGo duty</div><div>Lines in this session: <strong>'+n+'</strong></div>';
+  document.getElementById('mg-sys').innerHTML='<div>System: <strong>DutyQ</strong></div><div>Version: <strong>v'+APP_VERSION+'</strong></div><div>Layer: <strong>OPR</strong></div><div>Reads: Room SSOT · Student SSOT · Teacher SSOT · ClassGo duty · AttendanceGo replacement / temp slot</div><div>Lines in this session: <strong>'+n+'</strong></div>';
   document.getElementById('mg-cloud').innerHTML=S.loadError?'<div class="alert alert-danger">✕ '+esc(S.loadError)+'. Nothing was changed.</div><button class="btn" onclick="location.reload()">Retry</button>':
     '<div>Status: <strong>'+(S.syncErr?'Last save failed':'Connected')+'</strong></div><div>Last saved: <strong>'+(S.lastSaved?hhmm(S.lastSaved):'—')+'</strong></div>'+(S.syncErr?'<button class="btn" onclick="location.reload()">Reload from cloud</button>':'');
   const rows=S.sessions.map(s=>'<tr><td style="padding:6px 8px"><b>'+esc(s.dept)+'</b> '+esc(s.label)+'</td><td style="padding:6px 8px"><input type="text" value="'+esc(s.dismiss_time||'')+'" data-code="'+esc(s.code)+'" data-f="dismiss_time" onchange="saveSessionField(this)" style="width:110px" '+(canEdit()?'':'disabled')+'></td><td style="padding:6px 8px"><input type="text" value="'+esc(s.down_time||'')+'" data-code="'+esc(s.code)+'" data-f="down_time" onchange="saveSessionField(this)" style="width:110px" '+(canEdit()?'':'disabled')+'></td></tr>').join('');
