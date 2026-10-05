@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v19</title>
+<title>OPR-AttendanceGo v20</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v19</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v20</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -261,7 +261,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=19;
+const APP_VERSION=20;   /* v20 · ATC Week 与 Monthly 小字改英文（行政不读中文，Owner 10-05） */
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -823,19 +823,19 @@ const AW={day:0,sess:0,cls:'',type:'',_init:false};
 const AW_DAYS=['','Mon','Tue','Wed','Thu','Fri'];
 const AW_DCODE=['','MON','TUE','WED','THU','FRI'];
 const AW_SESS={1:'H/W',2:'Lesson'};
-const AW_TYPE={absent:{t:'缺席',c:'var(--danger)',bg:'#FBEAEA'},late:{t:'迟到',c:'var(--warn)',bg:'#FFF8E1'},early_leave:{t:'早退',c:'#B35A00',bg:'#FFF3E0'}};
+const AW_TYPE={absent:{t:'Absent',c:'var(--danger)',bg:'#FBEAEA'},late:{t:'Late',c:'var(--warn)',bg:'#FFF8E1'},early_leave:{t:'Early',c:'#B35A00',bg:'#FFF3E0'}};
 function awEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function awTT(cls,day,sess){
   const id=cls.replace(/^ATC_/,'');
   const t=allTimetable.find(x=>x.class_id===id&&x.day===AW_DCODE[day]&&x.session==='s'+sess);
-  if(!t) return sess===2?'未排课':'H/W';
+  if(!t) return sess===2?'No lesson set':'H/W';
   return String(t.subj||'').replace(/^ATC\./,'')+(t.teacher?' · '+t.teacher:'');
 }
 function awCell(cls,day,sess){
   const roster=getClassStudents('ATC',cls);
   const items=[];
   roster.forEach(s=>{
-    if(s._paused){ items.push({cls,day,sess,s,type:'absent',time:'',reason:'请假中 (Paused)'}); return; }
+    if(s._paused){ items.push({cls,day,sess,s,type:'absent',time:'',reason:'On leave (Paused)'}); return; }
     const r=getRule(s.id,'ATC',day,sess,selectedDate);
     if(r) items.push({cls,day,sess,s,type:r.rule_type,time:r.from_time?String(r.from_time).slice(0,5):'',reason:r.reason||''});
   });
@@ -871,33 +871,33 @@ function renderAtcWeek(){
   const cnt=k=>items.filter(i=>i.type===k).length;
 
   let h=`<div style="font-size:16px;font-weight:600;margin-bottom:4px">ATC Week</div>
-  <div style="font-size:11px;color:var(--mut);margin-bottom:12px">按 ${awEsc(selectedDate)} 生效的固定例外 · H/W 到 3:30（3:00 后才到 = H/W 缺席）· Lesson 3:30–5:30 · 迟到 / 早退算在班</div>`;
+  <div style="font-size:11px;color:var(--mut);margin-bottom:12px">Regular exceptions in effect on ${awEsc(selectedDate)} · H/W until 3:30 (arriving 3:00 or later = absent from H/W) · Lesson 3:30–5:30 · Late / early still count as in class</div>`;
   h+=`<div class="card" style="padding:12px 16px">`;
-  h+=awPills('星期','day',[[0,'All']].concat([1,2,3,4,5].map(d=>[d,AW_DAYS[d]])));
-  h+=awPills('时段','sess',[[0,'All'],[1,'H/W'],[2,'Lesson']]);
-  h+=awPills('班级','cls',[['','All']].concat(classes.map(c=>[c,shortClassName(c)])));
-  h+=awPills('类型','type',[['','All'],['absent','缺席'],['late','迟到'],['early_leave','早退']]);
+  h+=awPills('Day','day',[[0,'All']].concat([1,2,3,4,5].map(d=>[d,AW_DAYS[d]])));
+  h+=awPills('Session','sess',[[0,'All'],[1,'H/W'],[2,'Lesson']]);
+  h+=awPills('Class','cls',[['','All']].concat(classes.map(c=>[c,shortClassName(c)])));
+  h+=awPills('Type','type',[['','All'],['absent','Absent'],['late','Late'],['early_leave','Early']]);
   h+=`</div>`;
 
   // 汇总
   const single=slots.length===1;
   const box=(n,t,col)=>`<div class="card" style="flex:1;min-width:110px;margin:0;text-align:center"><div style="font-size:22px;font-weight:600;color:${col||'var(--txt)'}">${n}</div><div style="font-size:11px;color:var(--mut)">${t}</div></div>`;
   h+=`<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">`;
-  h+=box(sizeAll,AW.cls?shortClassName(AW.cls)+' 人数':'全部班级人数');
-  if(single) h+=box(sizeAll-cnt('absent'),'在班','var(--ok)');
-  h+=box(uniq,'受影响学生');
-  h+=box(cnt('absent'),'缺席',AW_TYPE.absent.c)+box(cnt('late'),'迟到',AW_TYPE.late.c)+box(cnt('early_leave'),'早退',AW_TYPE.early_leave.c);
+  h+=box(sizeAll,AW.cls?shortClassName(AW.cls)+' students':'Students, all classes');
+  if(single) h+=box(sizeAll-cnt('absent'),'In class','var(--ok)');
+  h+=box(uniq,'Students affected');
+  h+=box(cnt('absent'),'Absent',AW_TYPE.absent.c)+box(cnt('late'),'Late',AW_TYPE.late.c)+box(cnt('early_leave'),'Early',AW_TYPE.early_leave.c);
   h+=`</div>`;
-  if(!single) h+=`<div style="font-size:11px;color:var(--mut);margin:-2px 0 10px">缺席 / 迟到 / 早退是「人次」（同一个学生在不同时段各算一次）。每一格的在班人数看下表。</div>`;
+  if(!single) h+=`<div style="font-size:11px;color:var(--mut);margin:-2px 0 10px">Absent / late / early are counted per session (one student in two sessions counts twice). See the table for in-class numbers per box.</div>`;
 
   // 班级 × 时段 表
   h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:${120+slots.length*86}px">`;
-  h+=`<tr><th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)">班级</th>`;
+  h+=`<tr><th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)">Class</th>`;
   slots.forEach(([d,s])=>{ h+=`<th style="padding:8px 6px;font-size:11px;font-weight:600;border-bottom:.5px solid var(--bdr);${s===1?'border-left:.5px solid var(--bdr)':''}">${AW_DAYS[d]}<div style="font-weight:400;color:var(--mut)">${AW_SESS[s]}</div></th>`; });
   h+=`</tr>`;
   const tot={};
   selCls.forEach(c=>{
-    h+=`<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)">${shortClassName(c)}<div style="font-weight:400;font-size:10px;color:var(--mut)">${getClassStudents('ATC',c).length} 人</div></td>`;
+    h+=`<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)">${shortClassName(c)}<div style="font-weight:400;font-size:10px;color:var(--mut)">${getClassStudents('ATC',c).length} students</div></td>`;
     slots.forEach(([d,s])=>{
       const x=grid[c+'|'+d+'|'+s]; const k=d+'|'+s;
       tot[k]=tot[k]||{size:0,abs:0,late:0,early:0};
@@ -906,30 +906,30 @@ function renderAtcWeek(){
       h+=`<td style="text-align:center;padding:6px 4px;border-bottom:.5px solid var(--bdr);${s===1?'border-left:.5px solid var(--bdr);':''}cursor:pointer;${sel?'background:#F3ECEC':''}" onclick='awPick(${JSON.stringify(c)},${d},${s})' title="${awEsc(awTT(c,d,s))}">
         <div style="font-size:14px;font-weight:600">${x.size-x.abs}<span style="font-size:10px;color:var(--mut);font-weight:400">/${x.size}</span></div>
         <div style="font-size:9px;color:var(--mut);white-space:nowrap">${awEsc(awTT(c,d,s))}</div>
-        <div style="font-size:9px;white-space:nowrap">${x.abs?`<span style="color:${AW_TYPE.absent.c}">缺${x.abs}</span> `:''}${x.late?`<span style="color:${AW_TYPE.late.c}">迟${x.late}</span> `:''}${x.early?`<span style="color:${AW_TYPE.early_leave.c}">早${x.early}</span>`:''}</div>
+        <div style="font-size:9px;white-space:nowrap">${x.abs?`<span style="color:${AW_TYPE.absent.c}">Abs ${x.abs}</span> `:''}${x.late?`<span style="color:${AW_TYPE.late.c}">Late ${x.late}</span> `:''}${x.early?`<span style="color:${AW_TYPE.early_leave.c}">Early ${x.early}</span>`:''}</div>
       </td>`;
     });
     h+=`</tr>`;
   });
   if(selCls.length>1){
-    h+=`<tr style="background:var(--sur2)"><td style="padding:8px 12px;font-size:12px;font-weight:600;position:sticky;left:0;background:var(--sur2)">全部</td>`;
+    h+=`<tr style="background:var(--sur2)"><td style="padding:8px 12px;font-size:12px;font-weight:600;position:sticky;left:0;background:var(--sur2)">All</td>`;
     slots.forEach(([d,s])=>{ const t=tot[d+'|'+s];
       h+=`<td style="text-align:center;padding:6px 4px;${s===1?'border-left:.5px solid var(--bdr)':''}"><div style="font-size:14px;font-weight:600">${t.size-t.abs}<span style="font-size:10px;color:var(--mut);font-weight:400">/${t.size}</span></div>
-      <div style="font-size:9px;white-space:nowrap">${t.abs?`<span style="color:${AW_TYPE.absent.c}">缺${t.abs}</span> `:''}${t.late?`<span style="color:${AW_TYPE.late.c}">迟${t.late}</span> `:''}${t.early?`<span style="color:${AW_TYPE.early_leave.c}">早${t.early}</span>`:''}</div></td>`; });
+      <div style="font-size:9px;white-space:nowrap">${t.abs?`<span style="color:${AW_TYPE.absent.c}">Abs ${t.abs}</span> `:''}${t.late?`<span style="color:${AW_TYPE.late.c}">Late ${t.late}</span> `:''}${t.early?`<span style="color:${AW_TYPE.early_leave.c}">Early ${t.early}</span>`:''}</div></td>`; });
     h+=`</tr>`;
   }
   h+=`</table></div>`;
-  h+=`<div style="font-size:10px;color:var(--hint);margin:-4px 0 14px">格子 = 在班 / 人数（在班 = 人数 − 缺席）。点格子 = 只看那一班、那一天、那个时段。</div>`;
+  h+=`<div style="font-size:10px;color:var(--hint);margin:-4px 0 14px">Box = in class / class size (in class = size − absent). Tap a box to see only that class, day and session.</div>`;
 
   // 学生名单
   shown.sort((a,b)=>a.cls.localeCompare(b.cls,undefined,{numeric:true})||a.day-b.day||a.sess-b.sess||((a.s.num??999)-(b.s.num??999)));
-  h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">名单 · ${shown.length} 笔</div>
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">List · ${shown.length}</div>
     <button onclick="awExport()" style="min-height:32px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;cursor:pointer;font-family:inherit">Export CSV</button></div>`;
   if(!shown.length){
     h+=`<div class="card" style="text-align:center;color:var(--mut);font-size:12px">No matching results</div>`;
   }else{
     const th=t=>`<th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);white-space:nowrap">${t}</th>`;
-    h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:760px"><tr>${th('班')}${th('星期')}${th('时段')}${th('当时在上')}${th('#')}${th('学生')}${th('类型')}${th('时间')}${th('原因')}</tr>`;
+    h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:760px"><tr>${th('Class')}${th('Day')}${th('Session')}${th('Running')}${th('#')}${th('Student')}${th('Type')}${th('Time')}${th('Reason')}</tr>`;
     shown.forEach(i=>{
       const T=AW_TYPE[i.type]||AW_TYPE.absent;
       const td=(v,st)=>`<td style="padding:8px;font-size:12px;border-bottom:.5px solid var(--bdr);${st||''}">${v}</td>`;
@@ -968,9 +968,9 @@ function swInto(cls,date){ return allSwaps.filter(w=>w.status==='active'&&w.to_c
 /* Monthly 格子下面的小字：在别班上的那天 → 补 / 换；缺席那天已经补了 → 已补 */
 function swMarkFor(stuId,cls,date,status){
   const into=allSwaps.find(w=>w.status==='active'&&w.student_id===stuId&&w.from_class===cls&&w.to_date===date);
-  if(into) return into.kind==='replacement'?{k:'补',t:'Replacement in '+swCls(into.to_class)}:{k:'换',t:'Temp slot in '+swCls(into.to_class)};
+  if(into) return into.kind==='replacement'?{k:'Rep',t:'Replacement in '+swCls(into.to_class)}:{k:'Temp',t:'Temp slot in '+swCls(into.to_class)};
   const mu=swMadeUp(stuId,cls,date);
-  if(mu) return {k:'已补',t:'Made up on '+mu.to_date+' '+swCls(mu.to_class)};
+  if(mu) return {k:'Made up',t:'Made up on '+mu.to_date+' '+swCls(mu.to_class)};
   return null;
 }
 function swStudent(id){ return allStudents.find(s=>s.id===id)||{id,name:id,name_cn:''}; }
@@ -1647,7 +1647,7 @@ async function renderMonthly(){
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:9px" title="On leave">L</td>`;
         }else if(!r&&swAwayOn(s.id,monthlyClass,dayStr)){   /* v19 · 换到别的日子上，这天没纪录 */
           const aw=swAwayOn(s.id,monthlyClass,dayStr);
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">换</td>`;
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">Temp</td>`;
         }else if(r){
           const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]||'·';
           const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status);   /* v19 · 补 / 换 / 已补 */
