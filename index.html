@@ -156,7 +156,7 @@ const LIVE={
   // 2026-10-04：Student v36 → v37（座号系统自动排：照名字 A→Z、永远连号；SRK 先 GAK530→GAK300→只读 SRK，GAK 先 530→300）。
   // 2026-10-03：Student v35 → v36（Reg New 先选班才存 · 选好班自动给座号）。
   // 2026-10-03：Student v34 → v35（课程 Pause/Resume、结束原因、Reg New、班级画面整班 Up Level、学生状态自动算）。
-  'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v39', group:'MasterHub — Master Data', color:'#993556', order:2},
+  'CORE-Student':      {href:'CORE/Student.html',  name:'Student',      ver:'v40', group:'MasterHub — Master Data', color:'#993556', order:2},
   'CORE-Subject':      {href:'CORE/Subject.html',  name:'Subject',      ver:'v11', group:'MasterHub — Master Data', color:'#C45C5C', order:3},
   'CORE-Teacher':      {href:'CORE/Teacher.html',  name:'Teacher',      ver:'v17',  group:'MasterHub — Master Data', color:'#8B6CAE', order:4},
   'CORE-Calendar':     {href:'CORE/Calendar.html', name:'Calendar',     ver:'v14',  group:'MasterHub — Master Data', color:'#BA7517', order:5},
@@ -167,6 +167,7 @@ const LIVE={
   // 2026-10-05：AttendanceGo v16 → v17（新分页 ATC Week：一周 × 班级 × 时段的在班人数、缺席/迟到/早退名单与原因、当时在上的科目与老师）。
   // 2026-10-05：AttendanceGo v17 → v18（Monthly / Tracker：老师在旧班名单点的纪录，自动算回学生那天实际在上的班，格子加紫线提醒）。
   // 2026-10-05：AttendanceGo v18 → v19（SRT 补课 / 临时换时段：点名页来访区、Manage 登记、Monthly 补/换/已补）· DutyQ v1 → v2（OPR/DutyQ.html，首页不放卡片：那一天的补课/换时段提示）。
+  // 2026-10-05：Student v39 → v40（课程那一行可以改开始日期：Reg New 可选以前/以后；已存的行改晚要先没有点名纪录）。
   'OPR-AttendanceGo':  {href:'OPR/AttendanceGo.html',       name:'AttendanceGo', ver:'v19', group:'OPR — Operations',        color:'#8B6C2A', order:7},
   // 2026-09-13：原本常数叫 HOLIDAYGO_BUILD，版本核对读不到 → 改名 APP_VERSION 并补进 <title>，37→38。
   'OPR-NoticeGo-Holiday': {href:'OPR/NoticeGo-Holiday.html', name:'NoticeGo-Holiday', ver:'v38', group:'OPR — Operations',    color:'#8B6C2A', order:8},

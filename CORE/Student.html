@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v39</title>
+<title>MasterHub — Student v40</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 39;
+const APP_VERSION = 40;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -825,7 +825,7 @@ function applySeats(students){
     if (!s || s.status === 'Archived') return;
     (s.memberships || []).forEach(function(m){
       if (_isRsvpCls(m)) return;
-      if (m.start_date && m.start_date > t) return;
+      if (m.start_date && m.start_date > t) { if (m.num != null) { m.num = null; } return; }   /* v40 · 还没开始的不编号 */
       if (m.end_date && m.end_date <= t) return;
       live.push({ s: s, m: m });
       if (m.dept === 'GAK') gakG[s.id] = Math.min(gakG[s.id] == null ? 2 : gakG[s.id], _tierRank(m.tier));
@@ -2045,6 +2045,9 @@ window.openStudent = function(id) {
           h += '</select>';
         }
         h += '<span title="Seat number — given by the system (alphabetical)" style="min-width:34px;font-size:11px;color:var(--mut);text-align:center">' + (m.num != null ? '#' + m.num : (_isRsvpCls(m) ? '' : '#—')) + '</span>';   /* v37 · 号码系统给，不能手改 */
+        /* v40 · 开始日期（第一天上课）：Reg New 可以选以前或以后；已存的行没有更早的点名就可以改 */
+        { const _fut = m.start_date && m.start_date > _today();
+          h += '<button class="btn btn-sm" onclick="window.editStart(' + idx + ')" title="First day in this class — tap to change" style="' + (_fut ? 'color:#BA7517;border-color:#BA7517' : 'color:var(--mut)') + '">' + (_fut ? 'Starts ' : 'Since ') + esc(m.start_date || _today()) + ' ✎</button>'; }
         /* v35 · 课程那一行：Pause / Resume · Change Class · End class（要选原因） */
         const _t = _today();
         if (m.end_date) {
@@ -2213,6 +2216,61 @@ window.openStudent = function(id) {
       logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'resume', effective_date: b }]);
       _stQueue(200);
       toast(b <= _today() ? 'Back in class' : ('Back on ' + b), 2500);
+    });
+  };
+
+  /* v40 · 改开始日期（第一天上课）。行政 10-05 反应：Reg New 只会填「今天」，
+     入系统前已经来上课的日子 AttendanceGo 点不到；提前登记的人又马上出现在点名名单。
+     - 还没存进云端的新行：直接改。
+     - 已经存的行：改得更早随时可以；改得更晚，要先确认中间没有点名纪录。
+     - 换班 / 升级带出来的新班（开始日 = 旧班结束日）不在这里改，要用 Cancel end 重做。 */
+  window.editStart = function(idx) {
+    const m = buf.memberships[idx];
+    if (!m) return;
+    if (!m.class) { toast('Choose the class first', 2000); return; }
+    const pair = [].concat(buf.memberships || [], buf.memberships_history || []).some(o => o !== m && o.dept === m.dept && o.end_date && m.start_date && o.end_date === m.start_date);
+    if (pair) { toast('This class started from a class change. To change the date, use "Cancel end" on the old class and do the change again.', 5000); return; }
+    const old = m.start_date || _today();
+    let bh = '<div style="font-size:12px;margin-bottom:10px">First day in <b>' + esc(clsName(m.dept, m.class)) + '</b></div>';
+    bh += '<div class="form-row"><label>Start date (first day in class)</label><input type="date" class="input" id="sd-date" value="' + esc(old) + '"' + (m.end_date ? ' max="' + esc(addDays(m.end_date, -1)) + '"' : '') + '></div>';
+    bh += '<div style="font-size:10px;color:var(--mut);line-height:1.5">Earlier date = attendance can be marked from that day. Future date = the student shows as Registered and appears on the attendance list only from that day.</div>';
+    _miniModal('Start date', bh, 'Save', function(){
+      const d = (document.getElementById('sd-date').value || '').trim();
+      if (!d) { toast('Please choose the date', 2000); return false; }
+      if (d === old) return;
+      if (m.end_date && d >= m.end_date) { toast('Start date must be before the last day (' + addDays(m.end_date, -1) + ')', 3500); return false; }
+      if (m.pause_from && d > m.pause_from) { toast('Start date cannot be after the pause start (' + m.pause_from + ')', 3500); return false; }
+      (async function(){
+        try {
+          const { data: row, error: re } = await _sb.from('hub_student_memberships').select('id').eq('student_id', buf.id).eq('dept', m.dept).eq('class_code', m.class).eq('start_date', old);
+          if (re) throw re;
+          if (row && row.length) {
+            if (d > old) {
+              const { data: att, error: ae } = await _sb.from('attendance').select('date').eq('student_id', buf.id).eq('dept', m.dept).eq('class_code', m.class).gte('date', old).lt('date', d).limit(1);
+              if (ae) throw ae;
+              if (att && att.length) { toast('Attendance already marked on ' + att[0].date + ' — the start date cannot be after that day', 5000); return; }
+            }
+            const { data: up, error: ue } = await _sb.from('hub_student_memberships').update({ start_date: d }).eq('id', row[0].id).select('id,start_date');
+            if (ue) throw ue;
+            if (!up || !up.length || up[0].start_date !== d) throw new Error('not saved');
+            /* 纪录：作废旧的 reg_new，记一笔新的 */
+            const { data: ev } = await _sb.from('hub_student_event').select('id').eq('student_id', buf.id).eq('dept', m.dept).eq('class_code', m.class).eq('event', 'reg_new').eq('status', 'active');
+            const nr = _newRows.get(m);
+            await voidEvents((ev || []).map(x => x.id));
+            const got = await logEvents([{ student_id: buf.id, dept: m.dept, class_code: m.class, event: 'reg_new', effective_date: d, note: 'start date changed from ' + old }]);
+            m.start_date = d;
+            if (nr) { nr.key = m.dept + '|' + m.class + '|' + d; nr.ids = got.map(x => x.id); }
+            const so = (S.students.find(x => x.id === buf.id) || {});
+            [].concat(so.memberships || [], so.memberships_history || []).forEach(o => { if (o.dept === m.dept && o.class === m.class && (o.start_date || '') === old) o.start_date = d; });
+          } else {
+            m.start_date = d;   /* 还没存进云端：直接改，存档时一起写 */
+          }
+          renderMemberships();
+          _stQueue(200);
+          if (typeof recalcStudent === 'function' && row && row.length) recalcStudent(buf.id);
+          toast('Start date ' + d, 2500);
+        } catch (e) { console.error(e); toast('✕ Could not change the start date: ' + (e.message || e), 5000); }
+      })();
     });
   };
   /* 小视窗（在学生视窗上面），onOk 回传 false = 不关 */
