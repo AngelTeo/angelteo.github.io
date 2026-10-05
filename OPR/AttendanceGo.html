@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v16</title>
+<title>OPR-AttendanceGo v17</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,12 +178,13 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v16</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v17</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
     <button class="ntab" onclick="goPage('tracker')">Tracker</button>
     <button class="ntab" onclick="goPage('rules')">Exceptions</button>
+    <button class="ntab" onclick="goPage('atcweek')">ATC Week</button>
     <button class="ntab" onclick="goPage('manage')">Manage</button>
     <div class="nav-r"><span class="saved" id="last-saved"></span><button class="btn-nav" onclick="exportData()">↑ Export</button><label class="btn-nav" style="cursor:pointer">↓ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"/></label></div>
   </div>
@@ -238,6 +239,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
       </div>
     </div>
   </div>
+  <div class="page" id="page-atcweek"><div id="atcweek-content"></div></div>
   <div class="page" id="page-manage"><div id="manage-content"></div></div>
 </div>
 
@@ -247,7 +249,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=16;
+const APP_VERSION=17;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -326,6 +328,8 @@ async function initApp(){
     // Load attendance rules
     const{data:rulesData}=await _sb.from('attendance_rules').select('*').eq('is_active',true);
     allRules=rulesData||[];
+    /* v17 · ATC 课表（ClassGo 是课表正本）：每班每天 s1 = 功课班老师，s2 = 科目 + 老师 */
+    try{ const{data:tt}=await _sb.from('classgo_timetable').select('class_id,day,session,teacher,subj').eq('dept','ATC'); allTimetable=tt||[]; }catch(e){ allTimetable=[]; }
     console.log('Loaded:',allStudents.length,'students,',allMemberships.length,'memberships,',allCalendar.length,'calendar events,',allRules.length,'rules');
     await fuLoadTasks();                 /* v14 · Follow-Up 设定 */
     await loadAttendance(selectedDate);
@@ -767,14 +771,157 @@ function goPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
   document.getElementById('page-'+p).classList.add('on');
-  const map={dashboard:0,mark:1,monthly:2,tracker:3,rules:4,manage:5};
+  const map={dashboard:0,mark:1,monthly:2,tracker:3,rules:4,atcweek:5,manage:6};   /* v17 · 加 ATC Week */
   document.querySelectorAll('.ntab')[map[p]]?.classList.add('on');
   if(p==='dashboard') renderDashboard();
   if(p==='mark') renderMark();
   if(p==='monthly') renderMonthly();
   if(p==='tracker') renderTracker();
   if(p==='rules') renderRulesPage();
+  if(p==='atcweek') renderAtcWeek();   /* v17 */
   if(p==='manage'){ renderManage(); fuRenderAdmin(); }
+}
+
+
+// ═══════════════════════════════════════
+// v17 · ATC WEEK —— 一周例外总览
+// Owner 10-05：H/W 上到 3:30，3:00 或之后才到 = 功课班缺席（Lesson 照常）；
+// Lesson 3:30–5:30，迟到 / 早退照样算在班，只另外标出来。
+// 在班 = 班级人数 − 缺席（请假中的学生算缺席）。
+// 资料：固定例外 attendance_rules（按所选日期生效的）＋ 学生课程 ＋ ClassGo 课表。
+// ═══════════════════════════════════════
+let allTimetable=[];
+const AW={day:0,sess:0,cls:'',type:'',_init:false};
+const AW_DAYS=['','Mon','Tue','Wed','Thu','Fri'];
+const AW_DCODE=['','MON','TUE','WED','THU','FRI'];
+const AW_SESS={1:'H/W',2:'Lesson'};
+const AW_TYPE={absent:{t:'缺席',c:'var(--danger)',bg:'#FBEAEA'},late:{t:'迟到',c:'var(--warn)',bg:'#FFF8E1'},early_leave:{t:'早退',c:'#B35A00',bg:'#FFF3E0'}};
+function awEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function awTT(cls,day,sess){
+  const id=cls.replace(/^ATC_/,'');
+  const t=allTimetable.find(x=>x.class_id===id&&x.day===AW_DCODE[day]&&x.session==='s'+sess);
+  if(!t) return sess===2?'未排课':'H/W';
+  return String(t.subj||'').replace(/^ATC\./,'')+(t.teacher?' · '+t.teacher:'');
+}
+function awCell(cls,day,sess){
+  const roster=getClassStudents('ATC',cls);
+  const items=[];
+  roster.forEach(s=>{
+    if(s._paused){ items.push({cls,day,sess,s,type:'absent',time:'',reason:'请假中 (Paused)'}); return; }
+    const r=getRule(s.id,'ATC',day,sess,selectedDate);
+    if(r) items.push({cls,day,sess,s,type:r.rule_type,time:r.from_time?String(r.from_time).slice(0,5):'',reason:r.reason||''});
+  });
+  const n=k=>items.filter(i=>i.type===k).length;
+  return {size:roster.length,items,abs:n('absent'),late:n('late'),early:n('early_leave')};
+}
+function awSet(k,v){ AW[k]=v; renderAtcWeek(); }
+function awPick(cls,day,sess){ AW.cls=cls; AW.day=day; AW.sess=sess; renderAtcWeek(); }
+function awPills(label,key,opts){
+  let h=`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px"><span style="font-size:11px;color:var(--mut);width:52px">${label}</span>`;
+  opts.forEach(([v,t])=>{
+    const on=AW[key]===v;
+    h+=`<button style="min-height:32px;padding:5px 12px;border-radius:8px;border:1px solid ${on?'transparent':'var(--bdr)'};background:${on?'var(--layer)':'var(--sur)'};color:${on?'#fff':'var(--txt)'};font-size:12px;font-weight:${on?600:500};cursor:pointer;font-family:inherit" onclick='awSet(${JSON.stringify(key)},${JSON.stringify(v)})'>${t}</button>`;
+  });
+  return h+`</div>`;
+}
+function renderAtcWeek(){
+  const el=document.getElementById('atcweek-content');
+  if(!AW._init){ AW._init=true; const wd=new Date(selectedDate+'T12:00:00').getDay(); AW.day=(wd>=1&&wd<=5)?wd:0; }
+  const classes=getDeptClasses('ATC',false);
+  if(AW.cls&&!classes.includes(AW.cls)) AW.cls='';
+  const selCls=AW.cls?[AW.cls]:classes;
+  const days=AW.day?[AW.day]:[1,2,3,4,5];
+  const sesss=AW.sess?[AW.sess]:[1,2];
+  const slots=[]; days.forEach(d=>sesss.forEach(s=>slots.push([d,s])));
+
+  // 每格计算一次
+  const grid={}; let items=[];
+  selCls.forEach(c=>slots.forEach(([d,s])=>{ const x=awCell(c,d,s); grid[c+'|'+d+'|'+s]=x; items=items.concat(x.items); }));
+  const shown=AW.type?items.filter(i=>i.type===AW.type):items;
+  const sizeAll=selCls.reduce((a,c)=>a+getClassStudents('ATC',c).length,0);
+  const uniq=new Set(shown.map(i=>i.s.id)).size;
+  const cnt=k=>items.filter(i=>i.type===k).length;
+
+  let h=`<div style="font-size:16px;font-weight:600;margin-bottom:4px">ATC Week</div>
+  <div style="font-size:11px;color:var(--mut);margin-bottom:12px">按 ${awEsc(selectedDate)} 生效的固定例外 · H/W 到 3:30（3:00 后才到 = H/W 缺席）· Lesson 3:30–5:30 · 迟到 / 早退算在班</div>`;
+  h+=`<div class="card" style="padding:12px 16px">`;
+  h+=awPills('星期','day',[[0,'All']].concat([1,2,3,4,5].map(d=>[d,AW_DAYS[d]])));
+  h+=awPills('时段','sess',[[0,'All'],[1,'H/W'],[2,'Lesson']]);
+  h+=awPills('班级','cls',[['','All']].concat(classes.map(c=>[c,shortClassName(c)])));
+  h+=awPills('类型','type',[['','All'],['absent','缺席'],['late','迟到'],['early_leave','早退']]);
+  h+=`</div>`;
+
+  // 汇总
+  const single=slots.length===1;
+  const box=(n,t,col)=>`<div class="card" style="flex:1;min-width:110px;margin:0;text-align:center"><div style="font-size:22px;font-weight:600;color:${col||'var(--txt)'}">${n}</div><div style="font-size:11px;color:var(--mut)">${t}</div></div>`;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">`;
+  h+=box(sizeAll,AW.cls?shortClassName(AW.cls)+' 人数':'全部班级人数');
+  if(single) h+=box(sizeAll-cnt('absent'),'在班','var(--ok)');
+  h+=box(uniq,'受影响学生');
+  h+=box(cnt('absent'),'缺席',AW_TYPE.absent.c)+box(cnt('late'),'迟到',AW_TYPE.late.c)+box(cnt('early_leave'),'早退',AW_TYPE.early_leave.c);
+  h+=`</div>`;
+  if(!single) h+=`<div style="font-size:11px;color:var(--mut);margin:-2px 0 10px">缺席 / 迟到 / 早退是「人次」（同一个学生在不同时段各算一次）。每一格的在班人数看下表。</div>`;
+
+  // 班级 × 时段 表
+  h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:${120+slots.length*86}px">`;
+  h+=`<tr><th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)">班级</th>`;
+  slots.forEach(([d,s])=>{ h+=`<th style="padding:8px 6px;font-size:11px;font-weight:600;border-bottom:.5px solid var(--bdr);${s===1?'border-left:.5px solid var(--bdr)':''}">${AW_DAYS[d]}<div style="font-weight:400;color:var(--mut)">${AW_SESS[s]}</div></th>`; });
+  h+=`</tr>`;
+  const tot={};
+  selCls.forEach(c=>{
+    h+=`<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)">${shortClassName(c)}<div style="font-weight:400;font-size:10px;color:var(--mut)">${getClassStudents('ATC',c).length} 人</div></td>`;
+    slots.forEach(([d,s])=>{
+      const x=grid[c+'|'+d+'|'+s]; const k=d+'|'+s;
+      tot[k]=tot[k]||{size:0,abs:0,late:0,early:0};
+      tot[k].size+=x.size; tot[k].abs+=x.abs; tot[k].late+=x.late; tot[k].early+=x.early;
+      const sel=AW.cls===c&&AW.day===d&&AW.sess===s;
+      h+=`<td style="text-align:center;padding:6px 4px;border-bottom:.5px solid var(--bdr);${s===1?'border-left:.5px solid var(--bdr);':''}cursor:pointer;${sel?'background:#F3ECEC':''}" onclick='awPick(${JSON.stringify(c)},${d},${s})' title="${awEsc(awTT(c,d,s))}">
+        <div style="font-size:14px;font-weight:600">${x.size-x.abs}<span style="font-size:10px;color:var(--mut);font-weight:400">/${x.size}</span></div>
+        <div style="font-size:9px;color:var(--mut);white-space:nowrap">${awEsc(awTT(c,d,s))}</div>
+        <div style="font-size:9px;white-space:nowrap">${x.abs?`<span style="color:${AW_TYPE.absent.c}">缺${x.abs}</span> `:''}${x.late?`<span style="color:${AW_TYPE.late.c}">迟${x.late}</span> `:''}${x.early?`<span style="color:${AW_TYPE.early_leave.c}">早${x.early}</span>`:''}</div>
+      </td>`;
+    });
+    h+=`</tr>`;
+  });
+  if(selCls.length>1){
+    h+=`<tr style="background:var(--sur2)"><td style="padding:8px 12px;font-size:12px;font-weight:600;position:sticky;left:0;background:var(--sur2)">全部</td>`;
+    slots.forEach(([d,s])=>{ const t=tot[d+'|'+s];
+      h+=`<td style="text-align:center;padding:6px 4px;${s===1?'border-left:.5px solid var(--bdr)':''}"><div style="font-size:14px;font-weight:600">${t.size-t.abs}<span style="font-size:10px;color:var(--mut);font-weight:400">/${t.size}</span></div>
+      <div style="font-size:9px;white-space:nowrap">${t.abs?`<span style="color:${AW_TYPE.absent.c}">缺${t.abs}</span> `:''}${t.late?`<span style="color:${AW_TYPE.late.c}">迟${t.late}</span> `:''}${t.early?`<span style="color:${AW_TYPE.early_leave.c}">早${t.early}</span>`:''}</div></td>`; });
+    h+=`</tr>`;
+  }
+  h+=`</table></div>`;
+  h+=`<div style="font-size:10px;color:var(--hint);margin:-4px 0 14px">格子 = 在班 / 人数（在班 = 人数 − 缺席）。点格子 = 只看那一班、那一天、那个时段。</div>`;
+
+  // 学生名单
+  shown.sort((a,b)=>a.cls.localeCompare(b.cls,undefined,{numeric:true})||a.day-b.day||a.sess-b.sess||((a.s.num??999)-(b.s.num??999)));
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">名单 · ${shown.length} 笔</div>
+    <button onclick="awExport()" style="min-height:32px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;cursor:pointer;font-family:inherit">Export CSV</button></div>`;
+  if(!shown.length){
+    h+=`<div class="card" style="text-align:center;color:var(--mut);font-size:12px">No matching results</div>`;
+  }else{
+    const th=t=>`<th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);white-space:nowrap">${t}</th>`;
+    h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:760px"><tr>${th('班')}${th('星期')}${th('时段')}${th('当时在上')}${th('#')}${th('学生')}${th('类型')}${th('时间')}${th('原因')}</tr>`;
+    shown.forEach(i=>{
+      const T=AW_TYPE[i.type]||AW_TYPE.absent;
+      const td=(v,st)=>`<td style="padding:8px;font-size:12px;border-bottom:.5px solid var(--bdr);${st||''}">${v}</td>`;
+      h+=`<tr>${td(shortClassName(i.cls),'font-weight:600')}${td(AW_DAYS[i.day])}${td(AW_SESS[i.sess])}${td(awEsc(awTT(i.cls,i.day,i.sess)),'color:var(--mut);white-space:nowrap')}${td(i.s.num??'—','color:var(--mut)')}${td(awEsc(i.s.name)+(i.s.name_cn?` <span style="color:var(--mut);font-size:11px">${awEsc(i.s.name_cn)}</span>`:''))}${td(`<span style="background:${T.bg};color:${T.c};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap">${T.t}</span>`)}${td(i.time||'—','white-space:nowrap')}${td(awEsc(i.reason),'color:var(--mut)')}</tr>`;
+    });
+    h+=`</table></div>`;
+  }
+  el.innerHTML=h;
+  window._awShown=shown;
+}
+function awExport(){
+  const rows=window._awShown||[];
+  const cell=v=>{const s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const lines=[['Class','Day','Session','Running','No','Student','Type','Time','Reason'].join(',')];
+  rows.forEach(i=>lines.push([shortClassName(i.cls),AW_DAYS[i.day],AW_SESS[i.sess],awTT(i.cls,i.day,i.sess),i.s.num??'',i.s.name,(AW_TYPE[i.type]||{}).t||i.type,i.time,i.reason].map(cell).join(',')));
+  const d=new Date(); const p=n=>String(n).padStart(2,'0');
+  const fn=`AttendanceGo_ATCWeek_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.csv`;
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; a.click();
+  if(typeof toast==='function') toast('✓ Exported');
 }
 
 // ═══════════════════════════════════════
