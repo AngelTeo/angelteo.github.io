@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ClassGo System v483</title>
+<title>ClassGo System v484</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>'>
 <style>
 :root{
@@ -436,7 +436,7 @@ input.fi:focus,select.fi:focus{outline:none;border-color:var(--acc)}
 <div id="offline-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#FDF3E0;border-top:1px solid #E8C88A;color:#854F0B;font-size:11px;padding:7px 16px;text-align:center;font-weight:600"></div>
 
 <div class="nav">
-  <div class="nav-logo"><a href="../index.html" title="Back to Platform Home" style="color:inherit;text-decoration:none;margin-right:8px;opacity:.75" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">←</a>ClassGo <span style="font-size:10px;font-weight:400;opacity:.5">v483</span></div>
+  <div class="nav-logo"><a href="../index.html" title="Back to Platform Home" style="color:inherit;text-decoration:none;margin-right:8px;opacity:.75" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">←</a>ClassGo <span style="font-size:10px;font-weight:400;opacity:.5">v484</span></div>
   <button class="ntab on" onclick="goSection('today',this)">🏠 Today</button>
   <button class="ntab" onclick="goSection('schedules',this)">📅 Schedules</button>
   <button class="ntab" onclick="goSection('duty',this)">📋 Duty</button>
@@ -873,7 +873,7 @@ input.fi:focus,select.fi:focus{outline:none;border-color:var(--acc)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const APP_VERSION='v483';
+const APP_VERSION='v484';   /* v484 · 05-10-2026 · Publish 把 ATC 合班写进两个班 (classgo_timetable) */
 
 // ═══ v445 A 阶段: 合并登入 + role 上云 ═══════════════════════════════════════
 // 已用 pg_proc 查证 (2026-07-14):
@@ -1074,6 +1074,34 @@ async function _publishTimetables(){
         });
       });
     });
+
+    // ②b v484 · 05-10-2026 · ATC 合班 (S.atcCombined) 写进两个班。
+    // 之前只 flatten S.atcTimetable,合班只存在画面 → A5+A6 的 A6 没 Lesson、H/W 没老师;A1+A2 Fri 写成各自 token 老师。
+    // 取值跟 renderATCTT 合班格同一套: teacher = 合班 teacher || 前一班那格 teacher;
+    //   subj = 合班 subj || (s1 ? 'H/W' : 前一班那格 subj)。两班写一样的值,原本那两格的行先拿掉。
+    (function(){
+      let classes=[]; try{ classes=getATCClasses()||[]; }catch(e){ classes=[]; }
+      const comb={};
+      (S.atcCombined||[]).forEach(function(c){
+        if(!c||!c.day||!c.sess) return;
+        const i1=classes.indexOf(c.cls1), i2=classes.indexOf(c.cls2);
+        if(i1<0||i2<0||i1===i2) return;
+        const first=i1<i2?c.cls1:c.cls2, second=i1<i2?c.cls2:c.cls1;
+        const base=(((S.atcTimetable||{})[c.day]||{})[first]||{})[c.sess]||{};
+        const teacher=String(c.teacher||base.teacher||'').trim();
+        const subj=String(c.subj||(c.sess==='s1'?'H/W':(base.subj||''))).trim();
+        if(!teacher && !subj) return;
+        [first,second].forEach(function(cls){ comb[c.day+'|'+cls+'|'+c.sess]={day:c.day,cls:cls,sess:c.sess,teacher:teacher,subj:subj}; });
+      });
+      for(let i=ttRows.length-1;i>=0;i--){
+        const r=ttRows[i];
+        if(r.dept==='ATC' && comb[r.day+'|'+r.class_id+'|'+r.session]) ttRows.splice(i,1);
+      }
+      Object.keys(comb).forEach(function(k){
+        const v=comb[k];
+        ttRows.push({dept:'ATC', class_id:v.cls, day:v.day, session:v.sess, teacher:v.teacher||null, subj:v.subj||null});
+      });
+    })();
 
     // ③ flatten srtAssign → classgo_srt 行
     const srtRows=[];
