@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Student v38</title>
+<title>MasterHub — Student v39</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -439,7 +439,7 @@ const STORAGE_KEY = 'masterhub_student_v16';
 const BACKUP_KEY  = STORAGE_KEY + '_backup';
 const PENDING_KEY = STORAGE_KEY + '_pending';
 let   UNSYNCED    = false;
-const APP_VERSION = 38;
+const APP_VERSION = 39;
 /* v30 · 顶栏那颗版本徽章以前是硬写的「v26」，v27 / v28 / v29 上线後顶栏一直显示 v26，
    行政看画面根本分不出换了没有。现在改成开机自动跟着 APP_VERSION 走，永远不会再对不上。 */
 try { var _vb = document.getElementById('topbar-ver'); if (_vb) _vb.textContent = 'v' + APP_VERSION; } catch(e){}
@@ -2431,7 +2431,8 @@ window.openStudent = function(id) {
   overlay.className = 'modal-bg';
   const _footLeft = isNew ? '' :
     '<button class="btn btn-sm" style="color:#A32D2D;border-color:#A32D2D;margin-right:auto" onclick="window.openLeave()">Student leaving</button>' +
-    '<button class="btn btn-sm" style="color:var(--mut);margin-right:8px" onclick="window.archiveStudent(\'' + esc(buf.id) + '\')">' + (buf.status === 'Archived' ? 'Restore' : 'Archive') + '</button>';
+    '<button class="btn btn-sm" style="color:var(--mut);margin-right:8px" onclick="window.archiveStudent(\'' + esc(buf.id) + '\')">' + (buf.status === 'Archived' ? 'Restore' : 'Archive') + '</button>' +
+    (_isTopMgmt() ? '<button class="btn btn-sm" style="color:#A32D2D;margin-right:8px" title="Only for a student entered by mistake" onclick="window.deleteMistake(\'' + esc(buf.id) + '\')">Delete</button>' : '');
   overlay.innerHTML = '<div class="modal"><div class="modal-hdr"><div class="modal-title">' + (isNew ? 'New Student' : 'Student — ' + esc(buf.name) + (buf.name_cn ? ' ' + esc(buf.name_cn) : '')) + '</div><button class="x-btn" id="modal-close-x">×</button></div><div class="modal-body">' + modalBody() + '</div><div class="modal-foot">' + _footLeft + '<span id="st-af-hint" style="font-size:12px;font-weight:600;color:#2D6A4F;align-self:center;margin-right:8px">✓ Changes save to the cloud automatically</span><button class="btn btn-pri" id="modal-cancel">Close</button></div></div>';
   document.body.appendChild(overlay);
   renderMemberships();
@@ -2446,6 +2447,31 @@ window.openStudent = function(id) {
      现在：视窗里任何输入 / 点选 → 停 1 秒自动存进云端。只剩「Close」，关之前先把还没送的送完。
      转班、学生离开这种会影响别人的动作，照样保留确认按钮（存档统一逻辑 规则二）。 */
   let _stTimer = null, _stBusy = false, _stAgain = false, _stLast = null, _stInvalid = '', _stTouched = false;
+  let _stDupOk = null, _stDupAsk = null;   /* v39 */
+  function _stDupDialog(dup) {
+    const bg = document.createElement('div');
+    bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+    const rows = dup.map(d => {
+      const depts = [...new Set((d.memberships || []).filter(m => !m.end_date).map(m => m.dept))].join(' + ') || 'no class now';
+      return '<div style="border:1px solid #E6EAF0;border-radius:10px;padding:10px 12px;margin-top:8px">'
+        + '<div style="font-weight:700">' + esc(d.name) + (d.name_cn ? ' ' + esc(d.name_cn) : '') + '</div>'
+        + '<div style="font-size:12px;color:#5A6472;margin-top:2px">' + esc(depts) + ' · ' + esc(d.status || 'Active') + (d.birth_year ? ' · born ' + d.birth_year : '') + '</div>'
+        + '<button class="btn btn-sm" style="margin-top:8px" data-open="' + esc(d.id) + '">Open this student</button></div>';
+    }).join('');
+    bg.innerHTML = '<div class="modal" style="max-width:440px"><div class="modal-hdr"><div class="modal-title">Same name found</div></div>'
+      + '<div class="modal-body"><div style="font-size:14px;line-height:1.6">There is already a student called <b>' + esc(buf.name) + '</b>. Is this the same child?</div>' + rows + '</div>'
+      + '<div class="modal-foot"><button class="btn btn-sm" id="dup-cancel" style="margin-right:auto">Go back and fix the name</button>'
+      + '<button class="btn btn-pri" id="dup-add">No, add as a new student</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector('#dup-cancel').onclick = () => { bg.remove(); const n = document.getElementById('ed-name'); if (n) n.focus(); };
+    bg.querySelector('#dup-add').onclick = () => { _stDupOk = buf.name; bg.remove(); _stQueue(0); };
+    bg.querySelectorAll('[data-open]').forEach(b => b.onclick = () => {
+      const id = b.getAttribute('data-open');
+      bg.remove(); clearTimeout(_stTimer); _stTimer = null;
+      overlay.remove(); document.removeEventListener('keydown', modalKeyHandler);
+      window.openStudent(id);
+    });
+  }
   function _stHint(msg, warn) {
     const el = document.getElementById('st-af-hint'); if (!el) return;
     if (msg) { el.textContent = '⚠ ' + msg; el.style.color = warn ? '#854F0B' : '#c0392b'; }
@@ -2495,6 +2521,16 @@ window.openStudent = function(id) {
     if (badOt) { _stInvalid = 'Outside tuition: end time must be after start time'; _stHint(_stInvalid); return; }
     if ((buf.memberships || []).some(m => !m.class)) { _stInvalid = 'Choose the class for the new row (or press End class to remove it)'; _stHint(_stInvalid, true); return; }   /* v36 */
     _stInvalid = '';
+    /* v39 · 新学生跟现有学生完全同名 → 先停下来问（Owner 2026-10-05 定） */
+    if (isNew) {
+      const dup = S.students.filter(x => x.id !== buf.id && String(x.name || '').trim().toUpperCase().replace(/\s+/g, ' ') === buf.name);
+      if (dup.length && _stDupOk !== buf.name) {
+        _stInvalid = 'Same name as a student already in the list';
+        _stHint(_stInvalid, true);
+        if (_stDupAsk !== buf.name) { _stDupAsk = buf.name; _stDupDialog(dup); }
+        return;
+      }
+    }
     const clash = seatClashes(buf.id, buf.memberships);
     const sig = JSON.stringify(buf);
     if (sig === _stLast) { clash.length ? _stHint('Same seat number as ' + clash.join(', ') + ' — please check', true) : _stHint(''); return; }
@@ -2635,6 +2671,65 @@ window.archiveStudent = async function(id) {
   renderCurrentPage();
 };
 window.deleteStudent = window.archiveStudent;   // 旧按钮沿用，行为已改成封存
+
+/* ═══ v39 · 2026-10-05 · 「Delete」= 只给打错的学生（Owner 定）═══
+   只有 OWNER / TOP_MGMT 看得到。资料库再检查一次：
+   学生只要在任何系统有纪录（出席、报告、家长沟通、评估…）就不准删，只能 Archive。
+   删之前资料库会先备份一份。 */
+function _isTopMgmt() { return window.MY_ROLE === 'OWNER' || window.MY_ROLE === 'TOP_MGMT'; }
+const _REF_LABEL = {
+  attendance: 'Attendance', attendance_rules: 'Attendance rules', records: 'MiscGo reports', miscgo_record_student_link: 'MiscGo reports',
+  parent_comms: 'Parent talks (ParentGo)', evt_participants: 'Events', hub_student_outside_tuition: 'Outside tuition',
+  followup_record: 'Follow-ups', obsgo_entry: 'ObsGo', lovego_entry: 'LoveGo'
+};
+function _refLabel(t) {
+  if (_REF_LABEL[t]) return _REF_LABEL[t];
+  if (t.indexOf('evalgo') === 0) return 'EvalGo';
+  if (t.indexOf('lovego') === 0) return 'LoveGo';
+  if (t.indexOf('ptmgo') === 0) return 'PTMGo';
+  return t;
+}
+const _SETUP_TABLES = ['hub_student_memberships', 'hub_student_event', 'hub_student_family', 'dutyq_member', 'dutyq_walk'];
+window.deleteMistake = async function(id) {
+  if (!_isTopMgmt()) { toast('Only top management can delete', 2500); return; }
+  if (window._stuFlush) await window._stuFlush();
+  const s = S.students.find(x => x.id === id);
+  if (!s) return;
+  let u;
+  try {
+    const { data, error } = await _sb.rpc('hub_student_usage', { p_id: id });
+    if (error) throw error;
+    u = data;
+  } catch (e) {
+    const m = (e && e.message) || String(e);
+    alert(/hub_student_usage|function|schema cache/i.test(m)
+      ? 'Delete is not switched on yet (the database step is not done).\n\nUse Archive for now.'
+      : 'Could not check this student:\n' + m);
+    return;
+  }
+  if ((u.history || 0) > 0) {
+    const agg = {};
+    Object.keys(u.tables || {}).forEach(t => { if (_SETUP_TABLES.indexOf(t) < 0) { const k = _refLabel(t); agg[k] = (agg[k] || 0) + Number(u.tables[t]); } });
+    const lines = Object.keys(agg).map(k => '  • ' + k + ': ' + agg[k]).join('\n');
+    alert('"' + s.name + '" cannot be deleted — this student already has records:\n\n' + lines
+      + '\n\nDelete is only for a student entered by mistake.\nIf the student has left or is a duplicate, use Archive.');
+    return;
+  }
+  if (!confirm('Delete "' + s.name + '"?\n\nOnly for a student entered by mistake. The student and the class rows will be removed from the list for good.\n(A backup is kept in the database.)')) return;
+  try {
+    const { error } = await _sb.rpc('hub_student_delete_mistake', { p_id: id });
+    if (error) throw error;
+  } catch (e) {
+    const m = (e && e.message) || String(e);
+    alert(m.indexOf('HAS_HISTORY') >= 0 ? 'Not deleted — a record was just added for this student. Use Archive.' : 'Not deleted:\n' + m);
+    return;
+  }
+  S.students = S.students.filter(x => x.id !== id);
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ students: S.students, classes: S.classes, meta: S.meta })); } catch (e) {}
+  const m = document.querySelector('.modal-bg'); if (m) m.remove();
+  toast('Deleted', 2000);
+  renderCurrentPage();
+};
 
 // ===================== CLASS MANAGEMENT =====================
 window.openAddClass = function() {
@@ -3492,6 +3587,11 @@ async function initApp(){
   document.getElementById('loading-screen').style.display='flex';
   try {
     await initData();
+    /* v39 · 读角色：「Delete」按钮只给 OWNER / TOP_MGMT */
+    try {
+      const { data: { user } } = await _sb.auth.getUser();
+      if (user) { const { data: um } = await _sb.from('users_meta').select('role').eq('user_id', user.id).maybeSingle(); window.MY_ROLE = um ? um.role : null; }
+    } catch (e) { console.warn('[v39] role', e); }
     if (S.meta.last_updated) safeSet('last-saved', 'Saved ' + new Date(S.meta.last_updated).toLocaleTimeString('en-GB'));
     document.getElementById('loading-screen').style.display='none';
     renderCurrentPage('dashboard');
