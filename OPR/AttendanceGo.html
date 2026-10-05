@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v17</title>
+<title>OPR-AttendanceGo v18</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v17</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v18</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -249,7 +249,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=17;
+const APP_VERSION=18;
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -435,6 +435,17 @@ function getClassStudents(dept,classCode){
    现在按日期判断：那一班、那一天在请假期间才算请假。回来日那天起就恢复正常。 */
 /* v16 · 固定例外三种：迟到 / 早退 / 缺席（ATC 资料表 10-05 导入有「迟到」） */
 function ruleLabel(t){ return t==='early_leave'?'EARLY':(t==='late'?'LATE':'ABS'); }
+/* v18 · 点名纪录算哪一班：
+   纪录的唯一键是 日期 + 学生 + 部门 + 节次（不含班级），Mark 画面也是这样找。
+   可是纪录上写的 class_code 是「按下去那一班」。老师在旧班名单按 All ✓，纪录就写旧班，
+   Monthly / Tracker 只找本班 class_code → 空白（10-03 SRT LV5 Celeste、Hng You Kai）。
+   规则：纪录上那一班在那天还有效 → 照写的；否则 → 算那天学生实际在上的那一班（只有一班时）。 */
+function attClassOf(r){
+  const ms=allMemberships.filter(m=>m.student_id===r.student_id&&m.dept===r.dept);
+  if(ms.some(m=>m.class_code===r.class_code&&m.start_date<=r.date&&(m.end_date==null||m.end_date>=r.date))) return r.class_code;
+  const live=ms.filter(m=>m.start_date<=r.date&&(m.end_date==null||m.end_date>r.date)&&!String(m.class_code||'').includes('RSVP'));
+  return live.length===1?live[0].class_code:r.class_code;
+}
 function memPausedOn(m,d){ return !!(m&&m.pause_from&&m.pause_from<=d&&(!m.pause_to||m.pause_to>d)); }
 function isPausedStu(s){
   if(!s) return false;
@@ -1372,17 +1383,17 @@ async function renderMonthly(){
   const endDate=monthlyMonth+'-'+String(daysInMonth).padStart(2,'0');
   const{data:monthRecs}=await _sb.from('attendance').select('*')
     .gte('date',startDate).lte('date',endDate)
-    .eq('dept',monthlyDept).eq('class_code',monthlyClass)
+    .eq('dept',monthlyDept)   /* v18 · 不再只抓本班 class_code，下面用 attClassOf 判断 */
     .order('date').order('session');
   // D-A35: ATC 一天两条 (session 1/2)。不按 session 过滤 = recMap 后条覆盖前条,
   // Rate 分母翻倍, 显示哪一节不可预测。一刀切好 recMap/Rate/Marked by 三处。
-  const recs=(monthRecs||[]).filter(r=>(r.session??0)===monthlySession);
+  const recs=(monthRecs||[]).filter(r=>(r.session??0)===monthlySession&&attClassOf(r)===monthlyClass);
 
   // Build lookup: recMap[studentId][day] = {status, note, marked_by}
   const recMap={};
   recs.forEach(r=>{
     const day=parseInt(r.date.split('-')[2]);
-    (recMap[r.student_id]=recMap[r.student_id]||{})[day]={status:r.status,note:r.note||'',marked_by:r.marked_by||''};
+    (recMap[r.student_id]=recMap[r.student_id]||{})[day]={status:r.status,note:r.note||'',marked_by:r.marked_by||'',other:r.class_code!==monthlyClass?r.class_code:''};   /* v18 · other = 在别班名单点的 */
   });
 
   const ICON={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
@@ -1440,7 +1451,8 @@ async function renderMonthly(){
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:9px" title="On leave">L</td>`;
         }else if(r){
           const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]||'·';
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'}" title="${r.note||r.status}">${display}</td>`;
+          const oth=r.other?' · marked in '+r.other:'';   /* v18 */
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'};${r.other?'box-shadow:inset 0 -2px 0 #7870CC':''}" title="${_escHtml((r.note||r.status)+oth)}">${display}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)">·</td>`;
         }
@@ -1649,7 +1661,7 @@ async function loadTrackerMatrix(){
 
     mems.forEach((mem,mi)=>{
       const recByDate={};
-      stuRecs.filter(r=>r.dept===mem.dept&&r.class_code===mem.class_code).forEach(r=>{recByDate[r.date]=r;});
+      stuRecs.filter(r=>r.dept===mem.dept&&attClassOf(r)===mem.class_code).forEach(r=>{recByDate[r.date]=r;});   /* v18 */
       const ended=mem.end_date!=null;
       h+=`<tr><td style="padding:5px 8px;border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur);z-index:1;font-size:10px;white-space:nowrap">
         ${mi===0?'<strong>'+stu.name+'</strong><br>':''}
