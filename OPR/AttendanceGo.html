@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v23</title>
+<title>OPR-AttendanceGo v24</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v23</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v24</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -261,7 +261,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=23;   /* v23 · ATC 时段改 Owner 10-07 定案：H/W 一到四 1:15–3:30、五 12:15–3:30；Lesson 3:30–5:15。点 Late 问几点到，H/W 3:00 或以后到 → 改记 Absent */
+const APP_VERSION=24;   /* v24 · ATC 按 Late 直接记现在的时间（不跳视窗）；再按一次 Late 可以改时间（Owner 10-07） */
+/* v23 · ATC 时段改 Owner 10-07 定案：H/W 一到四 1:15–3:30、五 12:15–3:30；Lesson 3:30–5:15。点 Late 问几点到，H/W 3:00 或以后到 → 改记 Absent */
 /* v22 · ATC Week 列全班每个时段的状况 ＋ 每周都上不到的 Lesson 清单（Owner 10-06）。v21 候选已作废，跳号 */
 /* v20 · ATC Week 与 Monthly 小字改英文（行政不读中文，Owner 10-05） */
 const DEPTS=['SRK','GAK','ATC','SRT'];
@@ -1545,24 +1546,34 @@ async function markStudent(studentId,studentName,dept,classCode,status){
     if(reason===null) return;
     note=reason?'Override: '+reason:'Override: no reason given';
   }
+  let _hwAbs=false, _lateTip='';
   if(status==='late'){
     const now=new Date();
     const timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-    /* v23 · ATC：提示开始时间；H/W 3:00 或以后才到 → 照规则改记 Absent */
     const _atc=dept==='ATC';
     const _start=_atc?(currentSession===2?'3:30':atcHHMM(ATC_TIME.hwStart(_dow))):'';
-    const input=prompt(_atc?('Arrival time ('+(currentSession===2?'Lesson':'H/W')+' starts '+_start+'):'):'Late time:',timeStr);
-    if(input===null) return; // cancelled
+    const _ask=v=>prompt(_atc?('Arrival time ('+(currentSession===2?'Lesson':'H/W')+' starts '+_start+'):'):'Late time:',v);
+    /* v24 · ATC：今天第一次按 Late → 直接记现在的时间，不跳视窗；已经是 Late 再按一次 → 改时间。
+       补点以前的日子（不是今天）一样会问，因为「现在」不是孩子到的时间。 */
+    const _prev=todayRecords.find(r=>r.student_id===studentId&&r.dept===dept&&(r.session??0)===currentSession);
+    const _prevT=_prev&&_prev.status==='late'?(((_prev.note||'').match(/Late:\s*(\d{1,2}[:.]\d{2})/)||[])[1]||''):'';
+    let input;
+    if(_atc&&!_prevT&&selectedDate===todayStr()) input=timeStr;
+    else { input=_ask(_prevT||timeStr); if(input===null) return; }
     note='Late: '+input;
-    if(_atc&&currentSession===1){
+    /* v23 · H/W 3:00 或以后才到 → 照规则改记 Absent；按取消可以改时间 */
+    while(_atc&&currentSession===1){
       const m=atcMin(input);
-      if(m!=null&&m>=ATC_TIME.hwAbsentFrom){
-        if(!confirm(studentName+' arrived '+input+'.\n\nArriving 3:00 or later counts as ABSENT for H/W.\nOK = mark Absent · Cancel = go back')) return;
-        status='absent'; note='Arrived '+input+' (3:00 or later = H/W absent)';
+      if(m==null||m<ATC_TIME.hwAbsentFrom) break;
+      if(confirm(studentName+' arrived '+input+'.\n\nArriving 3:00 or later counts as ABSENT for H/W.\nOK = mark Absent · Cancel = change the time')){
+        status='absent'; note='Arrived '+input+' (3:00 or later = H/W absent)'; _hwAbs=true; break;
       }
+      input=_ask(input); if(input===null) return;
+      note='Late: '+input;
     }
+    if(status==='late'&&_atc&&!_prevT) _lateTip='Late '+input+' · tap Late again to change the time';
   }
-  if(status==='absent'){
+  if(status==='absent'&&!_hwAbs){
     const reason=prompt('Reason for absence (activity / tuition — you can leave this blank):','');
     if(reason===null) return;
     if(reason) note=reason;
@@ -1591,7 +1602,7 @@ async function markStudent(studentId,studentName,dept,classCode,status){
       updated_at:new Date().toISOString()
     },{onConflict:'date,student_id,dept,session'});
     if(error){ console.error('Save failed:',error); toast('✕ Save failed'); }
-    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ Saved'); }
+    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast(_lateTip?('✓ Saved · '+_lateTip):'✓ Saved',_lateTip?3500:undefined); }
   }catch(e){console.error('Save error:',e);toast('✕ Save error');}
 }
 
