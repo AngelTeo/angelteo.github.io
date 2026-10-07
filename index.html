@@ -219,7 +219,8 @@ const LIVE={
   // 2026-09-22：v63 → v64（开页不再排队：检查一起问、资料一起读，开页就带出卷清单）。
   // 2026-09-22：v62 → v63（只有一份卷时首页也列出来，写明「系统已自动选好」与建立日期）。
   // 2026-09-22：v60 → v62（v61 改项目不再变成「我登记的」、卷卡片只印真的填过的老师 · v62 有作文的卷先讲得分率（含作文））。
-  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v69',   group:'RPT — Reports', color:'#5A6470', order:0},
+  // 2026-10-07：v69 → v71（v70 进度页三个真数字 · v71 迟到 / 早退标「没参与」的项目，分数只算有参与的）。线上 APP_VERSION = 71。
+  'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v71',   group:'RPT — Reports', color:'#5A6470', order:0},
   // ── OPR-ObsGo (2026-09-09 上线 · v12 2026-09-12 上线) · 巡班观察 ──
   //    权限：管理页仅 OWNER/TOP_MGMT/ADMIN；进度页 OWNER/TOP_MGMT/ADMIN/MGMT；TEACHER 只有巡班+记录。
   //    2026-09-13 实抓线上 APP_VERSION = 12（223,344 B），卡片原写 v7 → 已更正。
@@ -229,7 +230,8 @@ const LIVE={
   //             ⚠️ 卡片需 academee-tools/LoveGo.html 已实际部署才可点开；未部署前此卡会 404。
   // 2026-09-29：LoveGo v84 → v99（v94 学生页两张卡＋总结、四级必填 · v95 名单→三张卡、GAK 按环节派 · v96 鼓励字句＋中英切换 · v97 派老师可加人 · v98 每生 SRK 6 · GAK 10 · ATC 8 · SRT 2 · v99 被派到的管理层照老师算）。Owner 29-09 11:42 交办。
   // 2026-09-30：LoveGo v99 → v100（每生老师人数 6 / 10 / 8 / 2 改成「上限」，派几位就几位交齐）。Owner 30-09 23:14 交办。
-  'OPR-LoveGo':        {href:'academee-tools/LoveGo.html',   name:'LoveGo',   ver:'v100', group:'OPR — Operations', color:'#8B6C2A', order:12}
+  // 2026-10-07：LoveGo v100 → v105（版本核对标红：线上 APP_VERSION = 105，卡片落后 → 更正）。
+  'OPR-LoveGo':        {href:'academee-tools/LoveGo.html',   name:'LoveGo',   ver:'v105', group:'OPR — Operations', color:'#8B6C2A', order:12}
 };
 
 const LAYER_COLORS={
