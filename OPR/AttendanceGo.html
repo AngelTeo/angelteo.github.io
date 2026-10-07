@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v20</title>
+<title>OPR-AttendanceGo v22</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v20</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v22</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -261,7 +261,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=20;   /* v20 · ATC Week 与 Monthly 小字改英文（行政不读中文，Owner 10-05） */
+const APP_VERSION=22;   /* v22 · ATC Week 列全班每个时段的状况 ＋ 每周都上不到的 Lesson 清单（Owner 10-06）。v21 候选已作废，跳号 */
+/* v20 · ATC Week 与 Monthly 小字改英文（行政不读中文，Owner 10-05） */
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
 const STATUSES=['present','absent','late','early_leave','mc'];
@@ -819,7 +820,7 @@ function goPage(p){
 // 资料：固定例外 attendance_rules（按所选日期生效的）＋ 学生课程 ＋ ClassGo 课表。
 // ═══════════════════════════════════════
 let allTimetable=[];
-const AW={day:0,sess:0,cls:'',type:'',_init:false};
+const AW={day:0,sess:0,cls:'',type:'',view:'class',q:'',_init:false};   /* v22 · view: class=全班 / list=只列有状况的 */
 const AW_DAYS=['','Mon','Tue','Wed','Thu','Fri'];
 const AW_DCODE=['','MON','TUE','WED','THU','FRI'];
 const AW_SESS={1:'H/W',2:'Lesson'};
@@ -921,24 +922,127 @@ function renderAtcWeek(){
   h+=`</table></div>`;
   h+=`<div style="font-size:10px;color:var(--hint);margin:-4px 0 14px">Box = in class / class size (in class = size − absent). Tap a box to see only that class, day and session.</div>`;
 
-  // 学生名单
+  // v22 · 下半部：全班 / 只列有状况 / 每周上不到的 Lesson
   shown.sort((a,b)=>a.cls.localeCompare(b.cls,undefined,{numeric:true})||a.day-b.day||a.sess-b.sess||((a.s.num??999)-(b.s.num??999)));
-  h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">List · ${shown.length}</div>
-    <button onclick="awExport()" style="min-height:32px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;cursor:pointer;font-family:inherit">Export CSV</button></div>`;
-  if(!shown.length){
-    h+=`<div class="card" style="text-align:center;color:var(--mut);font-size:12px">No matching results</div>`;
-  }else{
-    const th=t=>`<th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);white-space:nowrap">${t}</th>`;
-    h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:760px"><tr>${th('Class')}${th('Day')}${th('Session')}${th('Running')}${th('#')}${th('Student')}${th('Type')}${th('Time')}${th('Reason')}</tr>`;
-    shown.forEach(i=>{
-      const T=AW_TYPE[i.type]||AW_TYPE.absent;
-      const td=(v,st)=>`<td style="padding:8px;font-size:12px;border-bottom:.5px solid var(--bdr);${st||''}">${v}</td>`;
-      h+=`<tr>${td(shortClassName(i.cls),'font-weight:600')}${td(AW_DAYS[i.day])}${td(AW_SESS[i.sess])}${td(awEsc(awTT(i.cls,i.day,i.sess)),'color:var(--mut);white-space:nowrap')}${td(i.s.num??'—','color:var(--mut)')}${td(awEsc(i.s.name)+(i.s.name_cn?` <span style="color:var(--mut);font-size:11px">${awEsc(i.s.name_cn)}</span>`:''))}${td(`<span style="background:${T.bg};color:${T.c};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap">${T.t}</span>`)}${td(i.time||'—','white-space:nowrap')}${td(awEsc(i.reason),'color:var(--mut)')}</tr>`;
-    });
-    h+=`</table></div>`;
-  }
+  const vb=(v,t)=>{const on=AW.view===v;return `<button style="min-height:34px;padding:6px 14px;border-radius:8px;border:1px solid ${on?'transparent':'var(--bdr)'};background:${on?'var(--layer)':'var(--sur)'};color:${on?'#fff':'var(--txt)'};font-size:12px;font-weight:${on?600:500};cursor:pointer;font-family:inherit" onclick="awSet('view','${v}')">${t}</button>`;};
+  h+=`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px">${vb('class','Whole class')}${vb('lesson','Lessons missed every week')}${vb('list','Exceptions only')}
+    <input id="aw-q" type="search" placeholder="Find student…" value="${awEsc(AW.q)}" oninput="AW.q=this.value;awLower()" style="flex:1;min-width:140px;min-height:34px;padding:6px 10px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;font-family:inherit;background:var(--sur);color:var(--txt)"></div>`;
+  h+=`<div id="aw-lower"></div>`;
   el.innerHTML=h;
   window._awShown=shown;
+  window._awCtx={selCls,slots,shown};
+  awLower();
+}
+/* ═══ v22 · ATC Week 下半部（Owner 10-06）════════════════════════════
+   Whole class：班上每个学生 × 每个时段都列出来（没状况的显示 ✓），一眼看全班。
+   Lessons missed every week：固定例外里 Lesson 缺席的（含 3:30 前就走的），
+   列出星期几、那天上什么科目、哪位老师 —— 家长投诉时查得到孩子那节课本来就没上。
+   资料只读：attendance_rules（所选日期生效的）＋ 学生课程 ＋ ClassGo 课表。 */
+function awIsSometimes(r){ return /^Sometimes/i.test(String(r&&r.reason||'')); }
+function awStatus(s,cls,d,ss){
+  if(s._paused) return {k:'leave',t:'Leave',c:'#5A6270',bg:'#E8EAEE',why:'On leave (Paused)'};
+  const r=getRule(s.id,'ATC',d,ss,selectedDate);
+  if(!r) return {k:'ok',t:'✓',c:'var(--ok)',bg:'transparent',why:''};
+  const tm=r.from_time?String(r.from_time).slice(0,5):'';
+  const some=awIsSometimes(r);
+  const lv=/^LV\b/.test(String(r.reason||''));
+  const T=AW_TYPE[r.rule_type]||AW_TYPE.absent;
+  const lab=r.rule_type==='absent'?(lv?'LV':'Abs'):(T.t+(tm?' '+tm:''));
+  return {k:r.rule_type,t:lab+(some?'?':''),c:T.c,bg:T.bg,why:(some?'Sometimes · ':'')+String(r.reason||'').replace(/^Sometimes · /,''),some};
+}
+function awMatch(s){ const q=(AW.q||'').trim().toLowerCase(); if(!q) return true; return (String(s.name||'')+' '+String(s.name_cn||'')).toLowerCase().includes(q); }
+function awLower(){
+  const box=document.getElementById('aw-lower'); if(!box) return;
+  const ctx=window._awCtx||{selCls:[],slots:[],shown:[]};
+  let h='';
+  if(AW.view==='list') h=awListHtml(ctx.shown.filter(i=>awMatch(i.s)));
+  else if(AW.view==='lesson') h=awLessonHtml(ctx.selCls);
+  else h=awClassHtml(ctx.selCls,ctx.slots);
+  box.innerHTML=h;
+}
+function awClassHtml(selCls,slots){
+  let h=`<div style="font-size:11px;color:var(--mut);margin-bottom:8px">Every student in the class. ✓ = normal · <b>Late / Early</b> still in class · <b>Abs</b> = not in that session · <b>LV</b> = goes to SRT class · <b>?</b> = sometimes. Last column = Lessons the student misses <b>every week</b>.</div>`;
+  h+=`<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button onclick="awExportClass()" style="min-height:32px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;cursor:pointer;font-family:inherit">Export CSV</button></div>`;
+  const rowsOut=[];
+  selCls.forEach(c=>{
+    const roster=getClassStudents('ATC',c).filter(awMatch);
+    if(!roster.length) return;
+    const cnt={}; slots.forEach(([d,ss])=>cnt[d+'|'+ss]=0);
+    h+=`<div class="card" style="padding:0;overflow-x:auto;margin-bottom:12px"><table style="border-collapse:collapse;width:100%;min-width:${200+slots.length*64}px">`;
+    h+=`<tr><th style="text-align:left;padding:8px 10px;font-size:12px;border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur);min-width:150px">${shortClassName(c)} · ${roster.length}</th>`;
+    slots.forEach(([d,ss])=>{ h+=`<th style="padding:6px 4px;font-size:10px;font-weight:600;border-bottom:.5px solid var(--bdr);${ss===1?'border-left:.5px solid var(--bdr)':''}">${AW_DAYS[d]}<div style="font-weight:400;color:var(--mut)">${AW_SESS[ss]}</div><div style="font-weight:400;color:var(--hint);white-space:nowrap">${ss===2?awEsc(awTT(c,d,2).replace(/ · with .*/,'')):''}</div></th>`; });
+    h+=`<th style="padding:6px 8px;font-size:10px;font-weight:600;border-bottom:.5px solid var(--bdr);border-left:.5px solid var(--bdr);text-align:left;white-space:nowrap">Misses Lesson<br><span style="font-weight:400;color:var(--mut)">every week</span></th></tr>`;
+    roster.forEach(s=>{
+      h+=`<tr><td style="padding:6px 10px;font-size:12px;border-bottom:.5px solid var(--bdr);position:sticky;left:0;background:var(--sur)"><span style="color:var(--mut);display:inline-block;width:20px">${s.num??''}</span>${awEsc(s.name)}${s.name_cn?` <span style="color:var(--mut);font-size:11px">${awEsc(s.name_cn)}</span>`:''}</td>`;
+      const line=[shortClassName(c),s.num??'',s.name];
+      slots.forEach(([d,ss])=>{
+        const st=awStatus(s,c,d,ss);
+        if(st.k!=='absent'&&st.k!=='leave') cnt[d+'|'+ss]++;
+        h+=`<td title="${awEsc(st.why)}" style="text-align:center;padding:4px 2px;border-bottom:.5px solid var(--bdr);${ss===1?'border-left:.5px solid var(--bdr);':''}">${st.k==='ok'?`<span style="color:var(--ok);font-size:12px">✓</span>`:`<span style="display:inline-block;background:${st.bg};color:${st.c};padding:2px 6px;border-radius:9px;font-size:10px;font-weight:600;white-space:nowrap;${st.some?'font-style:italic;':''}">${awEsc(st.t)}</span>`}</td>`;
+        line.push(st.k==='ok'?'✓':st.t+(st.why?' ('+st.why+')':''));
+      });
+      const miss=awMissedLessons(s);
+      h+=`<td style="padding:4px 8px;font-size:10px;border-bottom:.5px solid var(--bdr);border-left:.5px solid var(--bdr);color:${miss.length?AW_TYPE.absent.c:'var(--hint)'};white-space:nowrap">${miss.length?miss.map(m=>awEsc(AW_DAYS[m.d]+' '+m.subj)+(m.some?'?':'')).join('<br>'):'—'}</td></tr>`;
+      line.push(miss.map(m=>AW_DAYS[m.d]+' '+m.subj+(m.some?'?':'')).join(' / '));
+      rowsOut.push(line);
+    });
+    h+=`<tr style="background:var(--sur2)"><td style="padding:6px 10px;font-size:11px;font-weight:600;position:sticky;left:0;background:var(--sur2)">In class</td>`;
+    slots.forEach(([d,ss])=>{ h+=`<td style="text-align:center;padding:4px 2px;font-size:11px;font-weight:600;${ss===1?'border-left:.5px solid var(--bdr)':''}">${cnt[d+'|'+ss]}<span style="color:var(--mut);font-weight:400">/${roster.length}</span></td>`; });
+    h+=`<td style="border-left:.5px solid var(--bdr)"></td></tr></table></div>`;
+  });
+  if(!rowsOut.length) h+=`<div class="card" style="text-align:center;color:var(--mut);font-size:12px">No matching students</div>`;
+  window._awClassRows={slots,rows:rowsOut};
+  return h;
+}
+/* 学生每周固定上不到的 Lesson（Mon–Fri，不看上面的 Day 筛选） */
+function awMissedLessons(s){
+  const out=[];
+  for(let d=1;d<=5;d++){
+    const r=getRule(s.id,'ATC',d,2,selectedDate);
+    if(r&&r.rule_type==='absent'){
+      const tt=awTT(s.class_code,d,2);
+      out.push({d,subj:tt==='No lesson set'?'Lesson':tt.split(' · ')[0],tt,why:String(r.reason||'').replace(/^Sometimes · /,''),some:awIsSometimes(r)});
+    }
+  }
+  return out;
+}
+function awLessonHtml(selCls){
+  const rows=[];
+  selCls.forEach(c=>getClassStudents('ATC',c).filter(awMatch).forEach(s=>awMissedLessons(s).forEach(m=>rows.push({c,s,...m}))));
+  let h=`<div style="font-size:11px;color:var(--mut);margin-bottom:8px">Students whose regular schedule means they <b>miss a Lesson every week</b> (from the exceptions list). Use this when a parent asks why the child is behind in a subject. <b>?</b> = sometimes.</div>`;
+  if(!rows.length) return h+`<div class="card" style="text-align:center;color:var(--mut);font-size:12px">No student misses a Lesson every week</div>`;
+  const th=t=>`<th style="text-align:left;padding:8px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);white-space:nowrap">${t}</th>`;
+  h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:620px"><tr>${th('Class')}${th('Day')}${th('Lesson missed')}${th('#')}${th('Student')}${th('Why')}</tr>`;
+  rows.forEach(x=>{
+    const td=(v,st)=>`<td style="padding:8px;font-size:12px;border-bottom:.5px solid var(--bdr);${st||''}">${v}</td>`;
+    h+=`<tr>${td(shortClassName(x.c),'font-weight:600')}${td(AW_DAYS[x.d])}${td(`<b style="color:${AW_TYPE.absent.c}">${awEsc(x.tt)}</b>`,'white-space:nowrap')}${td(x.s.num??'—','color:var(--mut)')}${td(awEsc(x.s.name)+(x.s.name_cn?` <span style="color:var(--mut);font-size:11px">${awEsc(x.s.name_cn)}</span>`:''))}${td(awEsc((x.some?'Sometimes · ':'')+x.why),'color:var(--mut)')}</tr>`;
+  });
+  h+=`</table></div>`;
+  window._awLessonRows=rows;
+  return h;
+}
+function awListHtml(shown){
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:13px;font-weight:600">Exceptions · ${shown.length}</div>
+    <button onclick="awExport()" style="min-height:32px;padding:5px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;cursor:pointer;font-family:inherit">Export CSV</button></div>`;
+  if(!shown.length) return h+`<div class="card" style="text-align:center;color:var(--mut);font-size:12px">No matching results</div>`;
+  const th=t=>`<th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--mut);border-bottom:.5px solid var(--bdr);white-space:nowrap">${t}</th>`;
+  h+=`<div class="card" style="padding:0;overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:760px"><tr>${th('Class')}${th('Day')}${th('Session')}${th('Running')}${th('#')}${th('Student')}${th('Type')}${th('Time')}${th('Reason')}</tr>`;
+  shown.forEach(i=>{
+    const T=AW_TYPE[i.type]||AW_TYPE.absent;
+    const td=(v,st)=>`<td style="padding:8px;font-size:12px;border-bottom:.5px solid var(--bdr);${st||''}">${v}</td>`;
+    h+=`<tr>${td(shortClassName(i.cls),'font-weight:600')}${td(AW_DAYS[i.day])}${td(AW_SESS[i.sess])}${td(awEsc(awTT(i.cls,i.day,i.sess)),'color:var(--mut);white-space:nowrap')}${td(i.s.num??'—','color:var(--mut)')}${td(awEsc(i.s.name)+(i.s.name_cn?` <span style="color:var(--mut);font-size:11px">${awEsc(i.s.name_cn)}</span>`:''))}${td(`<span style="background:${T.bg};color:${T.c};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap">${T.t}</span>`)}${td(i.time||'—','white-space:nowrap')}${td(awEsc(i.reason),'color:var(--mut)')}</tr>`;
+  });
+  return h+`</table></div>`;
+}
+function awExportClass(){
+  const x=window._awClassRows||{slots:[],rows:[]};
+  const cell=v=>{const s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const head=['Class','No','Student'].concat(x.slots.map(([d,ss])=>AW_DAYS[d]+' '+AW_SESS[ss])).concat(['Misses Lesson every week']);
+  const lines=[head.map(cell).join(',')].concat(x.rows.map(r=>r.map(cell).join(',')));
+  const d=new Date(); const p=n=>String(n).padStart(2,'0');
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`AttendanceGo_ATCWeek_WholeClass_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.csv`; a.click();
+  if(typeof toast==='function') toast('✓ Exported');
 }
 function awExport(){
   const rows=window._awShown||[];
