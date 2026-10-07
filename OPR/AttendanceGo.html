@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v22</title>
+<title>OPR-AttendanceGo v23</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v22</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v23</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -261,7 +261,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=22;   /* v22 · ATC Week 列全班每个时段的状况 ＋ 每周都上不到的 Lesson 清单（Owner 10-06）。v21 候选已作废，跳号 */
+const APP_VERSION=23;   /* v23 · ATC 时段改 Owner 10-07 定案：H/W 一到四 1:15–3:30、五 12:15–3:30；Lesson 3:30–5:15。点 Late 问几点到，H/W 3:00 或以后到 → 改记 Absent */
+/* v22 · ATC Week 列全班每个时段的状况 ＋ 每周都上不到的 Lesson 清单（Owner 10-06）。v21 候选已作废，跳号 */
 /* v20 · ATC Week 与 Monthly 小字改英文（行政不读中文，Owner 10-05） */
 const DEPTS=['SRK','GAK','ATC','SRT'];
 const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:'var(--d-srt)'};
@@ -819,6 +820,10 @@ function goPage(p){
 // 在班 = 班级人数 − 缺席（请假中的学生算缺席）。
 // 资料：固定例外 attendance_rules（按所选日期生效的）＋ 学生课程 ＋ ClassGo 课表。
 // ═══════════════════════════════════════
+/* v23 · ATC 时段（Owner 10-07）。分钟数。H/W 3:00 或以后才到 = H/W 缺席；Lesson 迟到 / 早退都算在班 */
+const ATC_TIME={hwStart:d=>d===5?12*60+15:13*60+15, hwAbsentFrom:15*60, lessonStart:15*60+30, lessonEnd:17*60+15};
+function atcMin(t){ const m=String(t||'').match(/(\d{1,2})(?:[:.](\d{2}))?/); if(!m) return null; let h=+m[1]; const mi=+(m[2]||0); if(h<8) h+=12; return h*60+mi; }
+function atcHHMM(min){ const h=Math.floor(min/60), m=min%60; return (h>12?h-12:h)+':'+String(m).padStart(2,'0'); }
 let allTimetable=[];
 const AW={day:0,sess:0,cls:'',type:'',view:'class',q:'',_init:false};   /* v22 · view: class=全班 / list=只列有状况的 */
 const AW_DAYS=['','Mon','Tue','Wed','Thu','Fri'];
@@ -872,7 +877,7 @@ function renderAtcWeek(){
   const cnt=k=>items.filter(i=>i.type===k).length;
 
   let h=`<div style="font-size:16px;font-weight:600;margin-bottom:4px">ATC Week</div>
-  <div style="font-size:11px;color:var(--mut);margin-bottom:12px">Regular exceptions in effect on ${awEsc(selectedDate)} · H/W until 3:30 (arriving 3:00 or later = absent from H/W) · Lesson 3:30–5:30 · Late / early still count as in class</div>`;
+  <div style="font-size:11px;color:var(--mut);margin-bottom:12px">Regular exceptions in effect on ${awEsc(selectedDate)} · H/W Mon–Thu 1:15–3:30, Fri 12:15–3:30 (arriving after the start = late; 3:00 or later = absent from H/W) · Lesson 3:30–5:15 (after 3:30 = late; before 5:15 = early) · Late / early still count as in class</div>`;
   h+=`<div class="card" style="padding:12px 16px">`;
   h+=awPills('Day','day',[[0,'All']].concat([1,2,3,4,5].map(d=>[d,AW_DAYS[d]])));
   h+=awPills('Session','sess',[[0,'All'],[1,'H/W'],[2,'Lesson']]);
@@ -1543,9 +1548,19 @@ async function markStudent(studentId,studentName,dept,classCode,status){
   if(status==='late'){
     const now=new Date();
     const timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-    const input=prompt('Late time:',timeStr);
+    /* v23 · ATC：提示开始时间；H/W 3:00 或以后才到 → 照规则改记 Absent */
+    const _atc=dept==='ATC';
+    const _start=_atc?(currentSession===2?'3:30':atcHHMM(ATC_TIME.hwStart(_dow))):'';
+    const input=prompt(_atc?('Arrival time ('+(currentSession===2?'Lesson':'H/W')+' starts '+_start+'):'):'Late time:',timeStr);
     if(input===null) return; // cancelled
     note='Late: '+input;
+    if(_atc&&currentSession===1){
+      const m=atcMin(input);
+      if(m!=null&&m>=ATC_TIME.hwAbsentFrom){
+        if(!confirm(studentName+' arrived '+input+'.\n\nArriving 3:00 or later counts as ABSENT for H/W.\nOK = mark Absent · Cancel = go back')) return;
+        status='absent'; note='Arrived '+input+' (3:00 or later = H/W absent)';
+      }
+    }
   }
   if(status==='absent'){
     const reason=prompt('Reason for absence (activity / tuition — you can leave this blank):','');
