@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<title>E-Class Attendance v1</title>
+<style>
+:root{
+  --layer:#6B6B3A;
+  --d-srk:#C45C5C; --d-gak:#E8A04E; --d-atc:#7AB05A; --d-srt:#8B6CAE;
+  --sur:#ffffff; --sur2:#f7f6f2; --bdr:#e0ddd6;
+  --txt:#1a1a1a; --mut:#888888; --hint:#bbbbbb;
+  --ok:#0F6E56; --warn:#854F0B; --danger:#A32D2D; --info:#236FAD;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  background:var(--sur2);color:var(--txt);font-size:13px;line-height:1.4}
+
+/* NAV (TOPBAR) — Topbar Contract v4 */
+.nav{background:var(--layer);border-bottom:.5px solid rgba(0,0,0,.2);display:flex;align-items:center;
+  padding:0 16px;position:sticky;top:0;z-index:50;overflow-x:auto;gap:0;min-height:56px}
+.nav-home{background:none;border:none;color:rgba(255,255,255,.75);font-size:16px;cursor:pointer;
+  min-width:44px;min-height:44px;padding:0 10px 0 0;flex-shrink:0;font-family:inherit}
+.nav-home:hover{color:#fff}
+.nav-logo{font-size:13px;font-weight:600;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.2);
+  margin-right:4px;white-space:nowrap;flex-shrink:0;color:#fff}
+.ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
+.ntab{min-height:44px;padding:0 14px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;border:none;
+  background:transparent;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.ntab:hover{color:#fff}
+.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.nav-r{margin-left:auto;display:flex;gap:6px;align-items:center;padding-left:24px;flex-shrink:0}
+.saved{font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap}
+.btn-nav{min-height:32px;padding:5px 12px;border-radius:8px;border:.5px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.12);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-nav:hover{opacity:.85}
+.sync{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:22px;
+  border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sync .sd{width:8px;height:8px;border-radius:50%;background:#7ED9B8}
+.sync.pend .sd{background:#F9CB42}
+.sync.err .sd{background:#F09595}
+@media(max-width:600px){.saved{display:none}}
+
+/* PAGES */
+.page{display:none;padding:16px;max-width:1200px;margin:0 auto}
+.page.on{display:block}
+
+/* BUTTONS */
+.btn{min-height:44px;padding:6px 14px;border-radius:8px;border:.5px solid var(--bdr);background:var(--sur);color:var(--txt);
+  font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--sur2)}
+.btn-pri{background:var(--layer);color:#fff;border-color:var(--layer);font-weight:600}
+.btn-pri:hover{opacity:.88;background:var(--layer)}
+.btn-dng{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn-sm{min-height:36px;padding:4px 10px;font-size:11px}
+
+/* CARDS */
+.card{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;padding:16px;margin-bottom:12px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:11px;font-weight:500;color:var(--mut);letter-spacing:.05em;text-transform:uppercase}
+
+/* FILTER ROW */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+input[type=text],input[type=date],input[type=time],input[type=search],select,textarea{border:.5px solid var(--bdr);border-radius:8px;padding:8px 10px;
+  font-size:13px;font-family:inherit;background:var(--sur);color:var(--txt);min-height:44px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
+.pills{display:inline-flex;border:.5px solid var(--bdr);border-radius:8px;overflow:hidden;background:var(--sur2)}
+.pill{min-height:44px;padding:0 16px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--mut);font-family:inherit}
+.pill.on{background:var(--layer);color:#fff;font-weight:600}
+
+/* SESSION CARD */
+.ses{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.ses-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ses-hdr:active{background:var(--sur2)}
+.ses-lv{font-size:15px;font-weight:600}
+.ses-meta{font-size:11px;color:var(--mut)}
+.ses-cnt{margin-left:auto;font-size:12px;font-weight:600;color:var(--mut);white-space:nowrap}
+.ses-cnt.done{color:var(--ok)}
+.ses-body{display:none;border-top:.5px solid var(--bdr)}
+.ses.open .ses-body{display:block}
+.bar{display:flex;gap:8px;align-items:center;padding:10px 16px;background:var(--sur2);flex-wrap:wrap}
+.bar .tip{margin:0 auto 0 0}
+
+.stu{display:flex;align-items:center;padding:8px 16px;border-bottom:.5px solid var(--bdr);gap:10px}
+.stu:last-child{border-bottom:none}
+.stu-n{font-size:10px;color:var(--mut);width:22px;text-align:center;flex-shrink:0}
+.stu-name{flex:1;min-width:90px;font-size:12px;overflow-wrap:anywhere}
+.stu-cn{font-size:10px;color:var(--mut)}
+.stu-sub{font-size:10px;color:var(--mut);margin-top:2px}
+.sb-wrap{display:flex;gap:4px;flex-shrink:0}
+.sbt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:44px;min-height:44px;padding:2px 4px;
+  border-radius:8px;border:1.5px solid var(--bdr);background:var(--sur);cursor:pointer;font-family:inherit;font-weight:600;line-height:1.05;-webkit-tap-highlight-color:transparent}
+.sbt .i{font-size:13px}
+.sbt .t{font-size:8px;font-weight:500;opacity:.8}
+.sbt.s-present{background:#E1F5EE;color:var(--ok);border-color:#9FE1CB}
+.sbt.s-absent,.sbt.s-mc{background:#FCEBEB;color:var(--danger);border-color:#F09595}
+.sbt.s-late{background:#FFF8E1;color:var(--warn);border-color:#F9CB42}
+.sbt.s-early_leave{background:#FFF0E6;color:#C4622D;border-color:#F0B896}
+.sbt:disabled{opacity:.45;cursor:not-allowed}
+
+/* CHIPS */
+.chip{display:inline-block;padding:1px 8px;border-radius:10px;font-size:9px;font-weight:600;margin-left:4px;vertical-align:middle;white-space:nowrap}
+.chip-layer{background:rgba(107,107,58,.12);color:var(--layer)}
+.chip-warn{background:#FFF3CD;color:var(--warn)}
+.chip-info{background:#E8F0F7;color:var(--info)}
+.chip-muted{background:var(--sur2);color:var(--mut);border:.5px solid var(--bdr)}
+.chip-ok{background:#E1F5EE;color:var(--ok)}
+
+/* ALERT */
+.alert{padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;line-height:1.5}
+.alert-info{background:#E8F0F7;color:var(--info);border-left:3px solid var(--info)}
+.alert-warn{background:#FFF3CD;color:var(--warn);border-left:3px solid var(--warn)}
+.alert-danger{background:#FCEBEB;color:var(--danger);border-left:3px solid var(--danger)}
+
+/* TABLE */
+table.data{width:100%;border-collapse:collapse;font-size:12px}
+table.data th{background:#2d2d2d;color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+table.data td{padding:8px 12px;border-bottom:.5px solid var(--bdr);vertical-align:middle}
+table.data tr:nth-child(even) td{background:var(--sur2)}
+.tbl-wrap{overflow-x:auto}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:var(--sur);border-radius:10px;width:560px;max-width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.modal-hdr{padding:14px 20px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;position:sticky;top:0;background:var(--sur);z-index:2}
+.modal-title{font-size:14px;font-weight:600;flex:1}
+.modal-body{padding:16px 20px}
+.modal-foot{padding:12px 20px;border-top:.5px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--sur)}
+.x-btn{background:none;border:none;font-size:18px;color:var(--mut);cursor:pointer;min-width:44px;min-height:44px}
+.form-row{margin-bottom:12px}
+.form-label{font-size:11px;color:var(--mut);display:block;margin-bottom:4px}
+.form-row input,.form-row select,.form-row textarea{width:100%}
+.pick-list{max-height:220px;overflow:auto;border:.5px solid var(--bdr);border-radius:8px;margin-top:6px}
+.pick{padding:10px 12px;border-bottom:.5px solid var(--bdr);cursor:pointer;font-size:12px;min-height:44px}
+.pick:hover,.pick.on{background:#F4F3EA}
+
+/* SHEET (absent picker) */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--sur);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:16px 12px calc(16px + env(safe-area-inset-bottom))}
+.sheet button{flex:1 1 40%;min-height:46px;margin:4px;border-radius:10px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* MANAGE — Manage Page Contract v4 */
+#page-manage .card{border-radius:16px;padding:16px;margin-bottom:12px}
+#page-manage .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:8px}
+#page-manage .mrow{font-size:12px;line-height:2}
+#page-manage code{background:var(--sur2);border-radius:4px;font-size:11px;padding:1px 6px}
+#page-manage .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#page-manage details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+
+/* AUTH */
+#auth-screen{display:none;justify-content:center;align-items:center;min-height:100vh}
+#auth-box{background:var(--sur);border:.5px solid var(--bdr);border-radius:12px;padding:28px 24px;width:340px;max-width:92vw;text-align:center}
+#auth-box h2{font-size:17px;font-weight:600;margin:0 0 4px;color:var(--layer)}
+#auth-box p{font-size:12px;color:var(--mut);margin:0 0 18px}
+#auth-box input{width:100%;margin-bottom:10px}
+#auth-box button{width:100%;margin-bottom:6px}
+#auth-err{font-size:11px;min-height:16px;margin-bottom:8px;color:var(--danger)}
+.center-msg{display:none;min-height:70vh;justify-content:center;align-items:center;flex-direction:column;text-align:center;padding:24px;color:var(--mut)}
+#app{display:none}
+
+.tip{font-size:11px;color:var(--mut);margin:8px 0}
+.empty{text-align:center;padding:32px 16px;color:var(--mut);font-size:12px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--txt);color:#fff;padding:9px 16px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1}
+
+@media print{
+  .nav,.toolbar,.bar,.sb-wrap,.btn,.toast,#page-arr .btn{display:none!important}
+  body{background:#fff}
+  .ses-body{display:block!important}
+  .ses{break-inside:avoid;border-color:#999}
+  .print-foot{display:block!important;position:fixed;bottom:0;font-size:9px;color:#666}
+}
+.print-foot{display:none}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div id="auth-box">
+    <h2>E-Class Attendance</h2>
+    <p>SRT online class · Sign in</p>
+    <div id="auth-err"></div>
+    <input type="email" id="auth-email" placeholder="Email" autocomplete="username">
+    <input type="password" id="auth-pass" placeholder="Password" autocomplete="current-password">
+    <button class="btn btn-pri" onclick="doLogin()">Sign In</button>
+    <button class="btn" onclick="doMagic()">Send Magic Link</button>
+  </div>
+</div>
+
+<div class="center-msg" id="loading-screen" style="display:flex">Loading…</div>
+<div class="center-msg" id="no-access"><div style="font-size:40px">🔒</div><div style="font-size:16px;font-weight:600;color:var(--layer);margin:8px 0">No Access</div><div>You do not have permission to view this system.</div><button class="btn btn-pri" style="margin-top:16px" onclick="location.href='/index.html'">← Back to Home</button></div>
+<div class="center-msg" id="load-fail"><div style="font-size:16px;font-weight:600;color:var(--danger);margin-bottom:8px">Could not load the student list</div><div id="load-fail-msg" style="font-size:12px"></div><div style="font-size:12px;margin-top:6px">Nothing has been changed.</div><button class="btn btn-pri" style="margin-top:16px" onclick="location.reload()">Try again</button></div>
+
+<div id="app">
+  <div class="nav">
+    <button class="nav-home" onclick="location.href='/index.html'" title="Back to platform">←</button>
+    <div class="nav-logo">🎥 E-Class Attendance <span class="ver" id="ver-badge">v1</span></div>
+    <button class="ntab on" data-p="mark" onclick="goPage('mark')">Mark</button>
+    <button class="ntab" data-p="arr" onclick="goPage('arr')">Arrangements</button>
+    <button class="ntab" data-p="manage" id="tab-manage" onclick="goPage('manage')" hidden>管理</button>
+    <div class="nav-r">
+      <span class="saved" id="last-saved"></span>
+      <button class="sync" id="sync-badge" onclick="flushQueue(true)"><span class="sd"></span><span id="sync-txt">Synced</span></button>
+      <button class="btn-nav" onclick="exportJSON()">↓ Export</button>
+      <button class="btn-nav" id="btn-import" onclick="openImport()" hidden>↑ Import</button>
+    </div>
+  </div>
+
+  <div class="page on" id="page-mark">
+    <div class="toolbar">
+      <input type="date" id="f-date" onchange="setDate(this.value)">
+      <div class="pills" id="f-slot"></div>
+      <input type="search" id="f-q" placeholder="Search name" oninput="S.ui.q=this.value;renderMark()" style="flex:1;min-width:150px">
+    </div>
+    <div id="mark-content"></div>
+  </div>
+
+  <div class="page" id="page-arr"><div id="arr-content"></div></div>
+  <div class="page" id="page-manage"><div id="manage-content"></div></div>
+  <div class="print-foot" id="print-foot"></div>
+</div>
+
+<!-- Arrangement modal -->
+<div class="modal-bg" id="arr-modal" onclick="if(event.target===this)closeModal('arr-modal')">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">Add special arrangement</div><button class="x-btn" onclick="closeModal('arr-modal')">✕</button></div>
+    <div class="modal-body" id="arr-body"></div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('arr-modal')">Cancel</button><button class="btn btn-pri" id="arr-save" onclick="saveArr()">Save</button></div>
+  </div>
+</div>
+
+<!-- Schedule modal -->
+<div class="modal-bg" id="sch-modal" onclick="if(event.target===this)closeModal('sch-modal')">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="sch-title">Session</div><button class="x-btn" onclick="closeModal('sch-modal')">✕</button></div>
+    <div class="modal-body" id="sch-body"></div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('sch-modal')">Cancel</button><button class="btn btn-pri" onclick="saveSch()">Save</button></div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-bg" id="imp-modal" onclick="if(event.target===this)closeModal('imp-modal')">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">↑ Import offline marks</div><button class="x-btn" onclick="closeModal('imp-modal')">✕</button></div>
+    <div class="modal-body" id="imp-body"></div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('imp-modal')">Cancel</button><button class="btn btn-pri" id="imp-go" onclick="doImport()" disabled>Import</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   E-Class Attendance · LIB-EClassAttendance
+   SRT online class roll-call. Every mark is written straight into
+   public.attendance (the AttendanceGo table) under the student's OWN class.
+   Read-only sources: hub_students · hub_student_memberships · hub_classes (SSOT).
+   Own data: eclass_schedule (which level, which slot, which teacher)
+             eclass_arrangements (students who join another level's session)
+   Owner decisions 2026-10-10:
+   · same level = same session, names A→Z
+   · present / late carry "E SAT.AM" or "E SAT.NN" at the start of the note,
+     AttendanceGo v26 shows them as E·AM / E·NN; absent stays ✕
+   · one record per student per day (AttendanceGo unique key) — a student in two
+     classes is recorded under the class set in the arrangement
+   · H/LOI has no account → offline file + Import
+   ═══════════════════════════════════════════════════════════════════ */
+const APP_VERSION=1;
+const SYSTEM_CODE='LIB-EClassAttendance';
+const STORAGE_KEY='eclass_attendance_v1';
+const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const SLOT_ORDER={AM:1,NN:2,PM:3};
+const KNOWN_CODES=new Set();   // login display names (teacher codes)
+
+const S={
+  me:{email:'',code:'',role:'',see:false,edit:false,approve:false,manager:false},
+  students:{},        // id → {id,name,name_cn,status}
+  mems:[],            // SRT memberships
+  classes:{},         // hub_classes.id → {level,slot,class_name}
+  sched:[],           // eclass_schedule
+  arrs:[],            // eclass_arrangements (active)
+  recs:{},            // student_id → attendance row for S.date (dept SRT, session 0)
+  date:'', loadedAt:'',
+  queue:[],           // writes that failed, retried in order
+  lastErr:'',
+  ui:{slot:'',q:'',open:{}}
+};
+
+/* ── helpers ── */
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(m,ms){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),ms||2000); }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dowOf(ds){ return DOW[new Date(ds+'T12:00:00').getDay()]; }
+function fmtDate(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+function hhmm(d){ d=d||new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function t12(t){ if(!t) return ''; const [h,m]=t.split(':').map(Number); return ((h%12)||12)+':'+String(m).padStart(2,'0'); }
+function stamp(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0'); }
+function hubId(code){ return String(code||'').replace(/^SRT-/,''); }
+function className(code){ const c=S.classes[hubId(code)]; return c?c.class_name:null; }
+function memActive(m,d){ return m.start_date<=d&&(m.end_date==null||m.end_date>d)&&!String(m.class_code).includes('RSVP'); }
+function memPaused(m,d){ return !!(m.pause_from&&m.pause_from<=d&&(!m.pause_to||m.pause_to>d)); }
+function onDate(r,d){ return r.status==='active'&&r.start_date<=d&&(r.end_date==null||r.end_date>=d); }
+function tokenOf(ses){ return 'E '+ses.weekday+'.'+ses.slot; }
+/* Is this attendance note one E-Class wrote? */
+const E_RE=/(^|· )E ([A-Z]{3})\.(AM|NN|PM)( ·|$)/;
+function eToken(note){ const m=String(note||'').match(E_RE); return m?('E '+m[2]+'.'+m[3]):''; }
+function csvCell(v){ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function download(name,text,type){ const b=new Blob([text],{type:type||'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+
+/* ── local store: only UI choices + unsent writes ── */
+function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify({ui:{slot:S.ui.slot,open:S.ui.open},queue:S.queue})); }catch(e){} }
+function loadLocal(){ try{ const p=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); if(p.ui){ S.ui.slot=p.ui.slot||''; S.ui.open=p.ui.open||{}; } if(Array.isArray(p.queue)) S.queue=p.queue; }catch(e){} }
+
+/* ═══ AUTH ═══ */
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(), pass=document.getElementById('auth-pass').value;
+  const er=document.getElementById('auth-err'); er.style.color='var(--danger)'; er.textContent='';
+  if(!email||!pass){ er.textContent='Enter email and password'; return; }
+  const{error}=await _sb.auth.signInWithPassword({email,password:pass});
+  if(error){ er.textContent=error.message; return; }
+  init();
+}
+async function doMagic(){
+  const email=document.getElementById('auth-email').value.trim(); const er=document.getElementById('auth-err');
+  if(!email){ er.textContent='Enter email'; return; }
+  const{error}=await _sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});
+  if(error){ er.textContent=error.message; return; }
+  er.style.color='var(--ok)'; er.textContent='✓ Check your email for the login link';
+}
+function show(id){ ['auth-screen','loading-screen','no-access','load-fail','app'].forEach(x=>{ const el=document.getElementById(x); el.style.display=x===id?(x==='app'?'block':'flex'):'none'; }); }
+function fail(msg){ document.getElementById('load-fail-msg').textContent=msg; show('load-fail'); }
+
+/* ═══ INIT ═══ */
+async function init(){
+  show('loading-screen');
+  const{data:{session}}=await _sb.auth.getSession();
+  if(!session){ show('auth-screen'); return; }
+  S.me.email=(session.user.email||'').toLowerCase();
+  const{data:perm,error:pe}=await _sb.rpc('can_access',{p_system:SYSTEM_CODE});
+  if(pe||!perm||!perm[0]||!perm[0].can_see){ show('no-access'); return; }
+  S.me.see=!!perm[0].can_see; S.me.edit=!!perm[0].can_edit; S.me.approve=!!perm[0].can_approve;
+  const[mg,role,names]=await Promise.all([_sb.rpc('is_manager'),_sb.rpc('user_role'),_sb.rpc('get_marker_names')]);
+  S.me.manager=mg.data===true; S.me.role=role.data||'';
+  const mine=(names.data||[]).find(u=>String(u.email||'').toLowerCase()===S.me.email);
+  S.me.code=mine?String(mine.display_name||'').trim():'';
+  (names.data||[]).forEach(u=>{ if(u.display_name) KNOWN_CODES.add(String(u.display_name).trim()); });
+  loadLocal();
+  const ok=await loadMaster(); if(!ok) return;
+  document.getElementById('tab-manage').hidden=!S.me.manager;
+  document.getElementById('btn-import').hidden=!(S.me.manager&&S.me.edit);
+  S.date=pickDefaultDate();
+  document.getElementById('f-date').value=S.date;
+  show('app');
+  await loadRecs();
+  if(!S.ui.slot) S.ui.slot=new Date().getHours()*60+new Date().getMinutes()<11*60+15?'AM':'NN';
+  renderAll();
+  flushQueue(false);
+}
+/* SSOT + own tables. Any failure or 0 rows → stop, write nothing. */
+async function loadMaster(){
+  try{
+    const[st,me,cl,sc,ar]=await Promise.all([
+      _sb.from('hub_students').select('id,name,name_cn,status'),
+      _sb.from('hub_student_memberships').select('student_id,dept,class_code,start_date,end_date,pause_from,pause_to').eq('dept','SRT'),
+      _sb.from('hub_classes').select('id,dept,level,slot,class_name,status').eq('dept','SRT'),
+      _sb.from('eclass_schedule').select('*').eq('status','active'),
+      _sb.from('eclass_arrangements').select('*').eq('status','active')
+    ]);
+    const bad=[st,me,cl,sc,ar].find(r=>r.error);
+    if(bad){ fail('Read error: '+bad.error.message); return false; }
+    if(!(st.data||[]).length||!(me.data||[]).length||!(cl.data||[]).length){ fail('The student list came back empty.'); return false; }
+    S.students={}; st.data.forEach(s=>{ const k=String(s.status||'').toLowerCase(); if(k==='active'||k==='paused') S.students[s.id]=s; });
+    S.mems=me.data;
+    S.classes={}; cl.data.forEach(c=>S.classes[c.id]=c);
+    S.sched=sc.data||[]; S.arrs=ar.data||[];
+    S.loadedAt=hhmm();
+    return true;
+  }catch(e){ fail(String(e.message||e)); return false; }
+}
+async function loadRecs(){
+  const{data,error}=await _sb.from('attendance').select('*').eq('date',S.date).eq('dept','SRT').eq('session',0);
+  if(error){ toast('✕ Could not read attendance'); S.lastErr=error.message; setSync(); return; }
+  S.recs={}; (data||[]).forEach(r=>{ if(!r.voided_at) S.recs[r.student_id]=r; });
+}
+function pickDefaultDate(){
+  const t=todayStr(); const days=[...new Set(S.sched.map(s=>s.weekday))];
+  if(days.includes(dowOf(t))) return t;
+  for(let i=1;i<=7;i++){ const d=new Date(t+'T12:00:00'); d.setDate(d.getDate()+i); const ds=d.toISOString().slice(0,10); if(days.includes(dowOf(ds))) return ds; }
+  return t;
+}
+async function setDate(v){ if(!v) return; S.date=v; await loadRecs(); renderAll(); }
+
+/* ═══ ROSTER ═══
+   For the date: sessions = schedule rows on that weekday.
+   Each student with an active SRT class goes to the session of his class level,
+   unless an active arrangement sends him to another session.               */
+function sessionsOn(d){
+  const w=dowOf(d);
+  return S.sched.filter(s=>s.weekday===w&&s.start_date<=d&&(s.end_date==null||s.end_date>=d))
+    .sort((a,b)=>(SLOT_ORDER[a.slot]-SLOT_ORDER[b.slot])||a.level.localeCompare(b.level,undefined,{numeric:true}));
+}
+function buildRoster(d){
+  const ses=sessionsOn(d);
+  const byKey={}; ses.forEach(s=>byKey[s.level+'|'+s.slot]=Object.assign({},s,{rows:[]}));
+  const byLevel={}; ses.forEach(s=>{ (byLevel[s.level]=byLevel[s.level]||[]).push(byKey[s.level+'|'+s.slot]); });
+  const unplaced=[], unknownCls=new Set();
+  const arrBy={}; S.arrs.filter(a=>onDate(a,d)).forEach(a=>arrBy[a.student_id]=a);
+  const seen={};
+  S.mems.filter(m=>memActive(m,d)&&S.students[m.student_id]).forEach(m=>{
+    const st=S.students[m.student_id];
+    const arr=arrBy[m.student_id];
+    if(arr){
+      if(seen[m.student_id]) { if(m.class_code!==seen[m.student_id].record_class) seen[m.student_id].also.push(m.class_code); return; }
+      const tgt=byKey[arr.online_level+'|'+arr.online_slot];
+      const row={st,record_class:arr.record_class,home:m.class_code,arr,also:[],paused:memPaused(m,d)};
+      if(m.class_code!==arr.record_class) row.also.push(m.class_code);
+      seen[m.student_id]=row;
+      if(tgt) tgt.rows.push(row); else unplaced.push({row,why:'Arrangement session '+arr.online_level+' '+arr.online_slot+' is not on this day'});
+      return;
+    }
+    const c=S.classes[hubId(m.class_code)];
+    if(!c){ unknownCls.add(m.class_code); return; }
+    const targets=byLevel[c.level]||[];
+    const row={st,record_class:m.class_code,home:m.class_code,arr:null,also:[],paused:memPaused(m,d)};
+    if(!targets.length){ unplaced.push({row,why:'No session for '+c.level}); return; }
+    targets[0].rows.push(row);
+  });
+  // student placed twice without arrangement (two SRT classes) → flag both rows
+  const count={}; Object.values(byKey).forEach(s=>s.rows.forEach(r=>{ count[r.st.id]=(count[r.st.id]||0)+1; }));
+  Object.values(byKey).forEach(s=>s.rows.forEach(r=>{ r.twice=count[r.st.id]>1; }));
+  Object.values(byKey).forEach(s=>s.rows.sort((a,b)=>a.st.name.localeCompare(b.st.name)));
+  return {sessions:Object.values(byKey).sort((a,b)=>(SLOT_ORDER[a.slot]-SLOT_ORDER[b.slot])||a.level.localeCompare(b.level,undefined,{numeric:true})),unplaced,unknownCls:[...unknownCls]};
+}
+function mySessions(list){ return S.me.manager?list:list.filter(s=>s.teacher===S.me.code); }
+
+/* ═══ RENDER ═══ */
+function renderAll(){ renderSlotPills(); renderMark(); renderArr(); if(S.me.manager) renderManage(); setSync(); }
+function renderSlotPills(){
+  const slots=[...new Set(sessionsOn(S.date).map(s=>s.slot))].sort((a,b)=>SLOT_ORDER[a]-SLOT_ORDER[b]);
+  if(slots.length&&!slots.includes(S.ui.slot)) S.ui.slot=slots[0];
+  const lbl={AM:'Session 1 · AM',NN:'Session 2 · NN',PM:'PM'};
+  document.getElementById('f-slot').innerHTML=slots.map(s=>`<button class="pill${S.ui.slot===s?' on':''}" onclick="S.ui.slot='${s}';saveLocal();renderSlotPills();renderMark()">${lbl[s]||s}</button>`).join('');
+}
+function statusOf(id){ const r=S.recs[id]; return r?r.status:''; }
+function renderMark(){
+  const el=document.getElementById('mark-content');
+  const R=buildRoster(S.date);
+  const all=mySessions(R.sessions);
+  let h='';
+  if(!sessionsOn(S.date).length){ el.innerHTML=`<div class="empty">No E-Class session on ${esc(fmtDate(S.date))}.</div>`; return; }
+  if(!S.me.manager&&!all.length){
+    el.innerHTML=`<div class="empty">No E-Class session for you on ${esc(fmtDate(S.date))}.<br><span style="font-size:11px">Signed in as ${esc(S.me.code||S.me.email)}.</span></div>`; return;
+  }
+  if(S.me.manager&&(R.unplaced.length||R.unknownCls.length)){
+    h+=`<div class="alert alert-warn"><b>${R.unplaced.length} student(s) are not in any session today.</b> ${R.unplaced.slice(0,8).map(u=>esc(u.row.st.name)+' ('+esc(u.why)+')').join(' · ')}${R.unplaced.length>8?' …':''}${R.unknownCls.length?'<br>Class not found in Class SSOT: '+esc(R.unknownCls.join(', ')):''}</div>`;
+  }
+  const list=all.filter(s=>s.slot===S.ui.slot);
+  const q=(S.ui.q||'').trim().toLowerCase();
+  list.forEach(s=>{
+    const rows=s.rows.filter(r=>!q||r.st.name.toLowerCase().includes(q)||String(r.st.name_cn||'').includes(S.ui.q.trim()));
+    const marked=s.rows.filter(r=>statusOf(r.st.id)).length;
+    const key=S.date+'|'+s.level+'|'+s.slot;
+    const open=S.ui.open[key]!==false;
+    h+=`<div class="ses${open?' open':''}" id="ses-${s.level}-${s.slot}">
+      <div class="ses-hdr" onclick="toggleSes('${key}')">
+        <div><div class="ses-lv">${esc(s.level)} <span class="chip chip-layer">${esc(tokenOf(s))}</span></div>
+        <div class="ses-meta">${esc(s.teacher)} · ${t12(s.start_time)}–${t12(s.end_time)} · ${s.rows.length} students</div></div>
+        <div class="ses-cnt${marked===s.rows.length&&s.rows.length?' done':''}">${marked}/${s.rows.length}</div>
+      </div>
+      <div class="ses-body">
+        <div class="bar"><span class="tip">Unmarked students only. On-leave students are skipped.</span>
+          <button class="btn btn-sm btn-pri" ${S.me.edit?'':'disabled'} onclick="markAllPresent('${s.level}','${s.slot}')">All ✓ Present</button></div>
+        ${rows.map((r,i)=>rowHtml(s,r,i)).join('')||'<div class="empty">No matching results</div>'}
+      </div></div>`;
+  });
+  if(!list.length) h+=`<div class="empty">No session in this slot.</div>`;
+  el.innerHTML=h;
+}
+function rowHtml(s,r,i){
+  const st=r.st, rec=S.recs[st.id], cur=rec?rec.status:'';
+  const tok=rec?eToken(rec.note):'';
+  const chips=[];
+  if(r.arr) chips.push(`<span class="chip chip-info">from ${esc(className(r.home)||r.home)}</span>`);
+  if(r.paused) chips.push(`<span class="chip chip-muted">On leave</span>`);
+  if(r.twice) chips.push(`<span class="chip chip-warn">2 classes · 1 record</span>`);
+  if(rec&&!tok) chips.push(`<span class="chip chip-warn">Marked in AttendanceGo</span>`);
+  else if(rec&&tok&&tok!==tokenOf(s)) chips.push(`<span class="chip chip-warn">Marked in ${esc(tok)}</span>`);
+  const sub=[];
+  sub.push('Recorded in '+(className(r.record_class)||r.record_class));
+  if(r.also.length) sub.push('also '+r.also.map(c=>className(c)||c).join(', '));
+  if(r.arr&&r.arr.note) sub.push(r.arr.note);
+  if(rec&&rec.note&&rec.note!==tokenOf(s)) sub.push('Note: '+rec.note);
+  const B=[['present','✓','Present'],['absent','✕','Absent'],['late','⏰','Late'],['early_leave','🚪','Early']];
+  const act=cur==='mc'?'absent':cur;
+  return `<div class="stu"><div class="stu-n">${i+1}</div>
+    <div class="stu-name">${esc(st.name)}${st.name_cn?' <span class="stu-cn">'+esc(st.name_cn)+'</span>':''}${chips.join('')}
+      <div class="stu-sub">${esc(sub.join(' · '))}</div></div>
+    <div class="sb-wrap">${B.map(([k,ic,tx])=>`<button class="sbt${act===k?' s-'+cur:''}" ${S.me.edit?'':'disabled'} onclick="mark('${s.level}','${s.slot}','${st.id}','${k}')"><span class="i">${k==='absent'&&cur==='mc'?'🤒':ic}</span><span class="t">${k==='absent'&&cur==='mc'?'MC':tx}</span></button>`).join('')}</div>
+  </div>`;
+}
+function toggleSes(key){ S.ui.open[key]=!(S.ui.open[key]!==false); saveLocal(); renderMark(); }
+
+/* ═══ MARK ═══ */
+function findRow(level,slot,sid){ const R=buildRoster(S.date); const s=R.sessions.find(x=>x.level===level&&x.slot===slot); if(!s) return null; const r=s.rows.find(x=>x.st.id===sid); return r?{s,r}:null; }
+function absentPicker(name){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div'); ov.className='sheet-bg';
+    const box=document.createElement('div'); box.className='sheet'; ov.appendChild(box); document.body.appendChild(ov);
+    let cur=null;
+    const done=v=>{ ov.remove(); resolve(v); };
+    const draw=()=>{
+      box.innerHTML=cur
+        ?`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Other — ${esc(name)}</div><input id="abs-why" placeholder="Reason" style="width:100%;margin-bottom:6px"><div style="display:flex;flex-wrap:wrap"><button data-k="save" style="background:var(--layer);color:#fff;border-color:transparent">Save</button><button data-k="ni">Not informed</button></div><div style="display:flex"><button data-k="back" style="border:none;color:var(--mut);font-weight:500">Back</button></div>`
+        :`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Absent — ${esc(name)}</div><div style="display:flex;flex-wrap:wrap"><button data-k="mc">MC</button><button data-k="holiday">Holiday</button><button data-k="other">Other</button></div><div style="display:flex"><button data-k="cancel" style="border:none;color:var(--mut);font-weight:500">Cancel</button></div>`;
+      if(cur){ const i=box.querySelector('#abs-why'); i&&i.focus(); }
+    };
+    box.addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b) return; const k=b.dataset.k;
+      if(k==='cancel') return done(null);
+      if(k==='mc') return done({status:'mc',kind:'mc'});
+      if(k==='holiday') return done({status:'absent',kind:'Holiday'});
+      if(k==='other'){ cur='other'; return draw(); }
+      if(k==='back'){ cur=null; return draw(); }
+      if(k==='ni') return done({status:'absent',kind:'Other',why:'Not informed'});
+      if(k==='save') return done({status:'absent',kind:'Other',why:(box.querySelector('#abs-why').value||'').trim()});
+    });
+    ov.addEventListener('click',e=>{ if(e.target===ov) done(null); });
+    draw();
+  });
+}
+/* Note formats — kept compatible with AttendanceGo v25:
+   present  "E SAT.AM"                 late  "E SAT.AM · Late: 08:45"
+   mc       "E SAT.AM" (status mc)     early "E SAT.AM · Early: 10:15 dentist"
+   absent   "Absent: Holiday · E SAT.AM" / "Absent: Other — reason · E SAT.AM"   */
+function buildNote(tok,status,x){
+  if(status==='present'||status==='mc') return tok;
+  if(status==='late') return tok+' · Late: '+x.time;
+  if(status==='early_leave') return tok+' · Early: '+(x.why||'left early');
+  if(status==='absent') return 'Absent: '+x.kind+(x.why?' — '+x.why:'')+' · '+tok;
+  return tok;
+}
+async function mark(level,slot,sid,status){
+  if(!S.me.edit) return;
+  const f=findRow(level,slot,sid); if(!f){ toast('Student not found — reload'); return; }
+  const{s,r}=f; const tok=tokenOf(s); const rec=S.recs[sid];
+  if(rec&&!eToken(rec.note)){ if(!confirm(r.st.name+' already has a record in AttendanceGo for this day ('+rec.status+(rec.note?' · '+rec.note:'')+').\n\nReplace it with the E-Class mark?')) return; }
+  else if(rec&&eToken(rec.note)&&eToken(rec.note)!==tok){ if(!confirm(r.st.name+' was already marked in '+eToken(rec.note)+'.\n\nOne record per day only. Replace it?')) return; }
+  let st=status, x={};
+  if(status==='absent'){ const p=await absentPicker(r.st.name); if(!p) return; st=p.status; x=p; }
+  if(status==='late'){
+    const prevT=rec&&rec.status==='late'?((String(rec.note||'').match(/Late:\s*(\d{1,2}:\d{2})/)||[])[1]||''):'';
+    const t=prompt('Late — what time did '+r.st.name+' join?',prevT||hhmm()); if(t===null) return; x.time=t.trim()||hhmm();
+  }
+  if(status==='early_leave'){ const w=prompt('Left early — what time and why? (you can leave this blank)',''); if(w===null) return; x.why=w.trim(); }
+  await write([{student:r.st,record_class:r.record_class,status:st,note:buildNote(tok,st,x)}]);
+}
+async function markAllPresent(level,slot){
+  const R=buildRoster(S.date); const s=R.sessions.find(x=>x.level===level&&x.slot===slot); if(!s) return;
+  const todo=s.rows.filter(r=>!S.recs[r.st.id]&&!r.paused);
+  if(!todo.length){ toast('Everyone is already marked'); return; }
+  if(!confirm('Mark '+todo.length+' unmarked student(s) in '+level+' as Present?')) return;
+  await write(todo.map(r=>({student:r.st,record_class:r.record_class,status:'present',note:tokenOf(s)})));
+}
+/* write → public.attendance, same unique key as AttendanceGo */
+async function write(items){
+  const now=new Date().toISOString();
+  const rows=items.map(it=>({date:S.date,student_id:it.student.id,student_name:it.student.name,dept:'SRT',class_code:it.record_class,
+    status:it.status,note:it.note,marked_by:S.me.email,session:0,updated_at:now}));
+  rows.forEach(r=>{ S.recs[r.student_id]=Object.assign({},S.recs[r.student_id]||{},r); });
+  renderMark();
+  const ok=await push(rows);
+  if(ok){ document.getElementById('last-saved').textContent='已存 '+hhmm(); toast(rows.length>1?'✓ '+rows.length+' saved':'✓ Saved'); }
+  else{ S.queue.push(...rows); saveLocal(); toast('✕ Not saved yet — will retry',3000); }
+  setSync();
+}
+let _pushing=false;
+async function push(rows){
+  try{
+    const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session'});
+    if(error){ S.lastErr=error.message; return false; }
+    S.lastErr=''; return true;
+  }catch(e){ S.lastErr=String(e.message||e); return false; }
+}
+async function flushQueue(manual){
+  if(_pushing) return; if(!S.queue.length){ if(manual) toast('✓ All saved'); setSync(); return; }
+  _pushing=true; setSync();
+  const batch=S.queue.slice();
+  const ok=await push(batch);
+  if(ok){ S.queue=S.queue.slice(batch.length); saveLocal(); document.getElementById('last-saved').textContent='已存 '+hhmm(); toast('✓ '+batch.length+' uploaded'); }
+  else if(manual) toast('✕ Still offline: '+S.lastErr,3000);
+  _pushing=false; setSync();
+}
+function setSync(){
+  const b=document.getElementById('sync-badge'), t=document.getElementById('sync-txt'); if(!b) return;
+  b.classList.remove('pend','err');
+  if(S.queue.length){ b.classList.add(S.lastErr?'err':'pend'); t.textContent=S.queue.length+' to upload'; }
+  else if(S.lastErr){ b.classList.add('err'); t.textContent='Error'; }
+  else t.textContent='Synced';
+}
+setInterval(()=>{ if(S.queue.length) flushQueue(false); },30000);
+window.addEventListener('online',()=>flushQueue(false));
+
+/* ═══ ARRANGEMENTS ═══ */
+function sesLabel(level,slot){ const s=S.sched.find(x=>x.level===level&&x.slot===slot); return level+' '+(s?s.weekday:'')+'.'+slot+(s?' · '+s.teacher:''); }
+function renderArr(){
+  const el=document.getElementById('arr-content');
+  const list=S.arrs.slice().sort((a,b)=>((S.students[a.student_id]||{}).name||'').localeCompare((S.students[b.student_id]||{}).name||''));
+  let h=`<div class="card"><div class="card-hdr"><div class="card-title">Special arrangements · ${list.length}</div>${S.me.manager?'<button class="btn btn-pri btn-sm" onclick="openArr()">+ Add</button>':''}</div>
+    <div class="tip">Everyone else joins the session of their own level. These students join another session. Their attendance is still recorded in the class shown under “Recorded in”.</div>`;
+  if(!list.length) h+=`<div class="empty">No records yet</div>`;
+  else{
+    h+=`<div class="tbl-wrap"><table class="data"><thead><tr><th>Student</th><th>Recorded in</th><th>Online session</th><th>From – to</th><th>Note</th>${S.me.manager?'<th></th>':''}</tr></thead><tbody>`;
+    list.forEach(a=>{ const st=S.students[a.student_id]||{name:a.student_id};
+      h+=`<tr><td>${esc(st.name)}</td><td>${esc(className(a.record_class)||a.record_class)}</td><td>${esc(sesLabel(a.online_level,a.online_slot))}</td><td>${esc(a.start_date)} – ${esc(a.end_date||'…')}</td><td>${esc(a.note||'')}</td>${S.me.manager?`<td><button class="btn btn-sm" onclick="endArr('${a.id}')">End</button></td>`:''}</tr>`; });
+    h+=`</tbody></table></div>`;
+  }
+  el.innerHTML=h+'</div>';
+}
+let ARR={};
+function openArr(){ ARR={q:'',sid:'',rc:'',ses:'',note:'',start:S.date,end:''}; drawArr(); openModal('arr-modal'); }
+function drawArr(){
+  const d=ARR.start||S.date;
+  const q=ARR.q.trim().toLowerCase();
+  const ids=new Set(S.mems.filter(m=>memActive(m,d)).map(m=>m.student_id));
+  const found=q.length<2?[]:Object.values(S.students).filter(s=>ids.has(s.id)&&(s.name.toLowerCase().includes(q)||String(s.name_cn||'').includes(ARR.q.trim()))).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,30);
+  const cls=ARR.sid?S.mems.filter(m=>m.student_id===ARR.sid&&memActive(m,d)).map(m=>m.class_code):[];
+  if(cls.length===1) ARR.rc=cls[0];
+  const ses=[...new Map(S.sched.map(s=>[s.level+'|'+s.slot,s])).values()].sort((a,b)=>(SLOT_ORDER[a.slot]-SLOT_ORDER[b.slot])||a.level.localeCompare(b.level,undefined,{numeric:true}));
+  const st=S.students[ARR.sid];
+  document.getElementById('arr-body').innerHTML=`
+    <div class="form-row"><label class="form-label">Student *</label>
+      ${st?`<div style="display:flex;align-items:center;gap:8px"><b>${esc(st.name)}</b><button class="btn btn-sm" onclick="ARR.sid='';ARR.rc='';drawArr()">Change</button></div>`
+      :`<input type="search" id="arr-q" placeholder="Type at least 2 letters" value="${esc(ARR.q)}" oninput="ARR.q=this.value;drawArr();setTimeout(()=>{const i=document.getElementById('arr-q');i.focus();i.setSelectionRange(i.value.length,i.value.length)},0)">
+       <div class="pick-list">${found.map(s=>`<div class="pick" onclick="ARR.sid='${s.id}';drawArr()">${esc(s.name)} <span style="color:var(--mut)">${esc(s.name_cn||'')} · ${esc(S.mems.filter(m=>m.student_id===s.id&&memActive(m,d)).map(m=>className(m.class_code)||m.class_code).join(', '))}</span></div>`).join('')||'<div class="tip" style="padding:8px">'+(q.length<2?'Type at least 2 letters':'No matching results')+'</div>'}</div>`}
+    </div>
+    ${st?`<div class="form-row"><label class="form-label">Record attendance in (his own class) *</label>
+      <select onchange="ARR.rc=this.value">${cls.length>1?'<option value="">— choose —</option>':''}${cls.map(c=>`<option value="${esc(c)}"${ARR.rc===c?' selected':''}>${esc(className(c)||c)}</option>`).join('')}</select>
+      ${cls.length>1?'<div class="tip">This student is in 2 classes. AttendanceGo keeps one record per day, so choose one.</div>':''}</div>`:''}
+    <div class="form-row"><label class="form-label">Joins online session *</label>
+      <select onchange="ARR.ses=this.value"><option value="">— choose —</option>${ses.map(s=>`<option value="${s.level}|${s.slot}"${ARR.ses===s.level+'|'+s.slot?' selected':''}>${esc(sesLabel(s.level,s.slot))}</option>`).join('')}</select></div>
+    <div class="form-row"><label class="form-label">Note (optional)</label><input type="text" value="${esc(ARR.note)}" oninput="ARR.note=this.value" placeholder="e.g. Help needed to set up online class"></div>
+    <div class="form-row" style="display:flex;gap:8px"><div style="flex:1"><label class="form-label">From *</label><input type="date" value="${esc(ARR.start)}" onchange="ARR.start=this.value"></div>
+      <div style="flex:1"><label class="form-label">To (empty = until further notice)</label><input type="date" value="${esc(ARR.end)}" onchange="ARR.end=this.value"></div></div>`;
+}
+async function saveArr(){
+  if(!ARR.sid){ toast('Choose a student'); return; }
+  if(!ARR.rc){ toast('Choose the class to record in'); return; }
+  if(!ARR.ses){ toast('Choose the online session'); return; }
+  if(!ARR.start){ toast('Choose the start date'); return; }
+  if(ARR.end&&ARR.end<ARR.start){ toast('End date is before start date'); return; }
+  if(S.arrs.some(a=>a.student_id===ARR.sid&&a.status==='active'&&(!a.end_date||a.end_date>=ARR.start))){ toast('This student already has an arrangement'); return; }
+  const[lv,sl]=ARR.ses.split('|');
+  const row={client_uid:crypto.randomUUID(),student_id:ARR.sid,record_class:ARR.rc,online_level:lv,online_slot:sl,note:ARR.note.trim()||null,start_date:ARR.start,end_date:ARR.end||null,created_by:S.me.email};
+  const b=document.getElementById('arr-save'); b.disabled=true;
+  const{data,error}=await _sb.from('eclass_arrangements').insert(row).select();
+  b.disabled=false;
+  if(error){ toast('✕ Save failed: '+error.message,3500); return; }
+  S.arrs.push(data[0]); closeModal('arr-modal'); toast('✓ Saved'); renderAll();
+}
+async function endArr(id){
+  const a=S.arrs.find(x=>x.id===id); if(!a) return;
+  const st=S.students[a.student_id]||{name:''};
+  if(!confirm('End the arrangement for '+st.name+'?\nFrom the next session, the student goes back to the session of his own level. Marks already saved stay.')) return;
+  const{error}=await _sb.from('eclass_arrangements').update({status:'cancelled',cancelled_by:S.me.email,cancelled_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('✕ '+error.message,3500); return; }
+  S.arrs=S.arrs.filter(x=>x.id!==id); toast('✓ Ended'); renderAll();
+}
+
+/* ═══ MANAGE (OWNER / TOP_MGMT / ADMIN) ═══ */
+function goPage(p){
+  if(p==='manage'&&!S.me.manager){ p='mark'; }      // guard first, never render then kick out
+  document.querySelectorAll('.page').forEach(x=>x.classList.toggle('on',x.id==='page-'+p));
+  document.querySelectorAll('.ntab').forEach(x=>x.classList.toggle('on',x.dataset.p===p));
+  if(p==='manage') renderManage();
+  if(p==='arr') renderArr();
+  window.scrollTo(0,0);
+}
+function renderManage(){
+  if(!S.me.manager) return;
+  const yes=v=>v?'✓':'✕';
+  const sch=S.sched.slice().sort((a,b)=>(SLOT_ORDER[a.slot]-SLOT_ORDER[b.slot])||a.level.localeCompare(b.level,undefined,{numeric:true}));
+  const noAcct=[...new Set(S.sched.map(s=>s.teacher))].filter(t=>!KNOWN_CODES.has(t));
+  let adv=false; try{ adv=localStorage.getItem(STORAGE_KEY+'_adv')==='1'; }catch(e){}
+  document.getElementById('manage-content').innerHTML=`
+  <div class="card"><div class="card-title">① 我的身份</div>
+    <div class="mrow">登入者：<code>${esc(S.me.code||'—')}</code> ${esc(S.me.email)}</div>
+    <div class="mrow">角色：${esc(S.me.role)}</div>
+    <div class="mrow">can_see：${yes(S.me.see)} · can_edit：${yes(S.me.edit)} · can_approve：${yes(S.me.approve)}</div></div>
+  <div class="card"><div class="card-title">② 系统资讯</div>
+    <div class="mrow">系统名：E-Class Attendance</div>
+    <div class="mrow">版本：v${APP_VERSION}</div>
+    <div class="mrow">Layer：LIB</div>
+    <div class="mrow">权限码：<code>${SYSTEM_CODE}</code></div>
+    <div class="mrow">Storage key：<code>${STORAGE_KEY}</code></div>
+    <div class="mrow">资料笔数：${Object.keys(S.students).length} students · ${S.mems.length} SRT memberships · ${S.sched.length} sessions · ${S.arrs.length} arrangements · ${Object.keys(S.recs).length} records on ${esc(S.date)}</div></div>
+  <div class="card"><div class="card-title">③ 云端连线</div>
+    <div class="mrow">连线状态：${S.lastErr?'<span style="color:var(--danger)">Error</span>':'<span style="color:var(--ok)">OK</span>'}</div>
+    <div class="mrow">待上传：${S.queue.length}</div>
+    <div class="mrow">名单来源：<code>hub_students</code> <code>hub_student_memberships</code> <code>hub_classes</code> · 抓取时间：${esc(S.loadedAt)}</div>
+    <div class="mrow">写入：<code>attendance</code>（AttendanceGo 同一张表）</div>
+    <div class="mrow">最近错误：${esc(S.lastErr||'—')}</div>
+    <div class="acts"><button class="btn" onclick="flushQueue(true)">立刻上传</button><button class="btn" onclick="reloadAll()">重新载入名单</button></div></div>
+  <div class="card"><div class="card-title">④ 主数据维护 · Online sessions</div>
+    <div class="tip">One row = one level's online session. Teachers see only the sessions with their code.</div>
+    <div class="tbl-wrap"><table class="data"><thead><tr><th>Level</th><th>Session</th><th>Time</th><th>Teacher</th><th>From – to</th><th></th></tr></thead><tbody>
+    ${sch.map(s=>`<tr><td>${esc(s.level)}</td><td>${esc(s.weekday+'.'+s.slot)}</td><td>${t12(s.start_time)}–${t12(s.end_time)}</td><td>${esc(s.teacher)}${KNOWN_CODES.has(s.teacher)?'':' <span class="chip chip-warn">no account</span>'}</td><td>${esc(s.start_date)} – ${esc(s.end_date||'…')}</td><td><button class="btn btn-sm" onclick="openSch('${s.id}')">Edit</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="acts"><button class="btn btn-pri" onclick="openSch('')">+ Add session</button></div></div>
+  <div class="card"><div class="card-title">⑤ 资料备份</div>
+    <div class="acts"><button class="btn" onclick="exportJSON()">Export JSON</button><button class="btn" onclick="exportCSV()">Export CSV</button><button class="btn" onclick="openImport()">Import</button><button class="btn" onclick="doPrint()">列印</button></div>
+    <div class="tip" style="margin-top:14px"><b>Offline file for a teacher without an account</b> — the file holds the student list of ${esc(fmtDate(S.date))}. Make a new one every week. The teacher marks, then sends the result back; import it here.</div>
+    <div class="acts">${(noAcct.length?noAcct:[...new Set(S.sched.map(s=>s.teacher))]).map(t=>`<button class="btn btn-pri" onclick="makeOffline('${esc(t)}')">Make offline file · ${esc(t)}</button>`).join('')}</div></div>
+  <div class="card"><details id="adv"${adv?' open':''} ontoggle="try{localStorage.setItem(STORAGE_KEY+'_adv',this.open?'1':'0')}catch(e){}"><summary>⑥ 进阶 · 管理员用</summary>
+    <div class="mrow">写入键：<code>date + student_id + dept + session</code>（session = 0）</div>
+    <div class="mrow">Note 格式：<code>E SAT.AM</code> · <code>E SAT.AM · Late: 08:45</code> · <code>Absent: Other — reason · E SAT.AM</code></div>
+    <div class="mrow">班级对照：<code>hub_student_memberships.class_code</code> 去掉 <code>SRT-</code> = <code>hub_classes.id</code>，等级读 <code>hub_classes.level</code></div>
+    <div class="mrow">自己的表：<code>eclass_schedule</code> · <code>eclass_arrangements</code>（只作废不删）</div></details></div>`;
+}
+async function reloadAll(){ const ok=await loadMaster(); if(!ok) return; await loadRecs(); renderAll(); show('app'); toast('✓ Reloaded'); }
+
+let SCH=null;
+function openSch(id){
+  const s=S.sched.find(x=>x.id===id);
+  SCH=s?Object.assign({},s):{id:'',level:'',weekday:'SAT',slot:'AM',start_time:'08:30',end_time:'11:00',teacher:'',start_date:S.date,end_date:null};
+  document.getElementById('sch-title').textContent=s?'Edit session':'Add session';
+  const levels=[...new Set(Object.values(S.classes).map(c=>c.level).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  document.getElementById('sch-body').innerHTML=`
+    <div class="form-row"><label class="form-label">Level *</label><select id="sc-level">${levels.map(l=>`<option${SCH.level===l?' selected':''}>${esc(l)}</option>`).join('')}</select></div>
+    <div class="form-row" style="display:flex;gap:8px"><div style="flex:1"><label class="form-label">Day *</label><select id="sc-wd">${DOW.map(d=>`<option${SCH.weekday===d?' selected':''}>${d}</option>`).join('')}</select></div>
+      <div style="flex:1"><label class="form-label">Session *</label><select id="sc-slot">${['AM','NN','PM'].map(d=>`<option${SCH.slot===d?' selected':''}>${d}</option>`).join('')}</select></div></div>
+    <div class="form-row" style="display:flex;gap:8px"><div style="flex:1"><label class="form-label">Start</label><input type="time" id="sc-st" value="${esc(String(SCH.start_time||'').slice(0,5))}"></div>
+      <div style="flex:1"><label class="form-label">End</label><input type="time" id="sc-et" value="${esc(String(SCH.end_time||'').slice(0,5))}"></div></div>
+    <div class="form-row"><label class="form-label">Teacher code * (same as the login display name; a teacher without account gets an offline file)</label><input type="text" id="sc-t" value="${esc(SCH.teacher)}" list="sc-codes"><datalist id="sc-codes">${[...KNOWN_CODES].sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+    <div class="form-row" style="display:flex;gap:8px"><div style="flex:1"><label class="form-label">From *</label><input type="date" id="sc-sd" value="${esc(SCH.start_date)}"></div>
+      <div style="flex:1"><label class="form-label">To (empty = until further notice)</label><input type="date" id="sc-ed" value="${esc(SCH.end_date||'')}"></div></div>
+    ${s?`<button class="btn btn-dng btn-sm" onclick="cancelSch('${s.id}')">Stop this session</button>`:''}`;
+  openModal('sch-modal');
+}
+async function saveSch(){
+  const v=id=>document.getElementById(id).value;
+  const row={level:v('sc-level'),weekday:v('sc-wd'),slot:v('sc-slot'),start_time:v('sc-st')||null,end_time:v('sc-et')||null,teacher:v('sc-t').trim(),start_date:v('sc-sd'),end_date:v('sc-ed')||null,updated_at:new Date().toISOString()};
+  if(!row.level||!row.teacher||!row.start_date){ toast('Fill in level, teacher and start date'); return; }
+  if(row.end_date&&row.end_date<row.start_date){ toast('End date is before start date'); return; }
+  const clash=S.sched.find(s=>s.id!==SCH.id&&s.level===row.level&&s.weekday===row.weekday&&(!s.end_date||s.end_date>=row.start_date)&&(!row.end_date||row.end_date>=s.start_date));
+  if(clash){ toast(row.level+' already has a session on '+row.weekday+' ('+clash.slot+')',3500); return; }
+  let res;
+  if(SCH.id) res=await _sb.from('eclass_schedule').update(row).eq('id',SCH.id).select();
+  else res=await _sb.from('eclass_schedule').insert(Object.assign({client_uid:crypto.randomUUID(),created_by:S.me.email},row)).select();
+  if(res.error){ toast('✕ '+res.error.message,3500); return; }
+  const got=res.data[0]; S.sched=S.sched.filter(s=>s.id!==got.id).concat([got]);
+  closeModal('sch-modal'); toast('✓ Saved'); renderAll();
+}
+async function cancelSch(id){
+  if(!confirm('Stop this session? Students of this level will not appear on any list. Marks already saved stay.')) return;
+  const{error}=await _sb.from('eclass_schedule').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('✕ '+error.message,3500); return; }
+  S.sched=S.sched.filter(s=>s.id!==id); closeModal('sch-modal'); toast('✓ Stopped'); renderAll();
+}
+
+/* ═══ EXPORT / PRINT ═══ */
+function visibleRows(){
+  const R=buildRoster(S.date); const out=[];
+  mySessions(R.sessions).forEach(s=>s.rows.forEach(r=>{ const rec=S.recs[r.st.id];
+    out.push({date:S.date,session:tokenOf(s),level:s.level,teacher:s.teacher,student_id:r.st.id,student_name:r.st.name,name_cn:r.st.name_cn||'',recorded_in:className(r.record_class)||r.record_class,status:rec?rec.status:'',note:rec?rec.note||'':''}); }));
+  return out;
+}
+function exportJSON(){
+  const rows=visibleRows();
+  download('EClassAttendance_'+stamp()+'.json',JSON.stringify({meta:{system:SYSTEM_CODE,version:APP_VERSION,exported:new Date().toISOString(),by:S.me.email,date:S.date,count:rows.length},rows},null,2));
+  toast('✓ Exported '+rows.length);
+}
+function exportCSV(){
+  const rows=visibleRows(); const cols=['date','session','level','teacher','student_name','name_cn','recorded_in','status','note'];
+  const csv='\ufeff'+cols.join(',')+'\n'+rows.map(r=>cols.map(c=>csvCell(r[c])).join(',')).join('\n');
+  download('EClassAttendance_'+stamp()+'.csv',csv,'text/csv;charset=utf-8'); toast('✓ Exported '+rows.length);
+}
+function doPrint(){
+  goPage('mark');
+  document.getElementById('print-foot').textContent='E-Class Attendance · '+fmtDate(S.date)+' · printed '+new Date().toLocaleString('en-GB');
+  setTimeout(()=>window.print(),100);
+}
+
+/* ═══ OFFLINE FILE (teacher without account) ═══
+   The file carries only the roster of that date for that teacher. It saves marks in
+   its own browser storage and gives them back as a .json file or a text code. */
+function makeOffline(teacher){
+  const R=buildRoster(S.date);
+  const ses=R.sessions.filter(s=>s.teacher===teacher);
+  if(!ses.length){ toast('No session for '+teacher+' on '+S.date); return; }
+  const pack={system:SYSTEM_CODE,kind:'offline-roster',v:1,date:S.date,teacher,made:new Date().toISOString(),
+    sessions:ses.map(s=>({level:s.level,token:tokenOf(s),time:t12(s.start_time)+'–'+t12(s.end_time),
+      rows:s.rows.map(r=>({id:r.st.id,name:r.st.name,cn:r.st.name_cn||'',rc:r.record_class,from:r.arr?(className(r.home)||r.home):'',note:r.arr&&r.arr.note||''}))}))};
+  const html=OFFLINE_TPL.replace('__PACK__',()=>JSON.stringify(pack).replace(/</g,'\\u003c'));
+  download('EClass_Offline_'+teacher.replace(/[^A-Za-z0-9]+/g,'_')+'_'+S.date.replace(/-/g,'')+'.html',html,'text/html');
+  toast('✓ File made · send it to '+teacher,3000);
+}
+const OFFLINE_TPL=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>E-Class Offline</title>
+<style>:root{--layer:#6B6B3A;--sur:#fff;--sur2:#f7f6f2;--bdr:#e0ddd6;--txt:#1a1a1a;--mut:#888;--ok:#0F6E56;--warn:#854F0B;--danger:#A32D2D}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--sur2);color:var(--txt);font-size:13px}
+.nav{background:var(--layer);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nav b{font-size:14px}.nav span{font-size:11px;opacity:.8}.pg{padding:12px;max-width:760px;margin:0 auto}
+.ses{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.hd{padding:12px 16px;font-weight:600;font-size:15px;display:flex;align-items:center}.hd small{font-weight:400;color:var(--mut);font-size:11px;margin-left:8px}.hd .c{margin-left:auto;font-size:12px;color:var(--mut)}
+.st{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:.5px solid var(--bdr)}.nm{flex:1;font-size:12px;overflow-wrap:anywhere}.sub{font-size:10px;color:var(--mut)}
+.b{min-width:44px;min-height:44px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--sur);font-size:13px;font-weight:600;font-family:inherit}
+.b.p{background:#E1F5EE;color:var(--ok);border-color:#9FE1CB}.b.a{background:#FCEBEB;color:var(--danger);border-color:#F09595}.b.l{background:#FFF8E1;color:var(--warn);border-color:#F9CB42}.b.e{background:#FFF0E6;color:#C4622D;border-color:#F0B896}
+.btn{min-height:44px;padding:0 16px;border-radius:8px;border:.5px solid var(--bdr);background:var(--sur);font-family:inherit;font-size:13px;font-weight:600}.pri{background:var(--layer);color:#fff;border-color:var(--layer)}
+.foot{position:sticky;bottom:0;background:var(--sur);border-top:.5px solid var(--bdr);padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+textarea{width:100%;height:90px;font-size:11px;border-radius:8px;border:.5px solid var(--bdr);padding:8px}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s;pointer-events:none}.toast.show{opacity:1}</style></head><body>
+<div class="nav"><b>🎥 E-Class · Offline</b><span id="hdr"></span></div><div class="pg" id="pg"></div>
+<div class="foot"><button class="btn pri" onclick="dl()">Save result file</button><button class="btn" onclick="cp()">Copy result for WhatsApp</button></div>
+<div class="pg" id="out" style="display:none"><textarea id="ta" readonly></textarea></div><div class="toast" id="toast"></div>
+<script>
+const P=__PACK__;const K='eclass_offline_'+P.date+'_'+P.teacher;let M={};try{M=JSON.parse(localStorage.getItem(K)||'{}')}catch(e){}
+function sv(){try{localStorage.setItem(K,JSON.stringify(M))}catch(e){}}
+function t(m){const x=document.getElementById('toast');x.textContent=m;x.classList.add('show');clearTimeout(x.h);x.h=setTimeout(()=>x.classList.remove('show'),2000)}
+function e(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function now(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function r(){document.getElementById('hdr').textContent=P.teacher+' · '+P.date;let h='';P.sessions.forEach((s,si)=>{const n=s.rows.filter(x=>M[x.id]).length;
+h+='<div class="ses"><div class="hd">'+e(s.level)+'<small>'+e(s.token)+' · '+e(s.time)+'</small><span class="c">'+n+'/'+s.rows.length+'</span></div>';
+s.rows.forEach((x,i)=>{const m=M[x.id]||{};h+='<div class="st"><div class="nm">'+(i+1)+'. '+e(x.name)+' <span class="sub">'+e(x.cn)+'</span>'+(x.from||x.note?'<div class="sub">'+e([x.from?'from '+x.from:'',x.note].filter(Boolean).join(' · '))+'</div>':'')+(m.n?'<div class="sub">'+e(m.n)+'</div>':'')+'</div>'+
+[['present','✓','p'],['absent','✕','a'],['late','⏰','l'],['early_leave','🚪','e']].map(([k,ic,c])=>'<button class="b'+(m.s===k||(k==='absent'&&m.s==='mc')?' '+c:'')+'" onclick="mk('+si+','+i+',\\''+k+'\\')">'+(k==='absent'&&m.s==='mc'?'MC':ic)+'</button>').join('')+'</div>'});h+='</div>'});
+document.getElementById('pg').innerHTML=h}
+function mk(si,i,k){const s=P.sessions[si],x=s.rows[i],T=s.token;let st=k,n=T;
+if(k==='late'){const v=prompt('Late — what time did '+x.name+' join?',now());if(v===null)return;n=T+' · Late: '+(v.trim()||now())}
+if(k==='early_leave'){const v=prompt('Left early — what time and why?','');if(v===null)return;n=T+' · Early: '+(v.trim()||'left early')}
+if(k==='absent'){const v=prompt('Absent — type 1 = MC, 2 = Holiday, or type the reason','');if(v===null)return;const w=v.trim();
+if(w==='1'){st='mc';n=T}else if(w==='2'){n='Absent: Holiday · '+T}else{n='Absent: Other'+(w?' — '+w:'')+' · '+T}}
+M[x.id]={s:st,n:n,rc:x.rc,nm:x.name,at:new Date().toISOString()};sv();r();t('✓ Saved on this phone')}
+function res(){return {system:P.system,kind:'offline-marks',v:1,date:P.date,teacher:P.teacher,made:P.made,exported:new Date().toISOString(),
+rows:Object.entries(M).map(([id,m])=>({student_id:id,student_name:m.nm,record_class:m.rc,status:m.s,note:m.n}))}}
+function dl(){const b=new Blob([JSON.stringify(res())],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='EClass_Result_'+P.teacher.replace(/[^A-Za-z0-9]+/g,'_')+'_'+P.date.replace(/-/g,'')+'.json';document.body.appendChild(a);a.click();a.remove();t('✓ File saved — send it back')}
+function cp(){const s='ECLASS1:'+btoa(unescape(encodeURIComponent(JSON.stringify(res()))));const ta=document.getElementById('ta');ta.value=s;document.getElementById('out').style.display='block';
+(navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>t('✓ Copied — paste it in WhatsApp')).catch(()=>{ta.select();t('Select all and copy')})}
+r();
+<\/script></body></html>`;
+
+/* ═══ IMPORT (offline result) — always merge, preview first ═══ */
+let IMP=null;
+function openImport(){
+  if(!(S.me.manager&&S.me.edit)) return;
+  IMP=null;
+  document.getElementById('imp-body').innerHTML=`<div class="form-row"><label class="form-label">Result file (.json)</label><input type="file" accept=".json,application/json" onchange="impFile(this)"></div>
+    <div class="form-row"><label class="form-label">…or paste the code from WhatsApp (starts with ECLASS1:)</label><textarea id="imp-txt" rows="4" oninput="impText(this.value)"></textarea></div>
+    <div id="imp-prev"></div>`;
+  document.getElementById('imp-go').disabled=true;
+  openModal('imp-modal');
+}
+function impFile(inp){ const f=inp.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>impParse(rd.result); rd.readAsText(f); }
+function impText(v){ v=v.trim(); if(!v) return; try{ impParse(v.startsWith('ECLASS1:')?decodeURIComponent(escape(atob(v.slice(8)))):v); }catch(e){ impErr('This code is not complete. Copy the whole message again.'); } }
+function impErr(m){ IMP=null; document.getElementById('imp-prev').innerHTML=`<div class="alert alert-danger">${esc(m)} Nothing has been changed.</div>`; document.getElementById('imp-go').disabled=true; }
+async function impParse(text){
+  let p; try{ p=JSON.parse(text); }catch(e){ return impErr('Not a valid result file.'); }
+  if(!p||p.system!==SYSTEM_CODE||p.kind!=='offline-marks'||!Array.isArray(p.rows)||!/^\d{4}-\d{2}-\d{2}$/.test(p.date||'')) return impErr('Not an E-Class result file.');
+  const OK=['present','absent','late','early_leave','mc'];
+  const{data,error}=await _sb.from('attendance').select('*').eq('date',p.date).eq('dept','SRT').eq('session',0);
+  if(error) return impErr('Could not read attendance: '+error.message);
+  const ex={}; (data||[]).forEach(r=>ex[r.student_id]=r);
+  const plan={nw:[],up:[],same:[],skip:[]};
+  p.rows.forEach(r=>{
+    if(!S.students[r.student_id]||!OK.includes(r.status)||!r.record_class){ plan.skip.push({r,why:'unknown student or status'}); return; }
+    const e=ex[r.student_id];
+    if(!e) plan.nw.push(r);
+    else if(e.status===r.status&&(e.note||'')===(r.note||'')) plan.same.push(r);
+    else if(!eToken(e.note)) plan.skip.push({r,why:'already marked in AttendanceGo ('+e.status+')'});
+    else plan.up.push(r);
+  });
+  IMP={p,plan};
+  document.getElementById('imp-prev').innerHTML=`<div class="alert alert-info"><b>${esc(p.teacher)} · ${esc(fmtDate(p.date))}</b><br>${plan.nw.length} new · ${plan.up.length} update · ${plan.same.length} unchanged · ${plan.skip.length} skipped</div>
+    ${plan.skip.length?`<div class="tip">Skipped: ${plan.skip.map(x=>esc((x.r.student_name||x.r.student_id)+' — '+x.why)).join(' · ')}</div>`:''}`;
+  document.getElementById('imp-go').disabled=!(plan.nw.length+plan.up.length);
+}
+async function doImport(){
+  if(!IMP) return; const{p,plan}=IMP;
+  const now=new Date().toISOString();
+  const rows=plan.nw.concat(plan.up).map(r=>({date:p.date,student_id:r.student_id,student_name:S.students[r.student_id].name,dept:'SRT',class_code:r.record_class,status:r.status,note:r.note,marked_by:S.me.email,session:0,updated_at:now}));
+  // backup of what is there now, before writing
+  const{data:before}=await _sb.from('attendance').select('*').eq('date',p.date).eq('dept','SRT').eq('session',0).in('student_id',rows.map(r=>r.student_id));
+  download('EClassAttendance_backup_before_import_'+stamp()+'.json',JSON.stringify({meta:{system:SYSTEM_CODE,kind:'backup',date:p.date},rows:before||[]},null,2));
+  document.getElementById('imp-go').disabled=true;
+  const ok=await push(rows);
+  if(!ok){ toast('✕ Import failed: '+S.lastErr+' · nothing changed',4000); document.getElementById('imp-go').disabled=false; return; }
+  closeModal('imp-modal'); toast('✓ Imported '+rows.length);
+  document.getElementById('last-saved').textContent='已存 '+hhmm();
+  if(p.date===S.date){ await loadRecs(); renderMark(); }
+}
+
+/* ═══ MODAL / KEYS ═══ */
+function openModal(id){ document.getElementById(id).classList.add('on'); }
+function closeModal(id){ document.getElementById(id).classList.remove('on'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-bg.on').forEach(m=>m.classList.remove('on')); });
+
+_sb.auth.onAuthStateChange((ev)=>{ if(ev==='SIGNED_OUT') show('auth-screen'); });
+init();
+</script>
+</body>
+</html>
