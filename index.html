@@ -180,7 +180,8 @@ const LIVE={
   // 2026-10-10：E-Class Attendance v1 新上架（SRT 网课点名；点名直接写进 AttendanceGo 同一张 attendance 表，记回学生自己原本的班）。
   //             权限码 LIB-EClassAttendance（role_access：OWNER/ADMIN/TOP_MGMT/MGMT/TEACHER 可看可写，MARKETING 不可）。
   //             ⚠️ 推档顺序：先推 LIB/EClass_Attendance.html，再推这份 index.html。
-  'LIB-EClassAttendance': {href:'LIB/EClass_Attendance.html', name:'E-Class Attendance', ver:'v1', group:'LIB — Library',  color:'#6B6B3A', order:10},
+  // 2026-10-10 04:1x：E-Class Attendance v1 → v2（班级卡片：先点一个 Level，只显示那一班）。
+  'LIB-EClassAttendance': {href:'LIB/EClass_Attendance.html', name:'E-Class Attendance', ver:'v2', group:'LIB — Library',  color:'#6B6B3A', order:10},
   // 2026-10-03：ClassGo v482 → v483（平面图位置改读 Room SSOT；走廊只显示、楼梯灰块）。
   // 2026-10-05：ClassGo v483 → v484（Publish 把 ATC 合班写进两个班：A5+A6、A1+A2 / A3+A4 Fri）。
   'EDU-ClassGo':       {href:'EDU/ClassGo.html',         name:'ClassGo',      ver:'v484', group:'EDU — Education',         color:'#236FAD', order:7},

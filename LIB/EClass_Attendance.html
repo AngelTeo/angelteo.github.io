@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>E-Class Attendance v1</title>
+<title>E-Class Attendance v2</title>
 <style>
 :root{
   --layer:#6B6B3A;
@@ -69,6 +69,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 .pill{min-height:44px;padding:0 16px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--mut);font-family:inherit}
 .pill.on{background:var(--layer);color:#fff;font-weight:600}
 
+/* CLASS PICKER CARDS (v2) */
+.lv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.lv-card{background:var(--sur);border:1.5px solid var(--bdr);border-radius:10px;padding:12px 14px;cursor:pointer;text-align:left;font-family:inherit;min-height:64px;-webkit-tap-highlight-color:transparent}
+.lv-card:hover{border-color:var(--layer)}
+.lv-card.on{border-color:var(--layer);background:var(--layer);color:#fff}
+.lv-card .l1{font-size:16px;font-weight:600}
+.lv-card .l2{font-size:11px;opacity:.75;margin-top:2px}
+.lv-card .l3{font-size:11px;font-weight:600;margin-top:4px}
+.lv-card .l3.done{color:var(--ok)}
+.lv-card.on .l3.done{color:#BDF0DC}
+@media(max-width:480px){.lv-grid{grid-template-columns:repeat(2,1fr)}}
 /* SESSION CARD */
 .ses{background:var(--sur);border:.5px solid var(--bdr);border-radius:10px;margin-bottom:12px;overflow:hidden}
 .ses-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -196,7 +207,7 @@ table.data tr:nth-child(even) td{background:var(--sur2)}
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'" title="Back to platform">←</button>
-    <div class="nav-logo">🎥 E-Class Attendance <span class="ver" id="ver-badge">v1</span></div>
+    <div class="nav-logo">🎥 E-Class Attendance <span class="ver" id="ver-badge">v2</span></div>
     <button class="ntab on" data-p="mark" onclick="goPage('mark')">Mark</button>
     <button class="ntab" data-p="arr" onclick="goPage('arr')">Arrangements</button>
     <button class="ntab" data-p="manage" id="tab-manage" onclick="goPage('manage')" hidden>管理</button>
@@ -267,7 +278,7 @@ table.data tr:nth-child(even) td{background:var(--sur2)}
      classes is recorded under the class set in the arrangement
    · H/LOI has no account → offline file + Import
    ═══════════════════════════════════════════════════════════════════ */
-const APP_VERSION=1;
+const APP_VERSION=2;   /* v2 · 班级卡片：先点一个 Level，只显示那一班（Owner 10-10 04:06：List 太长） */
 const SYSTEM_CODE='LIB-EClassAttendance';
 const STORAGE_KEY='eclass_attendance_v1';
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
@@ -288,7 +299,7 @@ const S={
   date:'', loadedAt:'',
   queue:[],           // writes that failed, retried in order
   lastErr:'',
-  ui:{slot:'',q:'',open:{}}
+  ui:{slot:'',q:'',open:{},lv:{}}   // lv: slot → chosen level
 };
 
 /* ── helpers ── */
@@ -313,8 +324,8 @@ function csvCell(v){ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s
 function download(name,text,type){ const b=new Blob([text],{type:type||'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
 
 /* ── local store: only UI choices + unsent writes ── */
-function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify({ui:{slot:S.ui.slot,open:S.ui.open},queue:S.queue})); }catch(e){} }
-function loadLocal(){ try{ const p=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); if(p.ui){ S.ui.slot=p.ui.slot||''; S.ui.open=p.ui.open||{}; } if(Array.isArray(p.queue)) S.queue=p.queue; }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify({ui:{slot:S.ui.slot,open:S.ui.open,lv:S.ui.lv},queue:S.queue})); }catch(e){} }
+function loadLocal(){ try{ const p=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); if(p.ui){ S.ui.slot=p.ui.slot||''; S.ui.open=p.ui.open||{}; S.ui.lv=p.ui.lv||{}; } if(Array.isArray(p.queue)) S.queue=p.queue; }catch(e){} }
 
 /* ═══ AUTH ═══ */
 async function doLogin(){
@@ -459,15 +470,22 @@ function renderMark(){
   if(S.me.manager&&(R.unplaced.length||R.unknownCls.length)){
     h+=`<div class="alert alert-warn"><b>${R.unplaced.length} student(s) are not in any session today.</b> ${R.unplaced.slice(0,8).map(u=>esc(u.row.st.name)+' ('+esc(u.why)+')').join(' · ')}${R.unplaced.length>8?' …':''}${R.unknownCls.length?'<br>Class not found in Class SSOT: '+esc(R.unknownCls.join(', ')):''}</div>`;
   }
-  const list=all.filter(s=>s.slot===S.ui.slot);
+  const inSlot=all.filter(s=>s.slot===S.ui.slot);
   const q=(S.ui.q||'').trim().toLowerCase();
+  /* v2 · 班级卡片：点一个 Level 只显示那一班；搜寻时显示这一节所有班的结果 */
+  if(inSlot.length&&!inSlot.some(s=>s.level===S.ui.lv[S.ui.slot])) S.ui.lv[S.ui.slot]=inSlot[0].level;
+  if(inSlot.length>1){
+    h+=`<div class="lv-grid">${inSlot.map(s=>{ const mk=s.rows.filter(r=>statusOf(r.st.id)).length; const on=!q&&s.level===S.ui.lv[S.ui.slot];
+      return `<button class="lv-card${on?' on':''}" onclick="pickLv('${s.level}')"><div class="l1">${esc(s.level)}</div><div class="l2">${esc(s.teacher)} · ${s.rows.length} students</div><div class="l3${mk===s.rows.length&&s.rows.length?' done':''}">${mk}/${s.rows.length} marked</div></button>`; }).join('')}</div>`;
+  }
+  const list=q?inSlot:inSlot.filter(s=>s.level===S.ui.lv[S.ui.slot]);
   list.forEach(s=>{
     const rows=s.rows.filter(r=>!q||r.st.name.toLowerCase().includes(q)||String(r.st.name_cn||'').includes(S.ui.q.trim()));
+    if(q&&!rows.length) return;
     const marked=s.rows.filter(r=>statusOf(r.st.id)).length;
-    const key=S.date+'|'+s.level+'|'+s.slot;
-    const open=S.ui.open[key]!==false;
+    const open=true;
     h+=`<div class="ses${open?' open':''}" id="ses-${s.level}-${s.slot}">
-      <div class="ses-hdr" onclick="toggleSes('${key}')">
+      <div class="ses-hdr">
         <div><div class="ses-lv">${esc(s.level)} <span class="chip chip-layer">${esc(tokenOf(s))}</span></div>
         <div class="ses-meta">${esc(s.teacher)} · ${t12(s.start_time)}–${t12(s.end_time)} · ${s.rows.length} students</div></div>
         <div class="ses-cnt${marked===s.rows.length&&s.rows.length?' done':''}">${marked}/${s.rows.length}</div>
@@ -503,7 +521,7 @@ function rowHtml(s,r,i){
     <div class="sb-wrap">${B.map(([k,ic,tx])=>`<button class="sbt${act===k?' s-'+cur:''}" ${S.me.edit?'':'disabled'} onclick="mark('${s.level}','${s.slot}','${st.id}','${k}')"><span class="i">${k==='absent'&&cur==='mc'?'🤒':ic}</span><span class="t">${k==='absent'&&cur==='mc'?'MC':tx}</span></button>`).join('')}</div>
   </div>`;
 }
-function toggleSes(key){ S.ui.open[key]=!(S.ui.open[key]!==false); saveLocal(); renderMark(); }
+function pickLv(lv){ S.ui.lv[S.ui.slot]=lv; S.ui.q=''; const f=document.getElementById('f-q'); if(f) f.value=''; saveLocal(); renderMark(); window.scrollTo(0,0); }
 
 /* ═══ MARK ═══ */
 function findRow(level,slot,sid){ const R=buildRoster(S.date); const s=R.sessions.find(x=>x.level===level&&x.slot===slot); if(!s) return null; const r=s.rows.find(x=>x.st.id===sid); return r?{s,r}:null; }
