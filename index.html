@@ -172,7 +172,8 @@ const LIVE={
   // 2026-10-07：AttendanceGo v20 → v22（ATC Week：全班每个学生 × 每个时段的状况 · 每周都上不到的 Lesson 清单 · 找学生）。v21 作废跳号。
   // 2026-10-07：AttendanceGo v22 → v23（ATC 时段：H/W 一到四 1:15–3:30、五 12:15–3:30，Lesson 3:30–5:15；点 Late 问几点到，H/W 3:00 或以后到改记 Absent）。
   // 2026-10-07：AttendanceGo v23 → v24（ATC 按 Late 直接记现在时间；再按一次 Late 改时间）。
-  'OPR-AttendanceGo':  {href:'OPR/AttendanceGo.html',       name:'AttendanceGo', ver:'v24', group:'OPR — Operations',        color:'#8B6C2A', order:7},
+  // 2026-10-10：AttendanceGo v24 → v26（v25 缺席再选 MC / Holiday / Other · v26 E-Class 网课格子显示 E·AM / E·NN；双班学生另一班灰色 E 不算出席率）。
+  'OPR-AttendanceGo':  {href:'OPR/AttendanceGo.html',       name:'AttendanceGo', ver:'v26', group:'OPR — Operations',        color:'#8B6C2A', order:7},
   // 2026-09-13：原本常数叫 HOLIDAYGO_BUILD，版本核对读不到 → 改名 APP_VERSION 并补进 <title>，37→38。
   'OPR-NoticeGo-Holiday': {href:'OPR/NoticeGo-Holiday.html', name:'NoticeGo-Holiday', ver:'v38', group:'OPR — Operations',    color:'#8B6C2A', order:8},
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},

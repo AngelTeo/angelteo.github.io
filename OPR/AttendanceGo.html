@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v24</title>
+<title>OPR-AttendanceGo v26</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v24</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v26</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -261,7 +261,9 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=24;   /* v24 · ATC 按 Late 直接记现在的时间（不跳视窗）；再按一次 Late 可以改时间（Owner 10-07） */
+const APP_VERSION=26;   /* v26 · E-Class 网课：Present / Late 的格子显示 E·AM / E·NN；双班学生在另一班显示灰色 E（不算出席率）（Owner 10-10） */
+/* v25 · 点名一行只剩 Present / Absent / Late / Early；按 Absent 再选 MC · Holiday · Stay back(ATC) · Other，可选 Not informed（Owner 10-07） */
+/* v24 · ATC 按 Late 直接记现在的时间（不跳视窗）；再按一次 Late 可以改时间（Owner 10-07） */
 /* v23 · ATC 时段改 Owner 10-07 定案：H/W 一到四 1:15–3:30、五 12:15–3:30；Lesson 3:30–5:15。点 Late 问几点到，H/W 3:00 或以后到 → 改记 Absent */
 /* v22 · ATC Week 列全班每个时段的状况 ＋ 每周都上不到的 Lesson 清单（Owner 10-06）。v21 候选已作废，跳号 */
 /* v20 · ATC Week 与 Monthly 小字改英文（行政不读中文，Owner 10-05） */
@@ -270,6 +272,68 @@ const DEPT_COLORS={SRK:'var(--d-srk)',GAK:'var(--d-gak)',ATC:'var(--d-atc)',SRT:
 const STATUSES=['present','absent','late','early_leave','mc'];
 const STATUS_LABELS={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
 const STATUS_TX={present:'Present',absent:'Absent',late:'Late',early_leave:'Early',mc:'MC'};
+/* v25 · 点名那一行的按钮（MC 收进 Absent 里面）。资料照旧：MC 存 status='mc'（PTMGo 单独数 MC 天数），其他缺席存 'absent' ＋ 固定格式原因 */
+const ROW_STATUSES=['present','absent','late','early_leave'];
+function absKind(status,note){
+  if(status==='mc') return 'MC';
+  if(status!=='absent') return '';
+  const n=String(note||'');
+  if(/^Absent: Holiday/.test(n)) return 'Holiday';
+  if(/^Absent: Stay back/.test(n)) return 'Stay back';
+  if(/^Absent: Not informed/.test(n)) return 'Not informed';
+  if(/^Absent: Other/.test(n)) return /Not informed$/.test(n)?'Not informed':'Other';
+  return 'Absent';
+}
+/* 月报 / Tracker 的格子：Holiday = Hol、Stay back = SB（H 已经是学校假期）、MC 🤒、其他缺席 ✕ */
+/* v26 · E-Class Attendance 写进来的纪录：note 开头 "E SAT.AM" / "E SAT.NN"（迟到是 "E SAT.AM · Late: 08:45"）。
+   只有 Present / Late 换成 E 标记；缺席、MC、早退照旧（Owner 10-10）。 */
+function eMark(r){
+  if(!r||(r.status!=='present'&&r.status!=='late')) return '';
+  const m=String(r.note||'').match(/^E [A-Z]{3}\.(AM|NN|PM)( ·|$)/);
+  return m?('E·'+m[1]+(r.status==='late'?'⏰':'')):'';
+}
+function eRowTag(note){
+  const m=String(note||'').match(/(^|· )E ([A-Z]{3})\.(AM|NN|PM)( ·|$)/);
+  return m?'<span style="font-size:9px;font-weight:700;color:#6B6B3A;background:rgba(107,107,58,.12);border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">E-Class '+m[3]+'</span>':'';
+}
+function attMark(r,ICON){
+  const _e=eMark(r); if(_e) return _e;
+  if(r&&r.status==='absent'){ const k=absKind('absent',r.note); if(k==='Holiday') return 'Hol'; if(k==='Stay back') return 'SB'; }
+  return ICON[r.status];
+}
+/* 按 Absent 之后的选单。回传 {status,note} 或 null（取消） */
+function absentPicker(dept,name){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div'); ov.id='abs-ov';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+    const opts=[['mc','MC'],['holiday','Holiday']].concat(dept==='ATC'?[['stay','Stay back']]:[]).concat([['other','Other']]);
+    const btn=(k,t,st)=>`<button data-k="${k}" style="flex:1 1 40%;min-height:46px;margin:4px;border-radius:10px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;${st||''}">${t}</button>`;
+    const nm=String(name||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const step1=()=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Absent — ${nm}</div><div style="display:flex;flex-wrap:wrap">${opts.map(([k,t])=>btn(k,t)).join('')}</div>${btn('cancel','Cancel','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
+    const step2=k=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">${k==='stay'?'Stay back':'Other'} — ${nm}</div>
+      <input id="abs-why" placeholder="${k==='stay'?'Reason (e.g. extra class at school)':'Reason'}" style="width:100%;box-sizing:border-box;min-height:44px;padding:8px 12px;border:1px solid var(--bdr);border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:6px">
+      <div style="display:flex;flex-wrap:wrap">${btn('save','Save','background:var(--layer);color:#fff;border-color:transparent')}${btn('ni','Not informed')}</div>${btn('back','Back','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
+    const box=document.createElement('div');
+    box.style.cssText='background:var(--sur);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:16px 12px calc(16px + env(safe-area-inset-bottom))';
+    ov.appendChild(box); document.body.appendChild(ov);
+    let cur=null;
+    const done=v=>{ ov.remove(); resolve(v); };
+    const draw=()=>{ box.innerHTML=cur?step2(cur):step1(); if(cur){ const i=box.querySelector('#abs-why'); i&&i.focus(); } };
+    box.addEventListener('click',e=>{
+      const k=e.target.closest('button')&&e.target.closest('button').dataset.k; if(!k) return;
+      if(k==='cancel') return done(null);
+      if(k==='mc') return done({status:'mc',note:''});
+      if(k==='holiday') return done({status:'absent',note:'Absent: Holiday'});
+      if(k==='stay'||k==='other'){ cur=k; return draw(); }
+      if(k==='back'){ cur=null; return draw(); }
+      const label=cur==='stay'?'Stay back':'Other';
+      if(k==='ni') return done({status:'absent',note:'Absent: '+label+' — Not informed'});
+      if(k==='save'){ const w=(box.querySelector('#abs-why').value||'').trim(); return done({status:'absent',note:'Absent: '+label+(w?' — '+w:'')}); }
+    });
+    ov.addEventListener('click',e=>{ if(e.target===ov) done(null); });
+    draw();
+  });
+}
 const DAY_MAP={0:'SUN',1:'MON',2:'TUE',3:'WED',4:'THU',5:'FRI',6:'SAT'};
 
 // ── State ──
@@ -1103,7 +1167,7 @@ function swVisitorsHtml(code){
       <div class="stu-name">${_escHtml(s.name)}${s.name_cn?' <span class="stu-cn">'+_escHtml(s.name_cn)+'</span>':''}
         <span style="font-size:9px;background:#F3F1FB;color:#7870CC;border-radius:8px;padding:1px 7px;margin-left:4px;font-weight:600">${SW_LABEL[w.kind]}</span>
         <div style="font-size:9px;color:var(--mut);margin-top:2px">${_escHtml(from)}${w.note?' · '+_escHtml(w.note):''}</div></div>
-      <div class="sb-wrap">${STATUSES.map(status=>`<button class="status-btn${active===status?' s-'+status:''}" onclick='markStudent(${swJ(s.id)},${swJ(s.name)},"SRT",${swJ(code)},${swJ(status)})'><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${status==='early_leave'?'Early':status==='mc'?'MC':status.charAt(0).toUpperCase()+status.slice(1)}</span></button>`).join('')}</div>
+      <div class="sb-wrap">${ROW_STATUSES.map(status=>{ const on=active===status||(status==='absent'&&active==='mc'); const _n=(todayRecords.find(r=>r.student_id===s.id&&r.dept==='SRT'&&(r.session??0)===0)||{}).note; const tx=status==='absent'?(absKind(active,_n)||'Absent'):STATUS_TX[status]; return `<button class="status-btn${on?' s-'+active:''}" onclick='markStudent(${swJ(s.id)},${swJ(s.name)},"SRT",${swJ(code)},${swJ(status)})'><span class="sb-ic">${status==='absent'&&active==='mc'?LABELS_ROW.mc:LABELS_ROW[status]}</span><span class="sb-tx">${tx}</span></button>`; }).join('')}</div>
     </div>`;
   });
   return h+`</div>`;
@@ -1484,17 +1548,23 @@ function renderMark(){
       /* v15 · 迟到时间只在「现在是 Late」时显示，放在按钮下面那行小字 —— 按钮宽度固定，名字不会被挤成一字一行 */
       const lateTx=(active==='late'&&lateMatch)?lateMatch[1]:'';
       const LABELS_ROW={present:'\u2713',absent:'\u2715',late:'\u23f0',early_leave:'\ud83d\udeaa',mc:'\ud83e\udd12'};
-      const showNote=note&&(active==='absent'||active==='early_leave')&&!isTransferDay;
+      const _ak=absKind(active,note);
+      const _absDetail=(active==='absent'&&/^Absent: (Stay back|Other) — /.test(note)&&!/Not informed$/.test(note))?note.replace(/^Absent: (Stay back|Other) — /,''):'';
+      const showNote=!isTransferDay&&((active==='early_leave'&&note)||(active==='absent'&&(_absDetail||(note&&!/^Absent: /.test(note)))));
+      const _noteTx=active==='absent'?(_absDetail||note):note;
       h+=`<div class="stu-row" style="${ruleStyle}${(isTransferDay||away)?'opacity:.5':''}">
         <div class="stu-num">${s.num??''}</div>
-        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${ruleTag}${transferTag}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+note+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
+        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${ruleTag}${transferTag}${eRowTag(note)}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+_escHtml(_noteTx)+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
         ${away
           ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap;text-align:right">Temp slot<br>→ '+_escHtml(swCls(away.to_class))+(away.to_date!==selectedDate?' · '+_escHtml(away.to_date):'')+'</div>'
           :isTransferDay
           ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap">Class changed</div>'
-          :`<div class="sb-wrap">${STATUSES.map(status=>
-            `<button class="status-btn${active===status?' s-'+status:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${LABELS_ROW[status]}</span><span class="sb-tx">${status==='late'&&lateTx?lateTx:STATUS_TX[status]}</span></button>`
-          ).join('')}</div>`}
+          :`<div class="sb-wrap">${ROW_STATUSES.map(status=>{
+            const on=active===status||(status==='absent'&&active==='mc');
+            const ic=status==='absent'&&active==='mc'?LABELS_ROW.mc:LABELS_ROW[status];
+            const tx=status==='late'&&lateTx?lateTx:(status==='absent'&&_ak?_ak:STATUS_TX[status]);
+            return `<button class="status-btn${on?' s-'+active:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${ic}</span><span class="sb-tx">${tx}</span></button>`;
+          }).join('')}</div>`}
       </div>`;
     });
     if(currentDept==='SRT') h+=swVisitorsHtml(code);   /* v19 · 来访：补课 / 临时换时段 */
@@ -1574,9 +1644,9 @@ async function markStudent(studentId,studentName,dept,classCode,status){
     if(status==='late'&&_atc&&!_prevT) _lateTip='Late '+input+' · tap Late again to change the time';
   }
   if(status==='absent'&&!_hwAbs){
-    const reason=prompt('Reason for absence (activity / tuition — you can leave this blank):','');
-    if(reason===null) return;
-    if(reason) note=reason;
+    const pick=await absentPicker(dept,studentName);
+    if(!pick) return;
+    status=pick.status; note=pick.note;
   }
   if(status==='early_leave'){
     const reason=prompt('Left early — what time and why? (e.g. 3:30 piano — you can leave this blank):','');
@@ -1714,6 +1784,12 @@ async function renderMonthly(){
   // D-A35: ATC 一天两条 (session 1/2)。不按 session 过滤 = recMap 后条覆盖前条,
   // Rate 分母翻倍, 显示哪一节不可预测。一刀切好 recMap/Rate/Marked by 三处。
   const recs=(monthRecs||[]).filter(r=>(r.session??0)===monthlySession&&attClassOf(r)===monthlyClass);
+  /* v26 · 双班学生（例：一个人同时在 LV7.SAT.NN 与 LV6.FRI.PM）：E-Class 一天只记一条、算在一班。
+     在另一班的月报照样显示灰色 E，让两班老师都看得到；不进本班出席率。 */
+  const eElse={};
+  (monthRecs||[]).filter(r=>(r.session??0)===monthlySession&&attClassOf(r)!==monthlyClass&&eMark(r)).forEach(r=>{
+    (eElse[r.student_id]=eElse[r.student_id]||{})[parseInt(r.date.split('-')[2])]=r;
+  });
 
   // Build lookup: recMap[studentId][day] = {status, note, marked_by}
   const recMap={};
@@ -1754,8 +1830,8 @@ async function renderMonthly(){
         const r=(recMap[s.id]||{})[d];
         const extra=hasExtraClass(dayStr,monthlyDept);
         if(extra&&r){
-          const icon=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status];
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:10px" title="${hol.name} (${extra.name})">${icon}</td>`;
+          const icon=r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON);
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${String(icon).startsWith('E·')?'8px':'10px'}" title="${hol.name} (${extra.name})">${icon}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#FFF8E1;color:var(--warn);font-size:9px;font-weight:600" title="${hol.name}">H</td>`;
         }
@@ -1763,7 +1839,7 @@ async function renderMonthly(){
         // Transfer day: show attendance record + transfer marker below
         const r=(recMap[s.id]||{})[d];
         const targetName=transferTarget?transferTarget.class_code.replace(/^[A-Z]+_/,''):'Moved';
-        const attIcon=r?(r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]):'·';
+        const attIcon=r?(r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)):'·';
         const attBg=r?BG[r.status]||'':'';
         h+=`<td style="padding:1px;text-align:center;border-bottom:.5px solid var(--bdr);background:${attBg};line-height:1.1" title="Class change → ${transferTarget?transferTarget.class_code:'—'}">
           <div style="font-size:10px">${attIcon}</div>
@@ -1775,15 +1851,18 @@ async function renderMonthly(){
         const r=(recMap[s.id]||{})[d];
         if(!r&&memPausedOn(mem,dayStr)){   /* v16 · 请假期间没点 → 灰色 L，不算缺席 */
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:9px" title="On leave">L</td>`;
+        }else if(!r&&(eElse[s.id]||{})[d]){   /* v26 */
+          const er=eElse[s.id][d];
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:8px;font-weight:600" title="${_escHtml('E-Class · counted in '+swCls(attClassOf(er))+' · '+(er.note||''))}">${eMark(er)}</td>`;
         }else if(!r&&swAwayOn(s.id,monthlyClass,dayStr)){   /* v19 · 换到别的日子上，这天没纪录 */
           const aw=swAwayOn(s.id,monthlyClass,dayStr);
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">Temp</td>`;
         }else if(r){
-          const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status]||'·';
+          const display=r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)||'·';
           const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status);   /* v19 · 补 / 换 / 已补 */
           if(_sw){ r.other=r.other||''; }
           const oth=(r.other?' · marked in '+r.other:'')+(_sw?' · '+_sw.t:'');   /* v18 / v19 */
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth)}">${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}</td>`;
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth)}">${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)">·</td>`;
         }
@@ -2001,8 +2080,8 @@ async function loadTrackerMatrix(){
       days.forEach(d=>{
         const r=recByDate[d.date];
         if(r){
-          const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):ICON[r.status];
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${r.status==='late'?'8px':'11px'}" title="${r.note||r.status}">${display}</td>`;
+          const display=r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON);
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'}" title="${r.note||r.status}">${display}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)">·</td>`;
         }
