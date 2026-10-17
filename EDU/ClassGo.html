@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ClassGo System v484</title>
+<title>ClassGo System v485</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>'>
 <style>
 :root{
@@ -436,7 +436,7 @@ input.fi:focus,select.fi:focus{outline:none;border-color:var(--acc)}
 <div id="offline-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#FDF3E0;border-top:1px solid #E8C88A;color:#854F0B;font-size:11px;padding:7px 16px;text-align:center;font-weight:600"></div>
 
 <div class="nav">
-  <div class="nav-logo"><a href="../index.html" title="Back to Platform Home" style="color:inherit;text-decoration:none;margin-right:8px;opacity:.75" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">←</a>ClassGo <span style="font-size:10px;font-weight:400;opacity:.5">v484</span></div>
+  <div class="nav-logo"><a href="../index.html" title="Back to Platform Home" style="color:inherit;text-decoration:none;margin-right:8px;opacity:.75" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.75">←</a>ClassGo <span style="font-size:10px;font-weight:400;opacity:.5">v485</span></div>
   <button class="ntab on" onclick="goSection('today',this)">🏠 Today</button>
   <button class="ntab" onclick="goSection('schedules',this)">📅 Schedules</button>
   <button class="ntab" onclick="goSection('duty',this)">📋 Duty</button>
@@ -873,7 +873,7 @@ input.fi:focus,select.fi:focus{outline:none;border-color:var(--acc)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const APP_VERSION='v484';   /* v484 · 05-10-2026 · Publish 把 ATC 合班写进两个班 (classgo_timetable) */
+const APP_VERSION='v485';   /* v485 · 17-10-2026 · D22 推云改读记忆体；本机存不下时红条警告 · v484 · 05-10-2026 · ATC 合班写进两个班 */
 
 // ═══ v445 A 阶段: 合并登入 + role 上云 ═══════════════════════════════════════
 // 已用 pg_proc 查证 (2026-07-14):
@@ -1409,14 +1409,17 @@ function _syncChoiceDialog(info){
 
 async function _pushStateToCloud(){
   if(_suppressPush) return;
-  if(!navigator.onLine){ localStorage.setItem('classgo_v1_unsynced','1'); showToast('Offline — saved locally. Reconnect and Save to sync to the team.','warn'); return; }
+  if(!navigator.onLine){ _markUnsynced(); showToast('Offline — saved locally. Reconnect and Save to sync to the team.','warn'); return; }
   if(_cloudRev===null){
-    localStorage.setItem('classgo_v1_unsynced','1');
+    _markUnsynced();
     showToast('Not synced with cloud yet — reload the page, then Save to push to the team. (Saved locally.)','warn');
     return;
   }
+  // v485 · D22：推云改用记忆体 S（与 saveAll 同一个组装函式），不再读本机储存
   let dataObj;
-  try{ dataObj = JSON.parse(localStorage.getItem('classgo_v1')||'{}'); }catch(e){ return; }
+  try{ dataObj = JSON.parse(JSON.stringify(_buildStatePayload())); }
+  catch(e){ console.error('[SYNC] build payload failed',e); _markUnsynced(); showToast('⚠ 没有上云：资料组装失败 — 请截图告诉 Teo','warn'); return; }
+  const _genAtPush = _mutGen;   // v485 · 推送途中若又有改动，成功后不清旗标、补推
   // v467-A: 若稍早选了「保留我的版本」, 这次 Save 会盖掉别人的改动 → 必须二次确认
   if(window._keptLocalOver){
     const _k=window._keptLocalOver;
@@ -1435,11 +1438,13 @@ async function _pushStateToCloud(){
         .insert({id:'main', data:dataObj, rev:1, updated_by:who.email||null, updated_at:nowIso}).select('rev');
       if(ins.error){
         if(/duplicate|conflict|unique/i.test(String(ins.error.message||''))){
-          localStorage.setItem('classgo_v1_unsynced','1');
+          _markUnsynced();
           showToast('⚠ Cloud was just initialized by someone else. Reload before saving.','warn');
         } else throw ins.error;
       } else {
-        localStorage.removeItem('classgo_v1_unsynced');
+        _syncedGen = Math.max(_syncedGen, _genAtPush);
+        if(_mutGen === _genAtPush){ try{ localStorage.removeItem('classgo_v1_unsynced'); }catch(e){} }
+        else { _scheduleAutoPush(); }   // v485 · 推送途中又改了 → 旗标留着、再推一次
         try{ _updateSavedIndicator(); }catch(e){}     // v482
         _cloudRev = (ins.data&&ins.data[0]&&ins.data[0].rev)||1;
         showToast('✓ Saved & synced to cloud (seeded rev '+_cloudRev+')','info');
@@ -1453,18 +1458,21 @@ async function _pushStateToCloud(){
       .eq('id','main').eq('rev',_cloudRev).select('rev');
     if(up.error) throw up.error;
     if(!up.data || !up.data.length){
-      localStorage.setItem('classgo_v1_unsynced','1');
+      _markUnsynced();
       showToast('⚠ Someone else saved changes while you were working. Reload the page — you will then be asked what to do with your own changes.','warn');
       console.warn('[SYNC] push conflict — cloud rev moved, not pushed.');
     } else {
-      localStorage.removeItem('classgo_v1_unsynced');
+      _syncedGen = Math.max(_syncedGen, _genAtPush);
+        if(_mutGen === _genAtPush){ try{ localStorage.removeItem('classgo_v1_unsynced'); }catch(e){} }
+        else { _scheduleAutoPush(); }   // v485 · 推送途中又改了 → 旗标留着、再推一次
       try{ _updateSavedIndicator(); }catch(e){}       // v482
       _cloudRev = up.data[0].rev;
-      showToast('✓ Saved & synced to cloud (rev '+_cloudRev+')','info');
+      if(_localSaveFailed) showToast('☁ 已上云 (rev '+_cloudRev+')，但这台电脑的本机备份失败 — 请截图告诉 Teo','warn');
+      else showToast('✓ Saved & synced to cloud (rev '+_cloudRev+')','info');
       console.log('[SYNC] pushed rev='+_cloudRev);
     }
   }catch(e){
-    localStorage.setItem('classgo_v1_unsynced','1');
+    _markUnsynced();
     try{ _updateSavedIndicator(); }catch(e2){}        // v482 · 失败要立刻看得见
     console.warn('[SYNC] push failed (local saved):', (e&&e.message)||e);
     showToast('⚠ 只存了这台电脑，没有上云：'+((e&&e.message)||e)+' — 请截图告诉 Teo','warn');
@@ -2429,9 +2437,11 @@ function logChange(cat, action, detail, oldVal, newVal){
 }
 function _fmtAssign(v){ return v||'—'; }
 
-function saveAll(){
-  try{
-  localStorage.setItem('classgo_v1',JSON.stringify({
+/* ══ v485 · 17-10-2026 · D22 ══
+   v484：推云读本机储存 (localStorage)；本机写不进去 (例：空间满) 时，推上去的是旧版本，还显示成功。
+   v485：本机与推云共用 _buildStatePayload()；推云直接用记忆体 S；本机失败时红条警告、照样排推云。 */
+function _buildStatePayload(){
+  return {
     groups:S.groups,deptGroups:S.deptGroups,teachers:S.teachers,
     assign:S.assign,rotation:S.rotation,roomAssign:S.roomAssign,
     gakAssign:S.gakAssign,atcAssign:S.atcAssign,atcManualTT:S.atcManualTT,atcCombined:S.atcCombined,srtAssign:S.srtAssign,
@@ -2453,20 +2463,49 @@ function saveAll(){
     coverAssign:S.coverAssign,
     changeLog:(S.changeLog||[]).slice(-500),  // keep last 500 entries
     _coverPubSig:S._coverPubSig   // v478 #24: 已发布 baseline 随 state 同步到云
-  }));
-  // v414 Phase 1.5: 持久化时间戳 + 自动 snapshot + 更新 indicator
-  localStorage.setItem('classgo_v1_lastSaved', Date.now().toString());
-  // v465-A 兜底: 本地已存但尚未推云 → 标记。推云成功时清除。
-  // (云端加载期间 _suppressPush=true, 不标记, 免得刚拉下来就说"未同步")
-  try{ if(!_suppressPush) localStorage.setItem('classgo_v1_unsynced','1'); }catch(e){}
-  _maybeSnapshot();
-  if(typeof _updateSavedIndicator==='function') _updateSavedIndicator();
-  _scheduleAutoPush();          // v482 · 存完本机就排程推云，见下方註解
-  }catch(err){
-    const el=document.getElementById('saved');
-    if(el){el.textContent='⚠ Save failed: '+err.message;el.style.display='inline';el.style.color='red';}
-    console.error('saveAll failed:',err);
+  };
+}
+let _mutGen = 0;            // v485 · 每次资料改动 +1（云端载入期间不加）
+let _syncedGen = 0;         // v485 · 最后一次确认上云的改动编号
+let _localSaveFailed = false;
+function _markUnsynced(){ try{ localStorage.setItem('classgo_v1_unsynced','1'); }catch(e){ _localSaveFailed = true; } }
+function _showLocalFailBanner(reason){
+  try{
+    let b=document.getElementById('cg-localfail');
+    if(!b){ b=document.createElement('div'); b.id='cg-localfail';
+      b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#B71C1C;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+      document.body.appendChild(b); }
+    b.textContent='⚠ 这台电脑存不下 ClassGo 资料（'+reason+'）。改动会直接上云 —— 看到顶栏「☁」才算存好；不要清除浏览器资料。请截图告诉 Teo。';
+    b.style.display='block';
+  }catch(e){}
+}
+function _hideLocalFailBanner(){ try{ const b=document.getElementById('cg-localfail'); if(b) b.style.display='none'; }catch(e){} }
+window.addEventListener('beforeunload', function(e){
+  if(_mutGen > _syncedGen){ e.preventDefault(); e.returnValue=''; }   // v485 · 还有改动没上云 → 关页前提醒
+});
+function saveAll(){
+  if(!_suppressPush) _mutGen++;
+  let flagOk = true, mainOk = true, why = '';
+  // ① 先立「未同步」旗标（小字串）。云端载入期间不立
+  if(!_suppressPush){ try{ localStorage.setItem('classgo_v1_unsynced','1'); }catch(e){ flagOk = false; why = (e&&e.name)||'flag'; } }
+  // ② 再写整包
+  let str = null;
+  try{ str = JSON.stringify(_buildStatePayload()); }
+  catch(err){ mainOk = false; why = 'build: '+((err&&err.message)||err); console.error('saveAll build failed:',err); }
+  if(str !== null){
+    try{ localStorage.setItem('classgo_v1', str); }
+    catch(err){ mainOk = false; why = (err&&err.name==='QuotaExceededError') ? '储存空间已满' : ((err&&err.message)||String(err)); console.error('saveAll local write failed:',err); }
   }
+  _localSaveFailed = !(flagOk && mainOk);
+  if(_localSaveFailed) _showLocalFailBanner(why); else _hideLocalFailBanner();
+  // ③ 时间戳、快照：各自独立，失败不影响后面
+  if(mainOk){
+    try{ localStorage.setItem('classgo_v1_lastSaved', Date.now().toString()); }catch(e){}
+    try{ _maybeSnapshot(); }catch(e){}
+  }
+  // ④ 一定执行：更新指示器、排推云（推的是记忆体，不读本机）
+  try{ if(typeof _updateSavedIndicator==='function') _updateSavedIndicator(); }catch(e){}
+  _scheduleAutoPush();          // v482 · 存完就排程推云
 }
 
 /* ══ v482 · 24-09-2026 · 所有储存统一从这里上云 ══
@@ -2492,6 +2531,9 @@ function _scheduleAutoPush(){
 // v414 Phase 1.5: 自动 snapshot 5 天滚动 (保守起, 实战后再扩)
 function _maybeSnapshot(){
   try {
+    // v485 · 本机储存总量超过 350 万字元就不再存新快照（旧快照不删）
+    let _tot = 0; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); _tot += k.length + (localStorage.getItem(k)||'').length; }
+    if(_tot > 3500000){ console.warn('[Snapshot] skipped — localStorage '+_tot+' chars'); return; }
     const today = localToday();
     const raw = localStorage.getItem('classgo_snapshots_v1');
     const obj = raw ? JSON.parse(raw) : { version: 1, snapshots: [] };
@@ -2539,6 +2581,11 @@ function _maybeSnapshot(){
 function _updateSavedIndicator(){
   const el = document.getElementById('saved');
   if(!el) return;
+  if(_localSaveFailed){   // v485 · 本机存不下：看红条
+    el.textContent = (_mutGen > _syncedGen) ? '⚠ 本机存不下 · 未上云' : '☁ 已上云 · ⚠ 本机备份失败';
+    el.style.color = '#C0392B'; el.style.fontWeight = '700'; el.style.display = 'inline';
+    return;
+  }
 
   const lastSavedRaw = localStorage.getItem('classgo_v1_lastSaved');
   if(!lastSavedRaw){
@@ -2578,7 +2625,7 @@ function _updateSavedIndicator(){
 }
 
 function exportData(){
-  const data=localStorage.getItem('classgo_v1')||'{}';
+  let data; try{ data=JSON.stringify(_buildStatePayload()); }catch(e){ data=localStorage.getItem('classgo_v1')||'{}'; }   // v485 · 汇出画面上的最新资料
   const blob=new Blob([data],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
