@@ -85,21 +85,51 @@ table.tb td.bad .c{display:block}
 @media print{.bar{display:none}}
 .spk{border:1px solid #9aa4b8;background:#eef3ff;border-radius:16px;padding:2px 10px;font-size:14px;cursor:pointer;margin:4px 0}
 .spk:active{background:#d6e2ff}
+
+/* 2026-10-17 · Print for paper practice (Owner) */
+.pr-only{display:none}
+@media print{
+ @page{size:A4;margin:12mm}
+ html,body{background:#fff!important;font-size:11.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .wrap{max-width:none;padding:0}
+ header{background:none!important;color:#000!important;border:2px solid #000;border-radius:8px;padding:8px 12px;margin-bottom:10px}
+ header h1{font-size:18pt}
+ header .s{opacity:1;font-size:10pt}
+ header .name{display:none!important}
+ .pr-only{display:flex!important;gap:24px;margin-top:8px;font-size:12pt;font-weight:700}
+ .pr-only span{flex:1;border-bottom:1.5px solid #000;padding-bottom:2px}
+ .how,.gn,.bar,.result,.spk,.fb,.ss,.w button,.w .model,table.tb .c,#prt{display:none!important}
+ .sec{box-shadow:none!important;border:1px solid #888;border-radius:8px;padding:8px 12px;margin-bottom:10px}
+ .sec h2{color:#000!important;font-size:14pt}
+ .sec .ins{color:#333!important}
+ .q{break-inside:avoid;padding:6px 0}
+ .pbox{break-inside:avoid}
+ img{max-width:45%!important;max-height:58mm!important;width:auto!important;height:auto;break-inside:avoid;display:block}
+ #main input:focus,#main textarea:focus{outline:none!important;box-shadow:none!important}
+ #main .opts{margin-left:36px}
+ #main .opts label{border:1px solid #555!important;background:#fff!important;padding:2px 10px;font-weight:600}
+ #main .opts input{-webkit-appearance:none;appearance:none;width:13px;height:13px;border:1.5px solid #000;border-radius:50%;vertical-align:middle;background:#fff}
+ #main input.t,#main table.tb input{border:0!important;border-bottom:1.5px solid #000!important;border-radius:0!important;background:transparent!important;color:transparent!important;min-height:1.6em}
+ #main input::placeholder,#main textarea::placeholder{color:transparent!important}
+ #main .w textarea{border:0!important;border-radius:0!important;color:transparent!important;resize:none;min-height:72px;background:repeating-linear-gradient(transparent 0 23px,#000 23px 24px)!important}
+ table.tb th{background:#eee!important}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header><h1 id="h1"></h1><div class="s" id="hs"></div>
-<div class="name"><b>Name:</b><input id="nm" placeholder="Write your name"></div></header>
+<div class="name"><b>Name:</b><input id="nm" placeholder="Write your name"></div><div class="pr-only"><span>Name:</span><span>Date:</span></div></header>
 <div class="result" id="res"></div>
 <div class="how"><b>How to do your homework</b><ol>
 <li>Write your name at the top.</li>
 <li>Answer every question. Choose the answer, or type it in the box.</li>
 <li>Press <b>Submit</b> at the bottom. You will see your score.</li>
-<li>Take a <b>screenshot</b> of your score and send it to your teacher.</li></ol></div>
+<li>Take a <b>screenshot</b> of your score and send it to your teacher.</li>
+<li>Want to practise on paper? Press <b>🖨 Print</b> at the bottom.</li></ol></div>
 <details class="gn" id="gn"><summary>📒 Grammar Notes (open if you need help)</summary><div id="gnb"></div></details>
 <div id="main"></div>
-<div class="bar"><button class="pri" id="sub">✔ Submit</button><button id="again">↺ Try again</button></div>
+<div class="bar"><button class="pri" id="sub">✔ Submit</button><button id="again">↺ Try again</button><button id="prt" onclick="window.print()">🖨 Print</button></div>
 </div>
 <script>
 if(window.__HW_CLOSED){throw new Error("closed");}
