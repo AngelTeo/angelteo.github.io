@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<title>NoticeGo-Holiday v38</title>
+<title>NoticeGo-Holiday v39</title>
 <style>
 :root{
   --acc:#5C1010; --grn:#0F6E56; --org:#854F0B; --red:#A32D2D; --pur:#534AB7;
@@ -136,7 +136,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
   <button class="nav-home" onclick="location.href='/index.html'" title="Home" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;padding:11px 10px 11px 0;flex-shrink:0">←</button>
   <div class="nav-logo">🌴 NoticeGo-Holiday <span id="build-badge" style="background:#F9CB42;color:#5C1010;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle">v1</span></div>
   <button class="ntab on" onclick="goPage('home')">🏠 Home</button>
-  <button class="ntab" onclick="goPage('holidays')">📅 Holidays</button>
+  <button class="ntab" onclick="goPage('holidays')">📅 Year Calendar</button>
   <button class="ntab" onclick="goPage('book')">📚 Book Notice</button>
   <button class="ntab" onclick="goPage('parent')">👨‍👩‍👧 Parent Notice</button>
   <button class="ntab" onclick="goPage('settings')">⚙️ Settings</button>
@@ -223,7 +223,9 @@ function loadData(){
    改版规则：只用整数，且两处必须同时改 ——
    ① <title>  ② 下面这个常数（顶栏徽章由它衍生，不用手改）
    ══════════════════════════════════════════════════════════════ */
-const APP_VERSION = 38;
+/* 38 → 39（2026-10-09）：改读 Calendar 的每日结果表 calendar_days；中心关门周进通知；SRT 改由 Calendar 卡 G 管；书本通知错字「知悲」→「知悉」；
+   变成纯读者：拿掉 Holidays 编辑页 / HR View / 网上抓假期 / 贴上汇入；新增 Year Calendar（按部门全年，从 Calendar 的 Parent View 搬来） */
+const APP_VERSION = 39;
 function flashSaved(){
   const el = document.getElementById('saved');
   el.style.display='inline';
@@ -501,197 +503,8 @@ function _fmtHolDate(ds){
 // ═══════════════════════════════════════════════════════════════════════════
 // SRT HOLIDAYS
 // ═══════════════════════════════════════════════════════════════════════════
-function _getSRTDates(yr){
-  if(!S.srtDates[yr]) S.srtDates[yr]={fridays:['','','',''],saturdays:['','','','']};
-  const s=S.srtDates[yr];
-  if(!s.fridays||s.fridays.length<4) s.fridays=['','','',''];
-  if(!s.saturdays||s.saturdays.length<4) s.saturdays=['','','',''];
-  return s;
-}
-
-function _renderHolSRT(){
-  const yr=window._holYear;
-  const srt=_getSRTDates(yr);
-  const el=document.getElementById('hol-tab-content');
-
-  // Sub-tabs
-  const subTabs=`<div style="display:flex;gap:0;border-bottom:1.5px solid var(--bdr);margin-bottom:16px">
-    ${['master','friday','saturday'].map(t=>`
-      <button onclick="_srtSubTab='${t}';_renderHolSRT()"
-        style="padding:8px 18px;font-size:12px;font-weight:${_srtSubTab===t?'700':'400'};
-          background:none;border:none;cursor:pointer;
-          color:${_srtSubTab===t?'var(--acc)':'var(--mut)'};
-          border-bottom:${_srtSubTab===t?'2.5px solid var(--acc)':'2.5px solid transparent'};
-          margin-bottom:-1.5px;font-family:inherit">
-        ${t==='master'?'📋 Master':t==='friday'?'⬜ Friday':'🟦 Saturday'}
-      </button>`).join('')}
-  </div>`;
-
-  if(_srtSubTab==='master'){
-    el.innerHTML=subTabs+_srtMasterHTML(yr);
-  } else if(_srtSubTab==='friday'){
-    el.innerHTML=subTabs+_srtFridayHTML(yr);
-  } else {
-    el.innerHTML=subTabs+_srtSaturdayHTML(yr);
-  }
-}
-
-function _srtMakeupSat(fridayDs, yr){
-  // If Friday is a PH, return the Saturday of that same week
-  if(!fridayDs||!isPH(fridayDs)) return null;
-  const d=new Date(fridayDs+'T12:00:00');
-  d.setDate(d.getDate()+1); // Friday+1 = Saturday
-  return d.toISOString().slice(0,10);
-}
-
-function _srtMasterHTML(yr){
-  const srt=_getSRTDates(yr);
-  const rows=[];
-
-  // 4 Fridays
-  srt.fridays.filter(Boolean).forEach(ds=>{
-    const dow=new Date(ds+'T12:00:00').getDay();
-    const isPHDay=isPH(ds);
-    const makeup=_srtMakeupSat(ds,yr);
-    rows.push({date:ds,type:'Friday OFF',isPH:isPHDay,makeup});
-  });
-  // 4 Saturdays (designated off)
-  srt.saturdays.filter(Boolean).forEach(ds=>{
-    rows.push({date:ds,type:'Saturday OFF',isPH:false,makeup:null});
-  });
-  // Auto makeup Saturdays
-  const makeupDates=srt.fridays.filter(Boolean).map(f=>_srtMakeupSat(f,yr)).filter(Boolean);
-  makeupDates.forEach(ds=>{
-    if(!srt.saturdays.includes(ds))
-      rows.push({date:ds,type:'★ Makeup Class',isPH:false,makeup:null,isEC:true});
-  });
-  rows.sort((a,b)=>a.date.localeCompare(b.date));
-
-  if(!rows.length) return `<div style="padding:30px;text-align:center;color:var(--mut);font-size:13px">
-    No SRT dates set yet. Use the Friday and Saturday tabs to configure.
-  </div>`;
-
-  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const tableRows=rows.map(r=>{
-    const dow=new Date(r.date+'T12:00:00').getDay();
-    const dayStr=DAYS[dow];
-    const badge=r.isEC
-      ? `<span style="background:#FFF0F6;color:#9C1B4B;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">EC</span>`
-      : r.type==='Friday OFF'
-        ? `<span style="background:#FFF9E6;color:#854F0B;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">OFF</span>`
-        : `<span style="background:#FFF9E6;color:#854F0B;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">OFF</span>`;
-    const warning=r.isPH?`<span style="font-size:10px;color:#E53935;margin-left:8px">⚠️ PH day → makeup on ${r.makeup}</span>`:'';
-    return `<tr style="border-bottom:.5px solid var(--bdr)">
-      <td style="padding:10px 8px;font-weight:600">${r.date}</td>
-      <td style="padding:10px 8px;color:${dow===6||dow===0?'#E53935':'var(--mut)'}">${dayStr}</td>
-      <td style="padding:10px 8px">${r.isEC?'★ Makeup Class (Extra Learning Day)':r.type}${warning}</td>
-      <td style="padding:10px 8px">${badge}</td>
-    </tr>`;
-  }).join('');
-
-  return `<div style="font-size:12px;color:var(--mut);margin-bottom:12px">
-    SRT 2026 — ${rows.filter(r=>!r.isEC).length} off days, ${rows.filter(r=>r.isEC).length} makeup class(es)
-  </div>
-  <table style="width:100%;border-collapse:collapse">
-    <thead><tr style="background:var(--nav);color:#fff">
-      <th style="padding:8px;text-align:left;font-size:11px">DATE</th>
-      <th style="padding:8px;text-align:left;font-size:11px">DAY</th>
-      <th style="padding:8px;text-align:left;font-size:11px">TYPE</th>
-      <th style="padding:8px;text-align:left;font-size:11px">STATUS</th>
-    </tr></thead>
-    <tbody>${tableRows}</tbody>
-  </table>`;
-}
-
-function _srtFridayHTML(yr){
-  const srt=_getSRTDates(yr);
-  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const rows=srt.fridays.map((ds,i)=>{
-    const dow=ds?new Date(ds+'T12:00:00').getDay():-1;
-    const notFri=ds&&dow!==5;
-    const isPHDay=ds&&isPH(ds);
-    const makeup=isPHDay?_srtMakeupSat(ds,yr):null;
-    return `<tr style="border-bottom:.5px solid var(--bdr)">
-      <td style="padding:10px 8px;font-weight:600;color:var(--mut)">Friday ${i+1}</td>
-      <td style="padding:10px 8px">
-        <input type="date" value="${ds||''}"
-          style="padding:5px 8px;font-size:12px;border:.5px solid var(--bdr);border-radius:5px;font-family:inherit;${notFri?'border-color:#E53935':''}"
-          onchange="S.srtDates[${yr}].fridays[${i}]=this.value;saveAll();_renderHolSRT()">
-      </td>
-      <td style="padding:10px 8px;font-size:11px">
-        ${ds&&dow===5?`<span style="color:#0F6E56">✓ ${DAYS[dow]}</span>`:''}
-        ${notFri?`<span style="color:#E53935">⚠️ Not a Friday! (${DAYS[dow]})</span>`:''}
-        ${isPHDay?`<span style="color:#E53935;margin-left:6px">⚠️ PH day → makeup Sat: <b>${makeup}</b></span>`:''}
-      </td>
-    </tr>`;
-  }).join('');
-  return `<div style="font-size:12px;color:var(--mut);margin-bottom:12px">
-    Set 4 Friday dates for SRT. If a Friday coincides with a PH, makeup class auto-assigned to that Saturday.
-  </div>
-  <table style="width:100%;border-collapse:collapse">
-    <thead><tr style="background:var(--nav);color:#fff">
-      <th style="padding:8px;text-align:left;font-size:11px;width:120px">SLOT</th>
-      <th style="padding:8px;text-align:left;font-size:11px;width:180px">DATE</th>
-      <th style="padding:8px;text-align:left;font-size:11px">STATUS</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-}
-
-function _srtSaturdayHTML(yr){
-  const srt=_getSRTDates(yr);
-  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  // Auto-makeup Saturdays from PH Fridays
-  const makeupDates=srt.fridays.filter(Boolean).map(f=>_srtMakeupSat(f,yr)).filter(Boolean);
-  const rows=srt.saturdays.map((ds,i)=>{
-    const dow=ds?new Date(ds+'T12:00:00').getDay():-1;
-    const notSat=ds&&dow!==6;
-    const isConflict=ds&&makeupDates.includes(ds);
-    return `<tr style="border-bottom:.5px solid var(--bdr)">
-      <td style="padding:10px 8px;font-weight:600;color:var(--mut)">Saturday ${i+1}</td>
-      <td style="padding:10px 8px">
-        <input type="date" value="${ds||''}"
-          style="padding:5px 8px;font-size:12px;border:.5px solid var(--bdr);border-radius:5px;font-family:inherit;${notSat||isConflict?'border-color:#E53935':''}"
-          onchange="S.srtDates[${yr}].saturdays[${i}]=this.value;saveAll();_renderHolSRT()">
-      </td>
-      <td style="padding:10px 8px;font-size:11px">
-        ${ds&&dow===6&&!isConflict?`<span style="color:#0F6E56">✓ ${DAYS[dow]} — OFF</span>`:''}
-        ${notSat?`<span style="color:#E53935">⚠️ Not a Saturday! (${DAYS[dow]})</span>`:''}
-        ${isConflict?`<span style="color:#E53935">⚠️ Conflict — this Saturday is a makeup class day</span>`:''}
-      </td>
-    </tr>`;
-  }).join('');
-  const makeupSection=makeupDates.length?`
-    <div style="margin-top:16px;padding:10px 14px;background:#FFF9E6;border-radius:6px;border:.5px solid #F9CB42;font-size:11px">
-      <b>Auto-generated Makeup Classes:</b><br>
-      ${makeupDates.map(d=>`★ ${d} (Saturday makeup — PH Friday)`).join('<br>')}
-    </div>`:'';
-  return `<div style="font-size:12px;color:var(--mut);margin-bottom:12px">
-    Set 4 Saturday off-days for SRT.
-  </div>
-  <table style="width:100%;border-collapse:collapse">
-    <thead><tr style="background:var(--nav);color:#fff">
-      <th style="padding:8px;text-align:left;font-size:11px;width:120px">SLOT</th>
-      <th style="padding:8px;text-align:left;font-size:11px;width:180px">DATE</th>
-      <th style="padding:8px;text-align:left;font-size:11px">STATUS</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>${makeupSection}`;
-}
-
-// render_holidays — main entry point
 // ═══════════════════════════════════════════════════════════════════════════
-let _holTab = 'holidays'; // 'holidays' | 'srt' | 'calendar'
-let _srtSubTab = 'master'; // 'master' | 'friday' | 'saturday'
 if(!window._holYear)   window._holYear   = new Date().getFullYear();
-if(!window._calDept)   window._calDept   = 'MASTER';
-if(!window._calView)   window._calView   = 'hr';
-if(!window._calMode)   window._calMode   = 'master'; // 'master' | 'hr' | 'parent'
-
-// Departments whose Saturday is a Working Day (HR view)
-const DEPT_SAT_WORK  = ['MASTER','TEACHER']; // Saturday = working day
-const DEPT_HR_VIEW   = ['MASTER','TEACHER']; // HR View available
-const ALL_DEPTS      = ['MASTER','TEACHER','SRK','GAK','ATC','SRT'];
 
 function _catBadge(cat){
   const m={
@@ -828,401 +641,13 @@ function getPHNameFull(ds){
 }
 
 
-function render_holidays(){
-  const el=document.getElementById('holidays-content');
-  const yr=window._holYear;
-  const d=_hd(yr);
-  const filled=Object.values(d).filter(Boolean).length;
-  const total=HOLIDAY_TEMPLATE.length;
-
-  el.innerHTML=`
-    <div class="sub-nav" style="margin:-16px -16px 14px;padding:0 14px">
-      <button class="sub-ntab ${_holTab==='holidays'?'on':''}" onclick="_holTab='holidays';render_holidays()">📋 Holidays SRK.GAK.ATC</button>
-      <button class="sub-ntab ${_holTab==='srt'?'on':''}" onclick="_holTab='srt';render_holidays()">📋 Holidays SRT</button>
-      <button class="sub-ntab ${_holTab==='calendar'?'on':''}" onclick="_holTab='calendar';render_holidays()">📅 Calendar</button>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:3px 0">
-        <span style="font-size:10px;color:var(--mut)">${filled}/${total} set</span>
-        <select onchange="window._holYear=parseInt(this.value);render_holidays()" style="min-width:74px;padding:4px 8px;font-size:11px">
-          ${[2025,2026,2027,2028].map(y=>`<option value="${y}"${y===yr?' selected':''}>${y}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-    <div id="hol-tab-content"></div>`;
-
-  if(_holTab==='calendar') _renderHolCalendar();
-  else if(_holTab==='srt') _renderHolSRT();
-  else _renderHolMain();
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN VIEW — date-sorted table + festival builder + school holidays
 // ═══════════════════════════════════════════════════════════════════════════
-function _renderHolMain(){
-  const yr   = window._holYear;
-  const d    = _hd(yr);
-  const sh   = S.schoolHolDates[yr]||{};
-  const spec = S.specialHolidays[yr]||[];
-  const fd   = S.festivalDates[yr]||{};
-  const subs = _getSubHols(yr);
-
-  // ── Build holiday rows (public + festival PH2 + substitutes + specials) ──
-  const rows = [];
-  HOLIDAY_TEMPLATE.forEach(t=>{ rows.push({ date:d[t.id]||'', name:t.name, cat:t.cat, id:t.id, fixed:t.dt==='fixed', isTpl:true }); });
-  FESTIVAL_CONFIG.forEach(fc=>{
-    const fest=fd[fc.id]||{};
-    if(!fest.start||!fest.end) return;
-    let cur=new Date(fest.start+'T12:00:00'),end=new Date(fest.end+'T12:00:00');
-    while(cur<=end){
-      if(cur.getDay()!==0){
-        const ds=cur.toISOString().slice(0,10);
-        const cat=(fest.days||{})[ds]||'OFF';
-        if(cat==='PH2') rows.push({ date:ds, name:fc.name, cat, id:'fest_'+fc.id+'_'+ds, fixed:true, isFest:true, festId:fc.id });
-      }
-      cur.setDate(cur.getDate()+1);
-    }
-  });
-  subs.forEach(s=> rows.push({...s, fixed:true}));
-  spec.forEach(hh=>{ rows.push({ date:hh.date, name:hh.name, cat:'SP', id:hh.id, fixed:false, isSpec:true }); });
-  rows.sort((a,b)=>{ if(!a.date&&!b.date)return 0; if(!a.date)return 1; if(!b.date)return -1; return a.date.localeCompare(b.date); });
-  const setSub = subs.length;
-
-  // ── READ-ONLY BANNER ──
-  let h=`<div class="card" style="background:#FFF8E8;border-color:#F9CB42;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-size:16px">🔒</span>
-    <div style="flex:1;min-width:200px">
-      <div style="font-size:12px;font-weight:700;color:#7D5A00">Holiday dates are managed in MasterHub Calendar</div>
-      <div style="font-size:11px;color:#946200;margin-top:2px">Live read-only view — edit in Calendar, changes appear here automatically.</div>
-    </div>
-    <a href="MasterHub_Calendar.html" target="_blank" style="text-decoration:none">
-      <button class="btn-plain" style="font-size:11px;padding:5px 12px;background:#5C1010;color:#fff;border:none">Open Calendar ↗</button>
-    </a>
-  </div>`;
-
-  // ── HOLIDAY TABLE (read-only) ──
-  h+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
-    <div style="padding:9px 16px;background:var(--sur2);border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:14px;font-size:11px;flex-wrap:wrap">
-      <span>${yr} Holidays</span>
-      ${setSub>0?`<span style="color:#9C1B4B;font-weight:600">↔ ${setSub} substitute day${setSub>1?'s':''} auto-generated</span>`:''}
-    </div>
-    <div style="overflow-x:auto"><table class="data">
-      <thead><tr><th style="width:100px">Date</th><th style="width:48px">Day</th><th>Holiday Name</th><th style="width:68px;text-align:center">Type</th></tr></thead>
-      <tbody>`;
-  rows.forEach(r=>{
-    const hasDt=!!r.date, d2=hasDt?new Date(r.date+'T12:00:00'):null;
-    const dow=d2?d2.toLocaleDateString('en-GB',{weekday:'short'}):'';
-    const isSat=d2&&d2.getDay()===6, isSun=d2&&d2.getDay()===0;
-    const dayCol=isSun?'color:var(--red)':isSat?'color:var(--acc)':'color:var(--mut)';
-    const rowBg=r.isSub?'background:#FFF0F6':(!hasDt?'background:#fafafa':'');
-    const ruleLabel=r.rule?(r.rule.includes('Coinciding')
-      ?`<span style="font-size:9px;background:#EDE9FE;color:#7030A0;border-radius:3px;padding:1px 5px;margin-left:6px">Coinciding PH</span>`
-      :`<span style="font-size:9px;background:#FFF0F6;color:#9C1B4B;border-radius:3px;padding:1px 5px;margin-left:6px">Sunday PH</span>`):'';
-    const nameCell=r.isSub
-      ?`<span style="color:#9C1B4B;font-weight:600">${escapeHTML(r.name)}</span>${ruleLabel}<span style="font-size:10px;color:var(--mut);margin-left:6px">← ${r.srcDate?_ddmmL(r.srcDate):''}</span>`
-      :escapeHTML(r.name);
-    h+=`<tr style="${rowBg}">
-      <td style="font-weight:${hasDt?'600':'400'};color:${hasDt?'var(--txt)':'var(--hint)'}">${r.date||'—'}</td>
-      <td style="${dayCol}">${dow}</td>
-      <td style="color:${hasDt?'var(--txt)':'var(--hint)'}">${nameCell}</td>
-      <td style="text-align:center">${_catBadge(r.cat)}</td>
-    </tr>`;
-  });
-  if(!rows.length) h+=`<tr><td colspan="4" style="padding:28px;text-align:center;color:var(--hint)">No holidays. Manage them in MasterHub Calendar.</td></tr>`;
-  h+=`</tbody></table></div></div>`;
-
-  // ── SPECIAL / AD-HOC (read-only) ──
-  h+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
-    <div style="padding:9px 16px;background:#F5F0FF;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="background:#EDE9FE;color:#7030A0;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">⚡ SPECIAL / AD-HOC GAZETTED</span>
-      <span style="font-size:10px;color:var(--mut);flex:1">Government ad-hoc holidays (PH1/PH2)</span>
-    </div>
-    ${!spec.length
-      ? `<div style="padding:12px 16px;font-size:12px;color:var(--hint)">None.</div>`
-      : spec.map(s=>`<div style="display:flex;align-items:center;padding:8px 16px;border-bottom:.5px solid var(--bdr);gap:12px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:600;flex:1;min-width:160px">${escapeHTML(s.name||'')}</span>
-          <span style="font-size:11px">📅 ${s.date?_ddmmL(s.date):'—'}</span>
-          ${_catBadge(s.category||'PH1')}
-        </div>`).join('')}
-  </div>`;
-
-  // ── FESTIVAL (read-only) ──
-  h+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
-    <div style="padding:9px 16px;background:#FFF8F0;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="background:#FFF0E6;color:#D4380D;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">FESTIVAL</span>
-      <span style="font-size:11px;font-weight:600;color:#D4380D">Festival Holidays</span>
-    </div>`;
-  FESTIVAL_CONFIG.forEach(fc=>{
-    const fest=fd[fc.id]||{}; const s=fest.start||'', e=fest.end||''; const days=fest.days||{};
-    let badges='';
-    if(s&&e){
-      let cur=new Date(s+'T12:00:00'), end2=new Date(e+'T12:00:00');
-      while(cur<=end2){
-        const ds=cur.toISOString().slice(0,10); const dow2=cur.getDay();
-        const dayName=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow2]; const ddmm=_ddmmS(ds);
-        if(dow2===0){
-          const isSunPH2=(days[ds]==='PH2');
-          badges+=`<span style="display:inline-flex;flex-direction:column;align-items:center;background:${isSunPH2?'#f5f0ff':'#f8f8f8'};color:${isSunPH2?'#9C1B4B':'#bbb'};border:.5px solid ${isSunPH2?'#C4B5FD':'#e0e0e0'};border-radius:5px;padding:5px 8px;font-size:10px;margin:2px;min-width:64px"><span>${ddmm} Sun</span><b style="font-size:9px;margin-top:2px">${isSunPH2?'PH2':'Rest'}</b></span>`;
-        } else {
-          const cat=days[ds]||'OFF'; const isPH2=cat==='PH2';
-          const bgC=isPH2?'#EDFAF4':'#FFF9E6',colC=isPH2?'#0F6E56':'#854F0B',bdrC=isPH2?'#9FE1CB':'#F9CB42';
-          badges+=`<span style="display:inline-flex;flex-direction:column;align-items:center;background:${bgC};color:${colC};border:.5px solid ${bdrC};border-radius:5px;padding:5px 8px;font-size:10px;margin:2px;min-width:64px"><span>${ddmm} ${dayName}</span><b style="font-size:10px;margin-top:2px">${cat}</b></span>`;
-        }
-        cur.setDate(cur.getDate()+1);
-      }
-    }
-    const rangeStr=(s&&e)?(_ddmmL(s)+' – '+_ddmmL(e)):'Not set';
-    h+=`<div style="padding:12px 16px;border-bottom:.5px solid var(--bdr)">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:${badges?'8px':'0'}">
-        <div style="font-size:12px;font-weight:700;color:${fc.color};min-width:150px">${fc.name}</div>
-        <span style="font-size:11px;color:var(--mut)">📅 ${rangeStr}</span>
-      </div>
-      ${badges?`<div style="display:flex;flex-wrap:wrap;gap:2px">${badges}</div>`:''}
-    </div>`;
-  });
-  h+=`</div>`;
-
-  // ── SCHOOL HOLIDAYS (read-only) ──
-  const allSHRows=[
-    ...SCHOOL_HOL_TEMPLATE.map(t=>({ id:t.id, name:(sh[t.id]&&sh[t.id].name)||'School Holiday', start:(sh[t.id]&&sh[t.id].start)||'', end:(sh[t.id]&&sh[t.id].end)||'', depts:(sh[t.id]&&sh[t.id].depts)||[] })),
-    ...Object.entries(sh).filter(([k])=>k.startsWith('sh_custom_')).map(([k,v])=>({ id:k, name:v.name||'School Holiday', start:v.start||'', end:v.end||'', depts:v.depts||[] })),
-  ];
-  h+=`<div class="card" style="padding:0;overflow:hidden">
-    <div style="padding:9px 16px;background:#EDFAF4;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      ${_catBadge('SH')}
-      <span style="font-size:11px;font-weight:600;color:#0F6E56">School Holiday</span>
-      <span style="font-size:10px;color:var(--mut);flex:1">Deducted from AL · Follow KPM calendar</span>
-    </div>`;
-  allSHRows.forEach(row=>{
-    const sv=row.start, ev=row.end, set=sv&&ev;
-    const cnt=set?_scDayCount(sv,ev):{al:0,total:0,ph:0};
-    const realDepts=(row.depts||[]).filter(x=>x!=='MASTER'&&x!=='TEACHER');
-    const deptBadges=realDepts.length
-      ? realDepts.map(dep=>`<span style="font-size:9px;background:var(--sur2);border:.5px solid var(--bdr);border-radius:4px;padding:1px 6px;color:var(--txt)">${dep}</span>`).join(' ')
-      : `<span style="font-size:10px;color:var(--hint)">All</span>`;
-    h+=`<div style="display:flex;align-items:center;padding:9px 16px;border-bottom:.5px solid var(--bdr);gap:12px;flex-wrap:wrap">
-      <span style="font-size:12px;font-weight:600;min-width:120px">${escapeHTML(row.name)}</span>
-      <span style="display:flex;gap:4px;flex-wrap:wrap">${deptBadges}</span>
-      <span style="font-size:11px;color:var(--txt)">📅 ${set?(_ddmmL(sv)+' – '+_ddmmL(ev)):'—'}</span>
-      ${set&&cnt.al>0?`<span style="font-size:11px;color:#0F6E56;font-weight:600">✓ ${cnt.al}d AL</span>`:''}
-      ${set&&cnt.ph>0?`<span style="font-size:10px;color:var(--mut)">(${cnt.ph}PH)</span>`:''}
-    </div>`;
-  });
-  h+=`</div>`;
-
-  // ── ★ EXTRA CLASS (read-only — managed in MasterHub Calendar) ──────────────
-  const ec = ((S.extraClasses||{})[yr]||[]);
-  h+=`<div class="card" style="padding:0;overflow:hidden;margin-top:14px">
-    <div style="padding:9px 16px;background:#FFF8E8;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="background:#FFF3C4;color:#7D5A00;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">★ EXTRA CLASS</span>
-      <span style="font-size:11px;font-weight:600;color:#7D5A00">Extra Class During School Holiday</span>
-      <span style="font-size:10px;color:var(--mut);flex:1">Read-only · Managed in MasterHub Calendar</span>
-      <span style="font-size:9px;color:#7D5A00;background:#FFF3C4;border-radius:4px;padding:2px 8px">🔒 via Calendar</span>
-    </div>`;
-
-  if(!ec.length){
-    h+=`<div style="padding:12px 16px;font-size:12px;color:var(--hint)">No extra class periods. Add them in MasterHub Calendar.</div>`;
-  } else {
-    ec.forEach((e)=>{
-      const depts=(e.depts||[]);
-      const deptBadges = depts.length
-        ? depts.map(d=>`<span style="font-size:9px;background:var(--sur2);border:.5px solid var(--bdr);border-radius:4px;padding:1px 6px;color:var(--txt)">${d}</span>`).join(' ')
-        : `<span style="font-size:10px;color:var(--hint)">All</span>`;
-      const dateStr = e.start ? (_ddmmL(e.start)+(e.end&&e.end!==e.start?' – '+_ddmmL(e.end):'')) : '—';
-      h+=`<div style="display:flex;align-items:center;padding:9px 16px;border-bottom:.5px solid var(--bdr);gap:12px;flex-wrap:wrap;background:#FFFDF5">
-        <span style="font-size:12px;font-weight:600;color:var(--txt);min-width:120px">${escapeHTML(e.name||'Extra Class')}</span>
-        <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">${deptBadges}</span>
-        <span style="font-size:11px;color:var(--txt)">📅 ${dateStr}</span>
-        ${e.time?`<span style="font-size:11px;color:var(--mut)">🕐 ${escapeHTML(e.time)}</span>`:''}
-        ${e.msg?`<span style="font-size:11px;color:var(--mut)">💬 ${escapeHTML(e.msg)}</span>`:''}
-      </div>`;
-    });
-  }
-  h+=`</div>`;
-
-  document.getElementById('hol-tab-content').innerHTML=h;
-}
-
-// ── Festival helpers ───────────────────────────────────────────────────
-// Date format helpers
 function _ddmmS(ds){ return ds.slice(8)+'/'+ds.slice(5,7); }        // DD/MM
 function _ddmmL(ds){ return ds.slice(8)+'/'+ds.slice(5,7)+'/'+ds.slice(0,4); } // DD/MM/YYYY
 
 // Sunday toggle: clicking marks/unmarks Sunday as PH2 + manages substitute
-function _holFestToggleSun(fid, sunDs, subDs, yr){
-  if(!S.festivalDates[yr]||!S.festivalDates[yr][fid]) return;
-  const days=S.festivalDates[yr][fid].days||{};
-  if(days[sunDs]==='PH2'){
-    // Un-mark: remove PH2 from Sunday and its substitute
-    days[sunDs]='REST';
-    if(days[subDs]==='PH2') delete days[subDs];
-  } else {
-    // Mark Sunday as PH2 → auto-set substitute as PH2
-    days[sunDs]='PH2';
-    days[subDs]='PH2';
-  }
-  S.festivalDates[yr][fid].days=days;
-  saveAll(); _renderHolMain();
-}
-
-function _holFestRange(fid, field, val, yr){
-  if(!S.festivalDates[yr]) S.festivalDates[yr]={};
-  if(!S.festivalDates[yr][fid]) S.festivalDates[yr][fid]={start:'',end:'',days:{}};
-  S.festivalDates[yr][fid][field]=val;
-  // When range changes, default all weekdays to OFF
-  const fest=S.festivalDates[yr][fid];
-  if(fest.start&&fest.end){
-    let cur=new Date(fest.start+'T12:00:00'),end=new Date(fest.end+'T12:00:00');
-    while(cur<=end){
-      const ds=cur.toISOString().slice(0,10);
-      // Weekdays default OFF; Sundays left undefined (clickable Rest Day)
-      if(cur.getDay()!==0 && !fest.days[ds]) fest.days[ds]='OFF';
-      cur.setDate(cur.getDate()+1);
-    }
-  }
-  saveAll(); _renderHolMain();
-}
-function _holFestToggle(fid, ds, yr){
-  if(!S.festivalDates[yr]) return;
-  const fest=S.festivalDates[yr][fid];
-  if(!fest||!fest.days) return;
-  fest.days[ds] = (fest.days[ds]==='PH2') ? 'OFF' : 'PH2';
-  saveAll(); _renderHolMain();
-}
-function _holFestSetAllPH2(fid, yr){
-  const fest=(S.festivalDates[yr]||{})[fid];
-  if(!fest||!fest.days) return;
-  Object.keys(fest.days).forEach(ds=>{ fest.days[ds]='PH2'; });
-  saveAll(); _renderHolMain();
-}
-function _holFestSetAllOFF(fid, yr){
-  const fest=(S.festivalDates[yr]||{})[fid];
-  if(!fest||!fest.days) return;
-  Object.keys(fest.days).forEach(ds=>{ fest.days[ds]='OFF'; });
-  saveAll(); _renderHolMain();
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────
-function _holDateChanged(id,val,yr){
-  if(!S.holidayDates[yr]) S.holidayDates[yr]={};
-  S.holidayDates[yr][id]=val;
-  saveAll(); _renderHolMain();
-}
-function _holClearDate(id,yr){
-  if(!confirm('Clear this date?')) return;
-  if(S.holidayDates[yr]) S.holidayDates[yr][id]='';
-  saveAll(); _renderHolMain();
-}
-function _holAutoFestival(fkey,day1date,yr){
-  if(!day1date){alert('Set Day 1 in the table first.');return;}
-  if(!S.holidayDates[yr]) S.holidayDates[yr]={};
-  const keys=fkey==='cny'
-    ?['ph2_cny2','off_cny3','off_cny4','off_cny5','off_cny6','off_cny7']
-    :['ph2_raya2','off_raya3','off_raya4','off_raya5','off_raya6','off_raya7'];
-  const base=new Date(day1date+'T12:00:00');
-  keys.forEach((k,i)=>{const nd=new Date(base);nd.setDate(nd.getDate()+(i+1));S.holidayDates[yr][k]=nd.toISOString().slice(0,10);});
-  saveAll(); _renderHolMain();
-}
-function _holAutoFill(yr){
-  if(!S.holidayDates[yr]) S.holidayDates[yr]={};
-  HOLIDAY_TEMPLATE.filter(t=>t.dt==='fixed').forEach(t=>{S.holidayDates[yr][t.id]=`${yr}-${t.md}`;});
-  saveAll(); _renderHolMain();
-}
-function _holSHChanged(shId,field,val,yr){
-  if(!S.schoolHolDates[yr]) S.schoolHolDates[yr]={};
-  if(!S.schoolHolDates[yr][shId]) S.schoolHolDates[yr][shId]={depts:['MASTER','TEACHER','SRK','GAK','ATC']};
-  if(!S.schoolHolDates[yr][shId].depts) S.schoolHolDates[yr][shId].depts=['TEACHER','SRK','GAK','ATC'];
-  S.schoolHolDates[yr][shId][field]=val;
-  saveAll(); _renderHolMain();
-}
-function _holAddSpecial(yr){
-  if(!S.specialHolidays[yr]) S.specialHolidays[yr]=[];
-  S.specialHolidays[yr].push({ id:genId('sp'), name:'Special Holiday', date:'', category:'PH1' });
-  saveAll(); _renderHolMain();
-}
-function _holSpecialUpdate(yr, id, field, val){
-  const spec = S.specialHolidays[yr];
-  if(!spec) return;
-  const item = spec.find(s=>s.id===id);
-  if(!item) return;
-  item[field] = val;
-  saveAll();
-  // Re-render only when date changes (to re-sort the table)
-  if(field==='date') _renderHolMain();
-}
-function _holDeleteSpecial(yr,id){
-  if(S.specialHolidays[yr]) S.specialHolidays[yr]=S.specialHolidays[yr].filter(h=>h.id!==id);
-  saveAll(); _renderHolMain();
-}
-function _holSHAllDepts(id, checked, yr){
-  if(!S.schoolHolDates[yr]||!S.schoolHolDates[yr][id]) return;
-  S.schoolHolDates[yr][id].depts = checked ? ['MASTER','TEACHER','SRK','GAK','ATC'] : [];
-  saveAll(); _renderHolMain();
-}
-function _holSHToggleDept(id, dept, checked, yr){
-  if(!S.schoolHolDates[yr]||!S.schoolHolDates[yr][id]) return;
-  const rec = S.schoolHolDates[yr][id];
-  if(!rec.depts) rec.depts=['TEACHER','SRK','GAK','ATC'];
-  if(checked){ if(!rec.depts.includes(dept)) rec.depts.push(dept); }
-  else { rec.depts = rec.depts.filter(d=>d!==dept); }
-  saveAll(); _renderHolMain();
-}
-function _holAddCustomSH(yr){
-  if(!S.schoolHolDates[yr]) S.schoolHolDates[yr]={};
-  const id='sh_custom_'+Date.now();
-  S.schoolHolDates[yr][id]={start:'',end:'',name:'School Holiday',depts:['MASTER','TEACHER','SRK','GAK','ATC']};
-  saveAll(); _renderHolMain();
-}
-function _holDeleteCustomSH(id,yr){ _holDeleteSHRow(id,yr); } // backward compat
-function _holDeleteSHRow(id, yr){
-  if(!confirm('Delete this school holiday period?')) return;
-  if(!S.schoolHolDates[yr]) S.schoolHolDates[yr]={};
-  // For preset slots: clear data but keep key (so it shows as blank)
-  // For custom slots: remove entirely
-  if(id.startsWith('sh_custom_')){
-    delete S.schoolHolDates[yr][id];
-  } else {
-    // Clear preset slot data
-    S.schoolHolDates[yr][id] = { start:'', end:'', depts:['MASTER','TEACHER','SRK','GAK','ATC'], name:'School Holiday' };
-  }
-  saveAll(); _renderHolMain();
-}
-function _holRenameSH(id, name, yr){
-  if(!S.schoolHolDates[yr]) S.schoolHolDates[yr]={};
-  if(!S.schoolHolDates[yr][id]) S.schoolHolDates[yr][id]={depts:['MASTER','TEACHER','SRK','GAK','ATC']};
-  S.schoolHolDates[yr][id].name = name;
-  saveAll();
-}
-// School holiday AL day count:
-// Working days (Mon–Sat) that are NOT PH1/PH2 (those don't need AL)
-// Returns { al, total, ph } for display
-// ── Extra Class helpers ─────────────────────────────────────────────────
-function _ecAdd(yr){
-  if(!S.extraClasses[yr]) S.extraClasses[yr]=[];
-  S.extraClasses[yr].push({id:genId('ec'),name:'Extra Class',start:'',end:'',time:'',depts:[]});
-  saveAll(); _renderHolMain();
-}
-function _ecUpdate(yr,idx,field,val){
-  if(!S.extraClasses[yr]||!S.extraClasses[yr][idx]) return;
-  S.extraClasses[yr][idx][field]=val;
-  saveAll(); if(field==='start'||field==='end') _renderHolMain();
-}
-function _ecDelete(yr,idx){
-  if(!S.extraClasses||!S.extraClasses[yr]) return;
-  S.extraClasses[yr].splice(idx,1);
-  saveAll(); _renderHolMain();
-}
-function _ecAllDepts(yr,idx,checked){
-  if(!S.extraClasses[yr]||!S.extraClasses[yr][idx]) return;
-  S.extraClasses[yr][idx].depts=checked?['MASTER','TEACHER','SRK','GAK','ATC']:[];
-  saveAll(); _renderHolMain();
-}
-function _ecToggleDept(yr,idx,dept,checked){
-  if(!S.extraClasses[yr]||!S.extraClasses[yr][idx]) return;
-  const ec=S.extraClasses[yr][idx];
-  if(!ec.depts) ec.depts=[];
-  if(checked){if(!ec.depts.includes(dept)) ec.depts.push(dept);}
-  else{ec.depts=ec.depts.filter(d=>d!==dept);}
-  saveAll(); _renderHolMain();
-}
 function isExtraClass(ds,dept){
   const yr=parseInt(ds.slice(0,4));
   return ((S.extraClasses||{})[yr]||[]).some(e=>{
@@ -1262,530 +687,9 @@ function _scDayCountNum(s,e){ return _scDayCount(s,e).al; }
 // ═══════════════════════════════════════════════════════════════════════════
 // CALENDAR VIEW
 // ═══════════════════════════════════════════════════════════════════════════
-function _renderHolCalendar(){
-  const yr      = window._holYear;
-  const mode = window._calMode || 'master';
-  // Derive dept and view from mode
-  const dept = (mode==='master') ? 'MASTER'
-             : (mode==='hr')     ? (window._calDept==='TEACHER'?'TEACHER':'MASTER')
-             :                     (['SRK','GAK','ATC'].includes(window._calDept)?window._calDept:'MASTER');
-  const view = (mode==='parent') ? 'parent' : 'hr';
-  const todayDs = new Date().toISOString().slice(0,10);
-  const MONTHS  = ['January','February','March','April','May','June',
-                   'July','August','September','October','November','December'];
-  const d = _hd(yr), sh = S.schoolHolDates[yr]||{};
-
-  // Dept filter helper
-  const deptMatch = (depts) => !depts || !depts.length || (depts||[]).includes(dept);
-
-  // Saturday is working day for MASTER/TEACHER in HR view
-  const satIsWork = (view==='hr') && DEPT_HR_VIEW.includes(dept);
-  // In parent view, Saturday is always non-class for all
-  const satIsClass = false; // Saturday never shown as class day
-
-  // School holiday checker (dept-aware)
-  function isSHForDept(ds){
-    return Object.values(sh).some(r=>{
-      if(!r.start||!r.end) return false;
-      if(ds<r.start||ds>r.end) return false;
-      return deptMatch(r.depts);
-    });
-  }
-  function getSHName(ds){
-    for(const r of Object.values(sh)){
-      if(!r.start||!r.end) continue;
-      if(ds<r.start||ds>r.end) continue;
-      if(deptMatch(r.depts)) return r.name||'School Holiday';
-    }
-    return null;
-  }
-
-  // Act 369 S.3: Replace ONLY triggered by Sunday PH
-  const subs = _getSubHols(yr);
-  const subDates = new Set(subs.map(s=>s.date));
-
-  // ── COLOR LOGIC ──────────────────────────────────────────────────────
-  // Template PH1/PH2/OFF/SUB/Special → black white (gazetted / centre closed)
-  // Festival PH2/OFF                 → grey bold black
-  // School Hol                       → grey bold black
-  // Sunday / non-working Sat         → black white
-  // Working day                      → white black
-
-  // Get festival category — template holidays always override festival range
-  const _tplDates = new Set(
-    HOLIDAY_TEMPLATE.map(t => t.dt==='fixed' ? `${yr}-${t.md}` : (d[t.id]||'')).filter(Boolean)
-  );
-  const getFestCat = (ds) => {
-    const dow2 = new Date(ds+'T12:00:00').getDay();
-    if(dow2===0) return null;
-    if(_tplDates.has(ds)) return null; // Template wins
-    for(const fc of FESTIVAL_CONFIG){
-      const fest=(S.festivalDates[yr]||{})[fc.id]||{};
-      if(!fest.start||!fest.end) continue;
-      if(ds>=fest.start && ds<=fest.end){
-        return (fest.days||{})[ds] || 'OFF';
-      }
-    }
-    return null;
-  };
-
-  function getDayStyle(ds, dow){
-    const isSun    = dow===0, isSat = dow===6;
-    const blackSat = isSat && !satIsWork; // SRK/GAK/ATC Saturday = black
-
-    // Sunday / SRK-Sat → always black
-    if(isSun || blackSat){
-      return { bg:'#000', numCol:'#fff', bold:false };
-    }
-
-    const festCat = getFestCat(ds);
-    const shDay   = isSHForDept(ds);
-    const isSpec  = (S.specialHolidays[yr]||[]).some(h=>h.date===ds);
-    const isSub   = subDates.has(ds);
-
-    // Template PH1/PH2 (non-festival) → black white
-    const nonFestPH = (isPH(ds) && !festCat) || isSpec || isSub;
-    // Template OFF (non-festival) → black white
-    const nonFestOFF = isCentreOff(ds) && !festCat;
-
-    if(nonFestPH || nonFestOFF){
-      return { bg:'#000', numCol:'#fff', bold:true };
-    }
-
-    // Festival PH2 → black white (is a public holiday)
-    if(festCat==='PH2'){
-      return { bg:'#000', numCol:'#fff', bold:true };
-    }
-
-    // Festival OFF → grey black (closed but not gazetted PH)
-    if(festCat==='OFF'){
-      return { bg:'#AAAAAA', numCol:'#000', bold:true };
-    }
-
-    // School Holiday → grey black
-    if(shDay){
-      return { bg:'#AAAAAA', numCol:'#000', bold:true };
-    }
-
-    // Normal working / class day
-    return { bg:'#fff', numCol:'#000', bold:false };
-  }
-
-  // ── BUILD HTML ────────────────────────────────────────────────────────
-  // ── Button logic: MASTER / HR View / Parent View are mutually exclusive ──
-  function _calBtn(label, active, onclick, color){
-    const c = color||'#3d1a1a';
-    return `<button onclick="${onclick};_renderHolCalendar()"
-      style="padding:4px 10px;font-size:11px;border-radius:5px;cursor:pointer;font-family:inherit;
-             background:${active?c:'var(--sur)'};color:${active?'#fff':'var(--txt)'};
-             border:.5px solid ${active?c:'var(--bdr)'}">
-      ${label}
-    </button>`;
-  }
-  // Three mutually exclusive top buttons
-  const masterBtn = _calBtn('MASTER',           mode==='master', "window._calMode='master'");
-  const hrBtn     = _calBtn('👔 HR View',       mode==='hr',     "window._calMode='hr'",     '#185FA5');
-  const parBtn    = _calBtn('👨‍👩‍👧 Parent View', mode==='parent', "window._calMode='parent'", '#185FA5');
-  // Sub-dept buttons (only shown when mode = hr or parent)
-  const subDeptBtns = (mode==='master') ? ''
-    : (mode==='hr')
-      ? _calBtn('TEACHER', dept==='TEACHER', "window._calDept='TEACHER'")
-      : ['SRK','GAK','ATC','SRT'].map(d2=>_calBtn(d2, dept===d2, `window._calDept='${d2}'`)).join('');
-
-  // Legend
-  const hrLegend = `
-    <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;background:#000;border-radius:2px"></div> <b>PH / OFF / Replace</b> (black)</div>
-    <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;background:#AAAAAA;border-radius:2px"></div> Festival / School Hol / Weekend</div>
-    <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;background:#fff;border:.5px solid #ccc;border-radius:2px"></div> Working Day</div>`;
-  const parentLegend = `
-    <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;background:#000;border-radius:2px"></div> <b>Holiday</b> (black)</div>
-    <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;background:#AAAAAA;border-radius:2px"></div> Festival / School Hol / Weekend</div>
-    <div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;background:#fff;border:.5px solid #ccc;border-radius:2px"></div> Class Day</div>`;
-
-  let html = `
-  <!-- Controls (hidden on print) -->
-  <div class="no-print" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-    ${masterBtn}
-    <div style="width:.5px;height:24px;background:var(--bdr);margin:0 2px"></div>
-    ${hrBtn}${parBtn}
-    <div style="width:.5px;height:24px;background:var(--bdr);margin:0 2px"></div>
-    <div style="display:flex;gap:5px">${subDeptBtns}</div>
-    <button onclick="_calPrint()" class="no-print"
-      style="margin-left:auto;padding:5px 14px;font-size:11px;background:#3d1a1a;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:inherit">
-      🖨️ Print
-    </button>
-  </div>
-
-  <!-- Print header (visible only on print) -->
-  <div class="print-only" style="text-align:center;margin-bottom:16px;display:none">
-    <div style="font-size:20px;font-weight:700">${yr}</div>
-    <div style="font-size:14px">${dept} · ${view==='hr'?'HR View':'Parent View'}</div>
-  </div>
-
-  <!-- Legend -->
-  <div class="no-print" style="display:flex;gap:14px;flex-wrap:wrap;font-size:10px;margin-bottom:12px;padding:8px 12px;background:var(--sur);border:.5px solid var(--bdr);border-radius:8px">
-    ${view==='hr'?hrLegend:parentLegend}
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px" id="cal-grid">`;
-
-  for(let mo=1; mo<=12; mo++){
-    const firstDow = _holidayDow(_isoDate(yr,mo,1));
-    const days     = _daysInMonth(yr,mo);
-    const af       = (firstDow+6)%7;
-    const ms       = `${yr}-${String(mo).padStart(2,'0')}`;
-
-    // Count indicators for month header — only shown for TEACHER + HR View
-    // PH  = strictly gazetted: Template PH1/PH2 + Festival PH2 + Special
-    //       (NOT SUB/Replace — those are Act 369 extra entitlement, on top of 11 base PHs)
-    // OFF = Template OFF + Festival OFF (AL deducted)
-    // SUB = not counted in either badge (separate Act 369 entitlement)
-    const showBadges = (dept==='TEACHER' && view==='hr');
-    let mPH=0, mOFF=0, mSH=false;
-    if(showBadges){
-      for(let dd=1; dd<=days; dd++){
-        const ds2=_isoDate(yr,mo,dd), dow2=_holidayDow(ds2);
-        if(dow2===0) continue; // Skip Sundays
-        // PH: Template PH1/PH2
-        const isTplPH = HOLIDAY_TEMPLATE.filter(t=>t.cat==='PH1'||t.cat==='PH2')
-          .some(t=>{ const dt=t.dt==='fixed'?`${yr}-${t.md}`:d[t.id]; return dt===ds2; });
-        // PH: Festival PH2
-        const isFestPH2 = (()=>{
-          for(const fc of FESTIVAL_CONFIG){
-            const fest=(S.festivalDates[yr]||{})[fc.id]||{};
-            if(ds2>=(fest.start||'zz')&&ds2<=(fest.end||'')&&(fest.days||{})[ds2]==='PH2') return true;
-          }
-          return false;
-        })();
-        // PH: Special/Ad-hoc
-        const isSpecial = (S.specialHolidays[yr]||[]).some(h=>h.date===ds2);
-        // OFF: Template OFF (not PH, not SUB)
-        const isTplOFF = HOLIDAY_TEMPLATE.filter(t=>t.cat==='OFF')
-          .some(t=>d[t.id]===ds2);
-        // OFF: Festival OFF
-        const isFestOFF = (()=>{
-          for(const fc of FESTIVAL_CONFIG){
-            const fest=(S.festivalDates[yr]||{})[fc.id]||{};
-            if(ds2>=(fest.start||'zz')&&ds2<=(fest.end||'')&&(fest.days||{})[ds2]==='OFF') return true;
-          }
-          return false;
-        })();
-
-        // SUB (Replace): count as PH only if source was PH1/PH2/Special
-        const subEntry = subDates.has(ds2) ? _getSubHols(yr).find(s=>s.date===ds2) : null;
-        const isSubFromPH = subEntry && (subEntry.srcCat==='PH1'||subEntry.srcCat==='PH2'||subEntry.srcCat==='SP');
-
-        if(isTplPH||isFestPH2||isSpecial||isSubFromPH) mPH++;
-        else if(isTplOFF||isFestOFF) mOFF++;
-        if(isSHForDept(ds2)) mSH=true;
-      }
-    }
-
-    html += `<div style="background:#fff;border:3px solid #000;border-radius:0;overflow:hidden;font-family:Arial,sans-serif">
-      <div style="padding:5px 10px;background:#222;color:#fff;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:700;font-size:12px">${MONTHS[mo-1]} ${yr}</div>
-        <div style="display:flex;gap:3px;font-size:9px">
-          ${mPH?`<span style="background:#fff;color:#222;border-radius:2px;padding:1px 5px;font-weight:700">${mPH}PH</span>`:''}
-          ${mOFF?`<span style="background:#999;color:#fff;border-radius:2px;padding:1px 5px;font-weight:700">${mOFF}OFF</span>`:''}
-          ${mSH?`<span style="background:#D8D8D8;color:#333;border-radius:2px;padding:1px 5px;font-weight:700">SH</span>`:''}
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);background:#555">
-        ${['M','T','W','T','F','S','S'].map((x,i)=>`<div style="text-align:center;font-size:9px;font-weight:700;color:#fff;padding:3px 0;background:${i===6?'#000':i===5?(satIsWork?'#444':'#000'):'#555'}">${x}</div>`).join('')}
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #000">`;
-
-    for(let i=0; i<af; i++) html+=`<div style="min-height:26px;background:#f8f8f8"></div>`;
-
-    for(let day=1; day<=days; day++){
-      const ds  = _isoDate(yr,mo,day);
-      const dow = _holidayDow(ds);
-      const {bg, numCol, bold} = getDayStyle(ds, dow);
-      const isToday = ds===todayDs;
-
-      // Tooltip
-      const phN  = getPHNameFull(ds)||getOffName(ds)||getSHName(ds)||'';
-      const subN = subs.find(s=>s.date===ds);
-      const tipText = subN ? subN.name : phN;
-
-      const border = '1px solid #e8e8e8';
-      const numStyle = `color:${numCol};font-weight:${bold?'700':'400'};font-size:11px;line-height:1`;
-
-      const ecDay  = isExtraClass(ds, dept);
-      const ecInfo = ecDay ? getECInfo(ds, dept) : null;
-      const ecTip  = ecInfo ? (ecInfo.name||'Extra Class')+(ecInfo.time?' · '+ecInfo.time:'')+(ecInfo.msg?' · '+ecInfo.msg:'') : '';
-      html+=`<div title="${escapeHTML(ecTip||tipText)}" style="min-height:26px;padding:2px;background:${bg||'#fff'};border:${border};display:flex;flex-direction:column;align-items:center">
-        <span style="${numStyle}">${day}</span>
-        ${ecDay?`<span style="font-size:8px;line-height:1;color:${bg==='#000'?'#fff':'#000'};margin-top:1px">★</span>`:''}
-      </div>`;
-    }
-
-    const rem=(af+days)%7;
-    if(rem>0) for(let i=0; i<7-rem; i++) html+=`<div style="min-height:26px;background:#f8f8f8"></div>`;
-
-    // Helper: is date a festival-only OFF (not also a template holiday)?
-    // These are excluded from Holiday list (shown in Festival section instead)
-    const isFestOnlyOFF = (ds2) => {
-      const isFestOFF = FESTIVAL_CONFIG.some(fc=>{
-        const f=(S.festivalDates[yr]||{})[fc.id]||{};
-        return f.start&&f.end&&ds2>=f.start&&ds2<=f.end&&(f.days||{})[ds2]==='OFF';
-      });
-      if(!isFestOFF) return false;
-      // If it's also a template holiday, keep it in Holiday list
-      const tplDates2 = new Set(HOLIDAY_TEMPLATE.map(t=>t.dt==='fixed'?`${yr}-${t.md}`:(d[t.id]||'')).filter(Boolean));
-      return !tplDates2.has(ds2);
-    };
-
-    // Month PH list — only festival-pure OFF excluded; festival PH2 & template holidays remain
-    const monthPHList = [];
-    for(let dd=1; dd<=days; dd++){
-      const ds2=_isoDate(yr,mo,dd);
-      const subEntry=subs.find(s=>s.date===ds2);
-      if(!subEntry && isFestOnlyOFF(ds2)) continue;
-      const phName=getPHNameFull(ds2)||getOffName(ds2);
-      if(subEntry) monthPHList.push(`<div style="font-size:9px;line-height:1.6"><b>${dd}</b> ${escapeHTML(subEntry.name.replace(/\s*\(.*\)/,''))}</div>`);
-      else if(phName) monthPHList.push(`<div style="font-size:9px;line-height:1.6;font-weight:700"><b>${dd}</b> ${escapeHTML(phName)}</div>`);
-    }
-
-    // Festival section: show full range for each festival that overlaps this month
-    const festInMonth = [];
-    FESTIVAL_CONFIG.forEach(fc=>{
-      const fest=(S.festivalDates[yr]||{})[fc.id]||{};
-      if(!fest.start||!fest.end) return;
-      // Check if this festival overlaps current month
-      if(fest.end < ms+'-01' || fest.start > ms+'-31') return;
-      festInMonth.push({name:fc.name, start:_ddmmS(fest.start), end:_ddmmS(fest.end)});
-    });
-
-    // School holiday ranges for this month
-    const shRanges = Object.values(sh).filter(r=>{
-      if(!r.start||!r.end) return false;
-      if(!deptMatch(r.depts)) return false;
-      return r.start.startsWith(ms)||r.end.startsWith(ms)||(r.start<=ms+'-01'&&r.end>=ms+'-28');
-    });
-
-    html+=`</div>`;
-    // ── Two types: Government | Centre ──────────────────────────────
-    // Government: Public Holiday + KPM School Holiday (dashed between)
-    // Centre:     Our Festive Holidays + Our Extra Learning Day (dashed between)
-    // Solid line separates the two types
-    const ecInMonth = ((S.extraClasses||{})[yr]||[]).filter(e=>{
-      if(!e.start||!e.end) return false;
-      if(!deptMatch(e.depts)) return false;
-      return e.start.startsWith(ms)||e.end.startsWith(ms)||(e.start<=ms+'-01'&&e.end>=ms+'-28');
-    });
-    const hasGov = monthPHList.length || shRanges.length;
-    const hasCentre = festInMonth.length || ecInMonth.length;
-    if(monthPHList.length){
-      html+=`<div style="padding:4px 8px;border-top:1px solid #000;background:#f8f8f8">
-        <div style="font-size:9px;font-weight:700;color:#333;margin-bottom:2px">Public Holiday</div>
-        ${monthPHList.join('')}
-      </div>`;
-    }
-    if(shRanges.length){
-      html+=`<div style="padding:4px 8px;border-top:${monthPHList.length?'1.5px dashed #aaa':'1px solid #000'};background:#f0f0f0">
-        <div style="font-size:9px;font-weight:700;color:#333;margin-bottom:2px">KPM School Holiday</div>
-        ${shRanges.map(r=>`<div style="font-size:9px;line-height:1.6">${_ddmmS(r.start)} – ${_ddmmS(r.end)} (${escapeHTML(r.name||'School Holiday')})</div>`).join('')}
-      </div>`;
-    }
-    if(festInMonth.length){
-      html+=`<div style="padding:4px 8px;border-top:1px solid #000;background:#f4f0eb">
-        <div style="font-size:9px;font-weight:700;color:#333;margin-bottom:2px">Our Festive Holidays</div>
-        ${festInMonth.map(f=>`<div style="font-size:9px;line-height:1.6">${f.start} – ${f.end} (${escapeHTML(f.name)})</div>`).join('')}
-      </div>`;
-    }
-    if(ecInMonth.length){
-      const ecGrp={};
-      ecInMonth.forEach(e=>{
-        const k=`${e.start}|${e.end||e.start}`;
-        if(!ecGrp[k]) ecGrp[k]={start:e.start,end:e.end||e.start,labels:[]};
-        const lbl=[e.name&&e.name!=='Extra Class'?e.name:'',e.time||'',e.msg||''].filter(Boolean).join(' · ');
-        if(lbl&&!ecGrp[k].labels.includes(lbl)) ecGrp[k].labels.push(lbl);
-      });
-      html+=`<div style="padding:4px 8px;border-top:${festInMonth.length?'1.5px dashed #aaa':'1px solid #000'};background:#fff">
-        <div style="font-size:9px;font-weight:700;color:#333;margin-bottom:2px">★ Our Extra Learning Day</div>
-        ${Object.values(ecGrp).map(g=>`<div style="font-size:9px;line-height:1.7"><b>${_ddmmS(g.start)}${g.end&&g.end!==g.start?' – '+_ddmmS(g.end):''}</b>${g.labels.length?' <span style="font-weight:400">'+escapeHTML(g.labels.join(' / '))+'</span>':''}</div>`).join('')}
-      </div>`;
-    }
-    if(!hasGov && !hasCentre){
-      html+=`<div style="border-top:1px solid #000"></div>`;
-    }
-    html+=`</div>`;
-  }
-
-  html+=`</div>`;
-  document.getElementById('hol-tab-content').innerHTML=html;
-}
-
-
-function _calPrint(){
-  const yr = window._holYear;
-  const dept = window._calDept || 'MASTER';
-  const view = window._calView || 'hr';
-  const gridEl = document.getElementById('cal-grid');
-  if(!gridEl){ window.print(); return; }
-  const calHTML = gridEl.outerHTML;
-  const w = window.open('','_blank','width=860,height=1160');
-  w.document.write(`<!DOCTYPE html><html><head>
-    <title>${yr} Holiday Notice</title>
-    <style>
-      *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-      body{margin:8px;background:#fff;font-family:'Calibri',Calibri,Arial,sans-serif;max-width:794px}
-      *{font-family:'Calibri',Calibri,Arial,sans-serif!important}
-      .print-title{text-align:center;font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:.03em}
-      #cal-grid{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:8px!important}
-      .no-print{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-      /* +2px and bold for all calendar text */
-      #cal-grid [style*="font-size:12px"]{font-size:14px!important;font-weight:700!important}
-      #cal-grid [style*="font-size:11px"]{font-size:13px!important;font-weight:700!important}
-      #cal-grid [style*="font-size:10px"]{font-size:12px!important;font-weight:700!important}
-      #cal-grid [style*="font-size:9px"] {font-size:11px!important;font-weight:700!important}
-      /* ── PRINT: single A4 page ── */
-      @page{margin:6mm;size:A4 portrait}
-      @media print{
-        *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-        html,body{margin:0;padding:0;max-width:none}
-        .no-print{display:none!important}
-        body{zoom:0.68}
-        .print-title{font-size:22px;margin:0 0 4px}
-        #cal-grid{grid-template-columns:repeat(3,1fr)!important;gap:5px!important}
-      }
-    </style>
-  </head><body>
-    <div class="no-print">
-      <button onclick="window.print()" style="padding:5px 14px;background:#3d1a1a;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">🖨 Print / Save PDF</button>
-      <button onclick="window.close()" style="padding:5px 12px;border:1px solid #ccc;background:#fff;border-radius:4px;cursor:pointer;font-size:12px">✕ Close</button>
-      <span style="font-size:11px;color:#888">${dept} · ${view==='hr'?'HR View':'Parent View'}</span>
-    </div>
-    <div class="print-title">${yr} Holiday Notice</div>
-    ${calHTML}
-    <script>window.print();<\/script>
-  </body></html>`);
-  w.document.close();
-}
-
-function _holOpenSyncModal(){
-  const yr=window._holYear;
-  const ov=document.createElement('div');ov.id='sync-overlay';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML=`<div style="background:var(--sur);border-radius:12px;width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
-    <div style="padding:13px 18px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center">
-      <span style="font-size:14px;font-weight:600;flex:1">🌐 Sync from Nager.Date API</span>
-      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;color:var(--mut);cursor:pointer">×</button>
-    </div>
-    <div style="padding:16px 18px">
-      <div style="background:#EEF2F7;border:.5px solid #AABDD4;border-radius:7px;padding:10px;margin-bottom:12px;font-size:11px;line-height:1.6">
-        Fetches <b>Malaysia federal holidays</b> and matches to template.<br>Johor state holidays (Sultan's Birthday etc.) need manual entry.
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <div><label style="font-size:10px;color:var(--mut);display:block;margin-bottom:3px">Year</label>
-          <input type="number" id="sync-year" value="${yr}" min="2025" max="2030" style="width:100%"></div>
-        <div><label style="font-size:10px;color:var(--mut);display:block;margin-bottom:3px">Country</label>
-          <select id="sync-country" style="width:100%"><option value="MY">🇲🇾 Malaysia</option></select></div>
-      </div>
-      <button class="btn-grn" onclick="_holFetchFromAPI()" style="width:100%;padding:9px;font-size:12px">🌐 Fetch Now</button>
-      <div id="sync-result" style="margin-top:10px"></div>
-    </div>
-  </div>`;
-  document.body.appendChild(ov);
-}
-async function _holFetchFromAPI(){
-  const yr=parseInt(document.getElementById('sync-year').value)||2026;
-  const cc=document.getElementById('sync-country').value;
-  const res=document.getElementById('sync-result');
-  res.innerHTML=`<div style="text-align:center;padding:12px;font-size:12px;color:var(--mut)">⏳ Connecting…</div>`;
-  try{
-    const resp=await fetch(`https://date.nager.at/api/v3/PublicHolidays/${yr}/${cc}`,{mode:'cors'});
-    if(!resp.ok) throw new Error(`API returned ${resp.status}. Data may not be available for ${yr} yet.`);
-    const data=await resp.json();
-    if(!Array.isArray(data)||!data.length) throw new Error('No holidays returned.');
-    if(!S.holidayDates[yr]) S.holidayDates[yr]={};
-    const kwMap=[['Labour Day','ph1_labour'],['National Day','ph1_merdeka'],['Malaysia Day','ph1_malaysia'],
-      ['Christmas','ph2_christmas'],['Chinese New Year',['ph2_cny1','ph2_cny2']],
-      ['Aidilfitri',['ph2_raya1','ph2_raya2']],['Deepavali','ph2_deepavali'],
-      ['Wesak','off_wesak'],['Hari Raya Haji','off_qurban'],['Thaipusam','off_thaipusam'],
-      ['Muharram','off_hijrah'],['Prophet','off_nabi'],['Agong','ph1_agong_bday']];
-    let matched=0;const unmatched=[];
-    data.forEach(h=>{
-      let found=false;
-      for(const [kw,ids] of kwMap){
-        if(h.name.toLowerCase().includes(kw.toLowerCase())){
-          const arr=Array.isArray(ids)?ids:[ids];
-          for(const id of arr){if(!S.holidayDates[yr][id]){S.holidayDates[yr][id]=h.date;matched++;found=true;break;}}
-          break;
-        }
-      }
-      if(!found) unmatched.push(`${h.date}: ${h.name}`);
-    });
-    saveAll();
-    document.getElementById('sync-overlay')?.remove();
-    window._holYear=yr; render_holidays();
-    alert(`✓ Matched ${matched} holidays.\n${unmatched.length?'\nNot matched:\n'+unmatched.join('\n'):'All matched!'}`);
-  }catch(e){
-    res.innerHTML=`<div style="background:#FCEBEB;border:.5px solid #F09595;border-radius:7px;padding:10px;font-size:12px;color:var(--red)">
-      <b>❌ ${escapeHTML(e.message)}</b><br><br>
-      <span style="color:var(--mut)">Use ⚡ Auto-fill for fixed dates, then enter lunar dates manually.</span>
-    </div>`;
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // PASTE FROM WEBSITE
 // ═══════════════════════════════════════════════════════════════════════════
-function _holOpenPasteModal(){
-  const yr=window._holYear;
-  const ov=document.createElement('div');ov.id='paste-overlay';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML=`<div style="background:var(--sur);border-radius:12px;width:620px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
-    <div style="padding:13px 18px;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;position:sticky;top:0;background:var(--sur);z-index:2">
-      <span style="font-size:14px;font-weight:600;flex:1">📋 Paste from johor.gov.my</span>
-      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;color:var(--mut);cursor:pointer">×</button>
-    </div>
-    <div style="padding:16px 18px">
-      <div style="background:#EEF2F7;border:.5px solid #AABDD4;border-radius:7px;padding:10px;margin-bottom:12px">
-        <ol style="margin:0;padding-left:18px;font-size:11px;line-height:1.8">
-          <li>Open <a href="https://www.johor.gov.my/rakyat/cuti-umum-2" target="_blank" style="color:var(--acc)">johor.gov.my/rakyat/cuti-umum-2</a></li>
-          <li><b>Ctrl+A</b> → <b>Ctrl+C</b></li><li>Paste below → <b>Parse & Match</b></li>
-        </ol>
-      </div>
-      <div style="margin-bottom:10px"><label style="font-size:10px;color:var(--mut);display:block;margin-bottom:3px">Year</label>
-        <input type="number" id="paste-yr2" value="${yr}" min="2025" max="2030" style="width:100px"></div>
-      <textarea id="paste-hol-box2" rows="7" placeholder="Paste here…" style="width:100%;resize:vertical;font-family:monospace;font-size:11px;border:.5px solid var(--bdr);border-radius:6px;padding:9px"></textarea>
-      <div style="margin-top:9px"><button class="btn-grn" onclick="_holParseAndMatch()" style="width:100%;padding:8px">🔍 Parse & Match</button></div>
-      <div id="paste-hol-result2" style="margin-top:10px"></div>
-    </div>
-  </div>`;
-  document.body.appendChild(ov);
-  setTimeout(()=>document.getElementById('paste-hol-box2')?.focus(),100);
-}
-function _holParseAndMatch(){
-  const raw=document.getElementById('paste-hol-box2').value.trim();
-  const yr=parseInt(document.getElementById('paste-yr2').value)||2026;
-  if(!raw){alert('Please paste content first.');return;}
-  const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,januari:1,februari:2,mac:3,april:4,mei:5,julai:7,ogos:8,september:9,oktober:10,november:11,disember:12};
-  function pd(s){s=s.trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return`${m[1]}-${m[2]}-${m[3]}`;m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m)return`${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;m=s.match(/^(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?$/);if(m){const mn=MON[m[2].toLowerCase()];if(mn)return`${m[3]||yr}-${String(mn).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;}m=s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);if(m){const mn=MON[m[2].toLowerCase()];if(mn)return`${m[3]}-${String(mn).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;}return null;}
-  const found=[];
-  raw.split(/\r?\n/).forEach(line=>{const parts=line.split('\t').map(p=>p.trim()).filter(Boolean);if(parts.length>=2){let ds=null,nm=null;for(let i=0;i<parts.length;i++){const dv=pd(parts[i]);if(dv&&!ds){ds=dv;continue;}if(ds&&!nm&&parts[i].length>2&&!/^\d+$/.test(parts[i])){nm=parts[i];break;}}if(ds&&nm)found.push({date:ds,name:nm});}});
-  if(!found.length){document.getElementById('paste-hol-result2').innerHTML=`<div style="background:#FCEBEB;border:.5px solid #F09595;border-radius:7px;padding:10px;font-size:12px;color:var(--red)">⚠️ No dates found. Try Ctrl+A → Ctrl+C on the full page.</div>`;return;}
-  if(!S.holidayDates[yr]) S.holidayDates[yr]={};
-  const kwMap=[['Sultan Johor','ph1_sultan_bday'],['Agong','ph1_agong_bday'],['Pekerja','ph1_labour'],['Kebangsaan','ph1_merdeka'],['Malaysia','ph1_malaysia'],['Cina',['ph2_cny1','ph2_cny2','off_cny3','off_cny4','off_cny5','off_cny6','off_cny7']],['Raya Puasa',['ph2_raya1','ph2_raya2','off_raya3','off_raya4','off_raya5','off_raya6','off_raya7']],['Deepavali',['ph2_deepavali','off_deepavali2']],['Krismas','ph2_christmas'],['Christmas','ph2_christmas'],['Thaipusam','off_thaipusam'],['Ramadan','off_ramadan'],['Wesak','off_wesak'],['Qurban','off_qurban'],['Muharram','off_hijrah'],['Hol','off_hol_iskandar'],['Nabi','off_nabi']];
-  const results=[];
-  found.forEach(h=>{let mid=null;for(const [kw,ids] of kwMap){if(h.name.toLowerCase().includes(kw.toLowerCase())){const arr=Array.isArray(ids)?ids:[ids];for(const id of arr){if(!S.holidayDates[yr][id]){S.holidayDates[yr][id]=h.date;mid=id;break;}}break;}}const tpl=mid?HOLIDAY_TEMPLATE.find(t=>t.id===mid):null;results.push({n:h.name,date:h.date,match:tpl?tpl.name:null});});
-  saveAll();
-  const ok=results.filter(r=>r.match).length,fail=results.filter(r=>!r.match).length;
-  document.getElementById('paste-hol-result2').innerHTML=`
-    <div style="background:#E1F5EE;border:.5px solid #9FE1CB;border-radius:6px;padding:8px;margin-bottom:8px;font-size:12px;font-weight:600;color:#0F6E56">✓ Matched ${ok} · Unmatched ${fail}</div>
-    <div style="overflow-x:auto;border:.5px solid var(--bdr);border-radius:6px;max-height:160px;overflow-y:auto;margin-bottom:8px">
-      <table style="width:100%;border-collapse:collapse;font-size:11px">
-        <thead><tr style="background:var(--sur2)"><th style="padding:4px 9px">Date</th><th style="padding:4px 9px">From Website</th><th style="padding:4px 9px">Matched To</th></tr></thead>
-        <tbody>${results.map(r=>`<tr><td style="padding:4px 9px">${r.date}</td><td style="padding:4px 9px">${escapeHTML(r.n)}</td><td style="padding:4px 9px">${r.match?`<span style="color:#0F6E56">✓ ${escapeHTML(r.match)}</span>`:'<span style="color:#854F0B">—</span>'}</td></tr>`).join('')}</tbody>
-      </table>
-    </div>
-    <button class="btn-grn" onclick="document.getElementById('paste-overlay')?.remove();window._holYear=${yr};render_holidays();" style="width:100%;padding:8px">✓ Done</button>`;
-}
-
-
-
 // ═══════════════════════════════════════════════════════════════════════════
 // PARENT NOTICE — Bi-monthly bilingual notices
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2418,7 +1322,7 @@ function _buildBookCard(periodId, yr, opts, dept){
     </div>
     <div style="font-size:12px;line-height:1.7;margin-bottom:${isCompact?'12px':'16px'};color:#444;">
       Dear Parents, please be informed of our holiday schedule for <b>${period.label} ${yr}</b> as follows.<br>
-      亲爱的家长，谨此通知本中心 <b>${period.labelCN}</b> 的休假日如下，敬请知悲。
+      亲爱的家长，谨此通知本中心 <b>${period.labelCN}</b> 的休假日如下，敬请知悉。
     </div>
     ${calGrid}
     ${legend}
@@ -2827,7 +1731,7 @@ async function _pullFromCalendar(){
     const { data, error } = await _sb.from('calendar_events').select('*');
     if(error) throw error;
     const TPL_IDS = (typeof SCHOOL_HOL_TEMPLATE!=='undefined') ? SCHOOL_HOL_TEMPLATE.map(t=>t.id) : [];
-    const H={}, SHd={}, SP={}, FD={}, EC={};
+    const H={}, SHd={}, SP={}, FD={}, EC={}, SRT={};
     for(const r of (data||[])){
       const yr=String(r.year);
       const depts=Array.isArray(r.depts)?r.depts:[];
@@ -2841,16 +1745,257 @@ async function _pullFromCalendar(){
         (FD[yr]=FD[yr]||{})[r.name]={ start:r.start_date, end:r.end_date, days:(det.days||{}) };
       } else if(r.type==='extra_class'){
         (EC[yr]=EC[yr]||[]).push({ id:r.id, name:r.name, start:r.start_date, end:r.end_date, time:(det.time||''), msg:(det.msg||''), depts:depts });
+      } else if(r.type==='dept_off' && (det.slot==='fri' || det.slot==='sat')){   // v39 · SRT 放假日（Calendar 卡 G）
+        const g=(SRT[yr]=SRT[yr]||{ fridays:[], saturdays:[] }); g[det.slot==='fri'?'fridays':'saturdays'].push(r.start_date);
       } else if(r.type==='special_holiday'){
         (SP[yr]=SP[yr]||[]).push(Object.assign({ date:r.start_date, name:r.name }, det));
       }
     }
     S.holidayDates=H; S.schoolHolDates=SHd; S.specialHolidays=SP; S.festivalDates=FD; S.extraClasses=EC;
+    // v39 · SRT 改由 Calendar 管：这台电脑以前存的 SRT 日期先留一份（只留一次），SRT 页会提醒还没搬进 Calendar 的日期
+    try{ const has=Object.values(S.srtDates||{}).some(g=>[...(g.fridays||[]), ...(g.saturdays||[])].some(Boolean)); if(has && !localStorage.getItem(_SRT_LOCAL_KEY)) localStorage.setItem(_SRT_LOCAL_KEY, JSON.stringify(S.srtDates)); }catch(e){}
+    Object.values(SRT).forEach(g=>{ g.fridays.sort(); g.saturdays.sort(); }); S.srtDates=SRT;
+    await _pullDays();   // v39 · 每日结果表
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }catch(e){}
     if(typeof render_home==='function') render_home();
     if(document.getElementById('page-holidays') && document.getElementById('page-holidays').classList.contains('on') && typeof render_holidays==='function') render_holidays();
+    ['book','parent'].forEach(p=>{ const el=document.getElementById('page-'+p); if(el && el.classList.contains('on')) window['render_'+p](); });   // v39
   }catch(e){ console.error('Calendar live-read failed → using local cache', e); }
 }
+
+
+/* ═══ 共用 · 迷你月历（Calendar 总览与 NoticeGo 用同一份；2026-10-09）═══
+   资料一律是「每日结果」的列（calendar_days 的格式：day / kind / name / depts / no_class / detail）。
+   Calendar 用自己算出来的列（草稿年份也看得到）；NoticeGo 用云端已公布的列。两边画出来的规则一模一样。 */
+const _CENTRE = ['PH1','PH2','SUB','OFF'];
+const _dDay = r => String(r.day).slice(0,10);
+const _dMatch = (r, dept) => !r.depts || !r.depts.length || !dept || dept==='MASTER' || r.depts.includes(dept);
+const _stripPar = n => String(n||'').replace(/\s*\([^)]*\)/g,'').trim();
+const _nextD = (ds,n) => { const d=new Date(ds+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+const _isSunD = ds => new Date(ds+'T12:00:00').getDay()===0;
+const _follows = (end, ds) => _nextD(end,1)===ds || (_isSunD(_nextD(end,1)) && _nextD(end,2)===ds);   // 中间隔一个星期日也算连着
+function _runs(list){   // 「日期＋名字」→ 连续同名合成一段
+  const out=[]; list.slice().sort((a,b)=>a.n.localeCompare(b.n)||a.d.localeCompare(b.d)).forEach(x=>{
+    const cur=out[out.length-1];
+    if(cur && cur.n===x.n && _follows(cur.end,x.d)){ cur.end=x.d; cur.ss.add(x.s); cur.kk.add(x.k); }
+    else out.push({ n:x.n, start:x.d, end:x.d, ss:new Set([x.s]), kk:new Set([x.k]) });
+  });
+  return out;
+}
+function _centrePartsOf(rows){   // 全中心每一天里的每一个假期
+  const per=[];
+  (rows||[]).filter(r=>_CENTRE.includes(r.kind)).forEach(r=>{
+    const its=(r.detail && r.detail.items && r.detail.items.length) ? r.detail.items : [{ n:r.name, s:'gazette' }];
+    its.forEach(it=>per.push({ d:_dDay(r), n:(it.s==='sub'?_stripPar(it.n):it.n), s:it.s, k:r.kind, f:it.f }));
+  });
+  return per;
+}
+const _PAL_PARENT = { dark:'#5C1010', light:'#F2DADA', lightTxt:'#7A1E1E', wk:'#8B3030', we:'#3d1a1a', pad:'#faf9f7', cellBd:'#ede9e3', sec:['#faf8f5','#edecea','#f5f2ec','#fbeeee','#f5f0fa'], line:'1px solid #5C1010', dash:'1.5px dashed #C0A0A0', ttl:'#5C1010', cnOp:.7 };
+const _PAL_BOOK   = { dark:'#000',    light:'#AAAAAA', lightTxt:'#000',    wk:'#555',    we:'#000',    pad:'#f8f8f8', cellBd:'#e0e0e0', sec:['#f8f8f8','#f0f0f0','#eee','#e4e4e4','#e8e8e8'], line:'1px solid #000',    dash:'1.5px dashed #aaa',    ttl:'#000',    cnOp:.6 };
+/* opt.allDepts：Calendar 总览（全部门）。只有星期日涂黑；某部门不上课（SRT）不涂色，另列一段。
+   没有 opt.allDepts：给家长看（某一个部门）。星期日涂黑；星期六 SRK / GAK / ATC 没课涂黑，SRT 有课（Owner 10/9）。 */
+function _miniCal(yr, mo, allRows, dept, P, opt){
+  opt=opt||{}; const all=!!opt.allDepts;
+  const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const MC=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const days=new Date(yr,mo,0).getDate(), ms=`${yr}-${String(mo).padStart(2,'0')}`, af=(new Date(yr,mo-1,1).getDay()+6)%7;
+  const rows=(allRows||[]).filter(r=>all || _dMatch(r,dept)), byDay={};
+  rows.forEach(r=>{ (byDay[_dDay(r)]=byDay[_dDay(r)]||[]).push(r); });
+  const DARK={ bg:P.dark, txt:'#fff' }, LIGHT={ bg:P.light, txt:P.lightTxt }, WHITE={ bg:'#fff', txt:'#555' };
+  const style=(ds,dow)=>{
+    if(dow===6 || (!all && dow===5 && dept!=='SRT')) return DARK;   // SRT 星期六有课（Owner 10/9）
+    const rs=byDay[ds]||[], c=rs.find(r=>_CENTRE.includes(r.kind));
+    if(c){ const ss=((c.detail&&c.detail.items)||[]).map(i=>i.s); return (!ss.length || ss.some(s=>s!=='fest_off')) ? DARK : LIGHT; }
+    if(!all && rs.some(r=>r.kind==='DEPT_OFF')) return DARK;
+    if(rs.some(r=>r.kind==='SCHOOL')) return LIGHT;
+    return WHITE;
+  };
+  let cells='';
+  for(let i=0;i<af;i++) cells+=`<div style="min-height:26px;background:${P.pad};"></div>`;
+  for(let d=1; d<=days; d++){
+    const ds=`${ms}-${String(d).padStart(2,'0')}`, st=style(ds,(af+d-1)%7), rs=byDay[ds]||[], ec=rs.some(r=>r.kind==='EXTRA');
+    const tip=[...new Set(rs.map(r=>r.name))].join(' · ');
+    cells+=`<div title="${escapeHTML(tip)}" style="min-height:26px;padding:2px;background:${st.bg};border:1px solid ${st===WHITE?P.cellBd:'transparent'};display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <span style="font-size:11px;font-weight:700;color:${st.txt};line-height:1;">${d}</span>
+      ${ec?`<span style="font-size:7px;line-height:1;color:${st===DARK?'#fff':st===LIGHT?P.lightTxt:P.dark}">★</span>`:''}</div>`;
+  }
+  const rem=(af+days)%7; if(rem>0) for(let i=0;i<7-rem;i++) cells+=`<div style="min-height:26px;background:${P.pad};"></div>`;
+  const inM = (a,b) => a<=ms+'-31' && (b||a)>=ms+'-01';
+  const line = t => `<div style="font-size:9px;line-height:1.6">${t}</div>`;
+  const ph=[];
+  for(let d=1; d<=days; d++){
+    const ds=`${ms}-${String(d).padStart(2,'0')}`, c=(byDay[ds]||[]).find(r=>_CENTRE.includes(r.kind)); if(!c) continue;
+    const its=((c.detail&&c.detail.items)||[{ n:c.name, s:'gazette' }]).filter(i=>i.s!=='fest_off' && i.s!=='closure');
+    if(its.length) ph.push(`<div style="font-size:9px;line-height:1.6;font-weight:700"><b>${d}</b> ${escapeHTML([...new Set(its.map(i=>i.s==='sub'?_stripPar(i.n):i.n))].join(' / '))}</div>`);
+  }
+  const shM={}; rows.filter(r=>r.kind==='SCHOOL').forEach(r=>{ const a=(r.detail||{}).start||_dDay(r), b=(r.detail||{}).end||_dDay(r); if(!inM(a,b)) return; const k=r.name+'|'+a+'|'+b;
+    if(!shM[k]) shM[k]={ a, b, n:r.name, dp:new Set() }; (r.depts||[]).forEach(x=>shM[k].dp.add(x)); });
+  const sh=Object.values(shM).sort((x,y)=>x.a.localeCompare(y.a)).map(x=>line(`${_ddmmS(x.a)} – ${_ddmmS(x.b)} (${escapeHTML(String(x.n).replace(/^School Holiday \((.+)\)$/,'$1'))})${all&&x.dp.size?' · '+escapeHTML([...x.dp].sort().join(' ')):''}`));
+  const parts=_centrePartsOf(rows);
+  const fest=_runs(parts.filter(p=>p.f).map(p=>({ d:p.d, n:p.f, s:p.s, k:p.k }))).filter(g=>inM(g.start,g.end)).sort((x,y)=>x.start.localeCompare(y.start)).map(g=>line(`${_ddmmS(g.start)} – ${_ddmmS(g.end)} (${escapeHTML(g.n)})`));
+  const clo=_runs(parts.filter(p=>p.s==='closure')).filter(g=>inM(g.start,g.end)).map(g=>({ a:g.start, t:`${_ddmmS(g.start)}${g.end!==g.start?' – '+_ddmmS(g.end):''} (${escapeHTML(g.n)})` }));
+  const dOff=rows.filter(r=>r.kind==='DEPT_OFF' && _dDay(r).startsWith(ms));
+  dOff.forEach(r=>clo.push({ a:_dDay(r), t:`${_ddmmS(_dDay(r))} (${escapeHTML(r.name)})` }));
+  const cl=clo.sort((x,y)=>x.a.localeCompare(y.a)).map(x=>line(x.t));
+  const ecG={}; rows.filter(r=>r.kind==='EXTRA').forEach(r=>{ const a=(r.detail||{}).start||_dDay(r), b=(r.detail||{}).end||_dDay(r); if(!inM(a,b)) return; const k=a+'|'+b; if(!ecG[k]) ecG[k]={ a, b, e:[] };
+    const lbl=[r.name&&r.name!=='Extra Class'?r.name:'', (r.detail||{}).time||'', (r.detail||{}).msg||'', all&&r.depts&&r.depts.length?r.depts.join(' '):''].filter(Boolean).join(' · '); if(lbl && !ecG[k].e.includes(lbl)) ecG[k].e.push(lbl); });
+  const ec=Object.values(ecG).sort((x,y)=>x.a.localeCompare(y.a)).map(g=>`<div style="font-size:9px;line-height:1.7"><b>${_ddmmS(g.a)}${g.b!==g.a?' – '+_ddmmS(g.b):''}</b>${g.e.length?' <span style="font-weight:400">'+escapeHTML(g.e.join(' / '))+'</span>':''}</div>`);
+  const sec=(bd,bg,title,body)=>`<div style="padding:6px 10px;border-top:${bd};background:${bg};"><div style="font-size:8px;font-weight:700;color:${P.ttl};text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">${title}</div>${body.join('')}</div>`;
+  let secs='';
+  if(ph.length)   secs+=sec(P.line, P.sec[0], 'Public Holiday', ph);
+  if(sh.length)   secs+=sec(ph.length?P.dash:P.line, P.sec[1], 'KPM School Holiday', sh);
+  if(fest.length) secs+=sec(P.line, P.sec[2], 'Our Festive Holidays', fest);
+  if(cl.length)   secs+=sec(fest.length?P.dash:P.line, P.sec[3], dOff.length?'Centre Closed / No Class':'Centre Closed', cl);
+  if(ec.length)   secs+=sec((fest.length||cl.length)?P.dash:P.line, P.sec[4], '★ Our Extra Learning Day', ec);
+  if(!secs) secs=`<div style="border-top:${P.line};min-height:4px;"></div>`;
+  return `<div style="border:2px solid ${P.dark};border-radius:6px;overflow:hidden;font-family:Arial,sans-serif;background:#fff;">
+    <div style="background:${P.dark};color:#fff;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;font-size:12px;">${MN[mo-1]} ${yr}</span><span style="font-size:10px;opacity:${P.cnOp};">${MC[mo-1]}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);">${['M','T','W','T','F','S','S'].map((x,i)=>`<div style="text-align:center;font-size:9px;font-weight:700;padding:4px 0;background:${(i===6||(!all&&i===5&&dept!=='SRT'))?P.we:P.wk};color:#fff;">${x}</div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:${P.line};">${cells}</div>
+    ${secs}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// v39 · 2026-10-09 · 改读 MasterHub Calendar 的「每日结果表」calendar_days
+//   以前（v38）：自己读 calendar_events、自己算补假。结果：中心关门周不出现、2026 学校假期印出代码
+//   （sh_midterm2）、自订节日不出现、补假讲法跟 Calendar 不一样。
+//   现在：Calendar 公布后把每一天的结果写好，这里照着印。
+//   哪一年还没有每日结果（表还没建 / 还没写），那一年照旧用 v38 的算法，画面不会空掉。
+//   SRT 放假日改由 Calendar 卡 G 管（进云端）；这里只显示。
+// ═══════════════════════════════════════════════════════════════════════════
+let _DAYS = {};
+const _SRT_LOCAL_KEY = 'academee_holidaygo_srt_local_before_v39';
+async function _pullDays(){
+  try{
+    const { data, error } = await _sb.from('calendar_days').select('year,day,kind,name,depts,no_class,detail');
+    if(error) throw error;
+    const by = {}; (data||[]).forEach(r=>(by[r.year]=by[r.year]||[]).push(r)); _DAYS = by;
+  }catch(e){ console.warn('calendar_days not readable → using the v38 way', e); _DAYS = {}; }
+}
+function _dOK(yr){ return !!(_DAYS[yr] && _DAYS[yr].length); }
+const _centreParts = yr => _centrePartsOf(_DAYS[yr]);
+function _v39Items(yr, dept, withEC){
+  const out=[];
+  _runs(_centreParts(yr)).forEach(g=>{
+    const cat = g.ss.has('sub') ? 'SUB' : g.ss.has('closure') ? 'CLOSED' : g.ss.has('fest') ? 'PH2' : g.ss.has('fest_off') ? 'FEST_OFF' : (g.kk.has('PH1') ? 'PH1' : g.kk.has('PH2') ? 'PH2' : 'OFF');
+    out.push({ date:g.start, endDate:g.end, isRange:g.end!==g.start, name:g.n, cat });
+  });
+  const grp = (rows, key) => { const m={}; rows.forEach(r=>{ const k=key(r); (m[k]=m[k]||[]).push(r); }); return Object.values(m); };
+  const rows=(_DAYS[yr]||[]);
+  const sch=rows.filter(r=>r.kind==='SCHOOL' && (dept ? _dMatch(r,dept) : true));
+  grp(sch, r=>r.name+'|'+((r.detail||{}).start||'')+'|'+((r.detail||{}).end||'')).forEach(a=>{
+    const ds=a.map(_dDay).sort(); out.push({ date:ds[0], endDate:ds[ds.length-1], isRange:true, name:a[0].name, cat:'SH', depts:(a[0].depts&&a[0].depts.length?a[0].depts:['SRK','GAK','ATC','SRT']) });
+  });
+  if(dept && dept!=='MASTER'){
+    _runs(rows.filter(r=>r.kind==='DEPT_OFF' && _dMatch(r,dept)).map(r=>({ d:_dDay(r), n:r.name, s:'dept', k:r.kind }))).forEach(g=>out.push({ date:g.start, endDate:g.end, isRange:g.end!==g.start, name:g.n, cat:'DOFF' }));
+  }
+  if(withEC){
+    grp(rows.filter(r=>r.kind==='EXTRA' && _dMatch(r,dept)), r=>r.name+'|'+((r.detail||{}).start||_dDay(r))+'|'+((r.detail||{}).end||_dDay(r))).forEach(a=>{
+      const ds=a.map(_dDay).sort(); out.push({ date:ds[0], endDate:ds[ds.length-1], isRange:ds.length>1, name:a[0].name, cat:'EC', isEC:true, depts:a[0].depts||[] });
+    });
+  }
+  return out.sort((a,b)=>a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+}
+function _inMonths(h, months){
+  const m=+h.date.slice(5,7), em=+(h.endDate||h.date).slice(5,7);
+  for(let k=m; k<=em; k++) if(months.includes(k)) return true;
+  return false;
+}
+
+
+// ── 迷你月历：共用 _miniCal（跟 Calendar 总览同一份）──
+const _v39Mini = (yr, mo, dept, P) => _miniCal(yr, mo, _DAYS[yr], dept, P);
+
+// ── 换上新的读法（有每日结果的年份才换；没有就照 v38）──
+const _v38 = { collect:_collectAllHolidays, period:_filterPeriodHolidays, dept:_filterPeriodHolidaysForDept, mini:_buildNoticeMiniCal, book:_buildBookMiniCal, upcoming:_homeUpcoming };
+_collectAllHolidays = function(yr){ return _dOK(yr) ? _v39Items(yr, null, false) : _v38.collect(yr); };
+_filterPeriodHolidays = function(yr, months){ return _dOK(yr) ? _v39Items(yr, _noticeDept, false).filter(h=>_inMonths(h,months)) : _v38.period(yr, months); };   // WhatsApp 文字：跟着画面选的部门
+_filterPeriodHolidaysForDept = function(yr, months, dept){ return _dOK(yr) ? _v39Items(yr, dept, true).filter(h=>_inMonths(h,months)) : _v38.dept(yr, months, dept); };
+_buildNoticeMiniCal = function(yr, mo, allHol, dept){ return _dOK(yr) ? _v39Mini(yr, mo, dept||'SRK', _PAL_PARENT) : _v38.mini(yr, mo, allHol, dept); };
+_buildBookMiniCal   = function(yr, mo, allHol, dept){ return _dOK(yr) ? _v39Mini(yr, mo, dept||'SRK', _PAL_BOOK)   : _v38.book(yr, mo, allHol, dept); };
+_homeUpcoming = function(yr){
+  if(!_dOK(yr)) return _v38.upcoming(yr);
+  const today=new Date().toISOString().slice(0,10);
+  const next=_v39Items(yr, null, false).filter(h=>h.cat!=='SH' && (h.endDate||h.date)>=today).slice(0,6);
+  if(!next.length) return `<div style="padding:20px;text-align:center;color:var(--hint);font-size:12px">No upcoming holidays in ${yr}.</div>`;
+  const badge={ CLOSED:'OFF', FEST_OFF:'OFF', DOFF:'OFF' };
+  return `<table class="data" style="margin-top:6px"><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th style="text-align:center">Type</th></tr></thead><tbody>${next.map(r=>{
+    const dow=new Date(r.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'});
+    return `<tr><td style="font-weight:600;white-space:nowrap">${_ddmmL(r.date)}${r.isRange?' – '+_ddmmL(r.endDate):''}</td><td style="color:var(--mut)">${dow}</td><td>${escapeHTML(r.name)}</td><td style="text-align:center">${_catBadge(badge[r.cat]||r.cat)}</td></tr>`; }).join('')}</tbody></table>`;
+};
+// ── Home：只讲「看与印」，不再有「Manage Holidays / 设定日期」（10/9：NoticeGo 是纯读者）──
+render_home = function(){
+  const el=document.getElementById('home-content'), yr=window._holYear || new Date().getFullYear(), ok=_dOK(yr);
+  const it=ok ? _v39Items(yr, null, true) : [];
+  const n=c=>it.filter(h=>c.includes(h.cat)).length;
+  el.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#FFF8F0 0%,#FFFDF5 100%);border:.5px solid #F9CB42">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:42px">🌴</div>
+        <div style="flex:1"><div style="font-size:22px;font-weight:700;color:#854F0B">NoticeGo-Holiday</div>
+          <div style="font-size:13px;color:var(--mut);margin-top:2px">Holiday notices for parents · 家长假期通知（日期来自 MasterHub Calendar）</div></div>
+        <select onchange="window._holYear=parseInt(this.value);render_home()" style="padding:7px 12px;font-size:13px;font-weight:600;border:.5px solid #F9CB42;border-radius:6px;background:#FFFFFF">
+          ${_yearOpts(yr)}</select>
+      </div>
+    </div>
+    ${ok ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:14px">
+      ${_homeStat('📅','Holidays',n(['PH1','PH2','SUB','OFF','FEST_OFF']),'#185FA5','#EEF4FB')}
+      ${_homeStat('🏫','School holiday periods',n(['SH']),'#0F6E56','#EDFAF4')}
+      ${_homeStat('🚪','Centre closed periods',n(['CLOSED']),'#854F0B','#FFF9E6')}
+      ${_homeStat('★','Extra class periods',n(['EC']),'#7030A0','#F5F0FF')}
+    </div>` : `<div class="card" style="margin-top:14px;font-size:12px;color:var(--mut)">${yr} is not published in MasterHub Calendar yet.</div>`}
+    <div class="card" style="margin-top:14px">
+      <div class="card-hdr"><div class="card-title">📤 Quick Actions</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:6px">
+        <button onclick="goPage('holidays')" class="quick-card" style="background:#FFF8F0;border-color:#F9CB42"><div style="font-size:24px">📅</div>
+          <div style="font-weight:600;margin-top:6px">Year Calendar</div><div style="font-size:11px;color:var(--mut);margin-top:3px">Whole year · by department · print</div></button>
+        <button onclick="goPage('parent')" class="quick-card" style="background:#EDFAF4;border-color:#9FE1CB"><div style="font-size:24px">👨‍👩‍👧</div>
+          <div style="font-weight:600;margin-top:6px">Parent Notices</div><div style="font-size:11px;color:var(--mut);margin-top:3px">6 bi-monthly notices · 中英双语</div></button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px"><div class="card-hdr"><div class="card-title">🌟 Upcoming Holidays in ${yr}</div></div>${_homeUpcoming(yr)}</div>
+    <style>.quick-card{display:block;text-align:left;padding:14px;border:.5px solid var(--bdr);border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s;color:var(--txt)}
+      .quick-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}</style>`;
+};
+function _yearOpts(yr){ const ys=new Set([yr, new Date().getFullYear(), ...Object.keys(_DAYS).map(Number)]); return [...ys].filter(Boolean).sort().map(y=>`<option value="${y}"${y===yr?' selected':''}>${y}</option>`).join(''); }
+
+// ── Year Calendar（10/9 从 Calendar 的 Parent View 搬过来）：按部门看全年，读每日结果表，只给看与印 ──
+let _ycDept = 'SRK';
+render_holidays = function(){
+  const el=document.getElementById('holidays-content'), yr=window._holYear || new Date().getFullYear();
+  const btn=(d)=>`<button onclick="_ycDept='${d}';render_holidays()" style="padding:4px 12px;font-size:11px;border-radius:5px;cursor:pointer;font-family:inherit;background:${_ycDept===d?'#5C1010':'var(--sur)'};color:${_ycDept===d?'#fff':'var(--txt)'};border:.5px solid ${_ycDept===d?'#5C1010':'var(--bdr)'}">${d}</button>`;
+  let srtHint='';
+  if(_ycDept==='SRT'){   // 这台电脑以前在 NoticeGo 存的 SRT 日期，Calendar 卡 G 还没有的 → 提醒
+    let local=null; try{ local=JSON.parse(localStorage.getItem(_SRT_LOCAL_KEY)||'null'); }catch(e){}
+    const lf=(local&&local[yr])||{}, mine=[...(lf.fridays||[]), ...(lf.saturdays||[])].filter(Boolean);
+    const cloud=(_DAYS[yr]||[]).filter(r=>r.kind==='DEPT_OFF').map(_dDay), miss=mine.filter(d=>!cloud.includes(d));
+    if(miss.length) srtHint=`<div class="no-print" style="margin:0 0 12px;padding:8px 12px;background:#FFF9E6;border:.5px solid #F9CB42;border-radius:6px;font-size:11px;color:#854F0B"><b>SRT days found on this computer but not in MasterHub Calendar yet:</b> ${miss.map(d=>escapeHTML(d)).join(', ')} — please enter them in Calendar → card G.</div>`;
+  }
+  const leg=(bg,bd,t)=>`<span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;background:${bg};border:${bd};border-radius:3px;display:inline-block"></span>${t}</span>`;
+  el.innerHTML = `
+    <div class="no-print" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <span style="font-size:11px;color:var(--mut)">DEPT:</span>${['SRK','GAK','ATC','SRT'].map(btn).join('')}
+      <span style="font-size:11px;color:var(--mut);margin-left:6px">Dates come from MasterHub Calendar (view only).</span>
+      <select onchange="window._holYear=parseInt(this.value);render_holidays()" style="margin-left:auto;padding:4px 8px;font-size:11px">${_yearOpts(yr)}</select>
+      <button onclick="window.print()" style="padding:5px 14px;font-size:11px;background:#5C1010;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:inherit">🖨️ Print</button>
+    </div>
+    ${srtHint}
+    <div class="print-only" style="display:none;text-align:center;margin-bottom:10px;font-family:Georgia,serif"><div style="font-size:20px;font-weight:700;color:#5C1010">${escapeHTML(((S.meta&&S.meta.centerName)||'Academee').toUpperCase())}</div><div style="font-size:13px">${yr} Holiday Calendar · ${_ycDept}</div></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:10px;margin-bottom:12px;padding:7px 12px;background:#faf8f5;border:1px solid #e8ddd8;border-radius:5px;color:#444">
+      ${leg('#5C1010','none','<b>Holiday / Off</b> 假期/休息')}${leg('#F2DADA','1px solid #C47B7B','School / Festival 学校/节日假期')}${leg('#fff','1px solid #ccc','Class Day 上课日')}<span>★ Extra Learning Day 补课</span>
+    </div>
+    <div id="hol-tab-content">${_dOK(yr)
+      ? `<div id="cal-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;align-items:start">${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>_v39Mini(yr,m,_ycDept,_PAL_PARENT)).join('')}</div>`
+      : `<div class="empty">${yr} is not published in MasterHub Calendar yet.</div>`}</div>`;
+};
+Object.assign(NOTICE_NAME_CN, {
+  'School Holiday (Mid-term 1)':'学校假期（期中一）', 'School Holiday (Mid-term 2)':'学校假期（期中二）', 'School Holiday (Year-end)':'学校假期（年终）',
+  'Cuti Penggal 1':'第一学期假期', 'Cuti Pertengahan Tahun':'年中学校假期', 'Cuti Penggal 2':'第二学期假期', 'Cuti Akhir Persekolahan':'年终学校假期',
+  'Mid-year closure':'年中休息', 'Christmas closure':'圣诞休息', 'Unexpected closure':'临时休息', 'Centre closed':'中心休息',
+  'SRT Friday off':'SRT 星期五休息', 'SRT Saturday off':'SRT 星期六休息', 'SRT makeup class':'SRT 补课', 'Other holiday':'其他假期'
+});
+Object.keys(NOTICE_NAME_CN).forEach(k=>{ if(!/^Replace: /.test(k)) NOTICE_NAME_CN['Replace: '+k]='补假：'+NOTICE_NAME_CN[k]; });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INIT
