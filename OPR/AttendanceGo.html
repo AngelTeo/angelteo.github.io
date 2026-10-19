@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v27</title>
+<title>OPR-AttendanceGo v28</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -261,7 +261,10 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=27;   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
+/* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
+   以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
+   Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
+const APP_VERSION=28;   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
 /* v26 · E-Class 网课：Present / Late 的格子显示 E·AM / E·NN；双班学生在另一班显示灰色 E（不算出席率）（Owner 10-10） */
 /* v25 · 点名一行只剩 Present / Absent / Late / Early；按 Absent 再选 MC · Holiday · Stay back(ATC) · Other，可选 Not informed（Owner 10-07） */
 /* v24 · ATC 按 Late 直接记现在的时间（不跳视窗）；再按一次 Late 可以改时间（Owner 10-07） */
@@ -390,11 +393,13 @@ async function initApp(){
     return;
   }
   try{
-    const[stuRes, memRes, calRes]=await Promise.all([
-      _sb.from('hub_students').select('id,name,name_cn,status,status_note'),
-      _sb.from('hub_student_memberships').select('student_id,dept,class_code,num,start_date,end_date,pause_from,pause_to'),   /* v16 · 带请假起讫日 */
-      _sb.from('calendar_events').select('type,name,start_date,end_date,depts')
+    /* v28 · 名单也分批抓（学生 375、班籍 553，离 1000 不远） */
+    const[stuData, memData, calData]=await Promise.all([
+      _fetchAll(()=>_sb.from('hub_students').select('id,name,name_cn,status,status_note').order('id'),'Students'),
+      _fetchAll(()=>_sb.from('hub_student_memberships').select('student_id,dept,class_code,num,start_date,end_date,pause_from,pause_to').order('id'),'Classes'),   /* v16 · 带请假起讫日 */
+      _fetchAll(()=>_sb.from('calendar_events').select('type,name,start_date,end_date,depts').order('id'),'Calendar')
     ]);
+    const stuRes={data:stuData}, memRes={data:memData}, calRes={data:calData};
     /* v12 · 以前只收 active，行政把学生设成请假 → 那个孩子整个从点名名册消失，老师点不到他。
        改成 Active ＋ Paused 两种都收（Owner 09-23 裁定第 5 项第 1 点）。
        字面就是 'Paused'，见 AttendanceGo_请假字面_确认_20260923.md。 */
@@ -408,8 +413,7 @@ async function initApp(){
     const{data:mn}=await _sb.rpc('get_marker_names');
     (mn||[]).forEach(u=>{markerNames[u.email]=u.display_name;});
     // Load attendance rules
-    const{data:rulesData}=await _sb.from('attendance_rules').select('*').eq('is_active',true);
-    allRules=rulesData||[];
+    allRules=await _fetchAll(()=>_sb.from('attendance_rules').select('*').eq('is_active',true).order('id'),'Rules');   /* v28 */
     /* v19 · SRT 补课 / 临时换时段登记 */
     try{ const{data:sw}=await _sb.from('attendance_swap').select('*').eq('status','active'); allSwaps=sw||[]; }catch(e){ allSwaps=[]; }
     /* v17 · ATC 课表（ClassGo 是课表正本）：每班每天 s1 = 功课班老师，s2 = 科目 + 老师 */
@@ -417,17 +421,31 @@ async function initApp(){
     console.log('Loaded:',allStudents.length,'students,',allMemberships.length,'memberships,',allCalendar.length,'calendar events,',allRules.length,'rules');
     await fuLoadTasks();                 /* v14 · Follow-Up 设定 */
     await loadAttendance(selectedDate);
-  }catch(e){console.error('Init failed:',e);}
+  }catch(e){console.error('Init failed:',e); setTimeout(()=>toast('✕ Could not load all data — refresh the page',8000),300);}   /* v28 · 以前只记在主控台，老师看不到 */
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').style.display='block';
   goPage('dashboard');
 }
 
+/* v28 · 分批抓到完：每批照 id 排好、从上一批的尾巴接着抓，抓到空为止（不管云端上限是 1000 还是别的数字都对）。
+   任何一批失败就整个丢错，呼叫的地方显示红字 —— 不准默默少资料。 */
+async function _fetchAll(makeQuery,label){
+  const out=[]; let from=0;
+  for(let i=0;i<1000;i++){
+    const{data,error}=await makeQuery().range(from,from+999);
+    if(error) throw new Error((label||'Load')+': '+(error.message||error));
+    if(!data||!data.length) return out;
+    out.push(...data); from+=data.length;
+  }
+  throw new Error((label||'Load')+': too many rows');
+}
+function _loadFailHTML(e){ return `<div style="margin:12px 0;padding:12px 14px;border-radius:8px;background:#FCEBEB;color:#A32D2D;font-size:12px;font-weight:600">✕ Could not load all records — nothing below is shown so the numbers are not wrong. Please refresh and try again.<div style="font-weight:400;font-size:11px;margin-top:4px">${_escHtml(String(e&&e.message||e))}</div></div>`; }
+
 // ── Load attendance for a date ──
 async function loadAttendance(date){
   selectedDate=date;
-  const{data,error}=await _sb.from('attendance').select('*').eq('date',date);
-  if(!error) todayRecords=data||[];
+  try{ todayRecords=await _fetchAll(()=>_sb.from('attendance').select('*').eq('date',date).order('id'),'Attendance'); }   /* v28 */
+  catch(e){ console.error(e); toast('✕ Could not load today\'s marks — refresh',5000); }
   await fuLoadRecords(date);           /* v14 · 本周的 Follow-Up 纪录 ＋ 未结待办 */
 }
 
@@ -1712,7 +1730,8 @@ let monthlyDept='SRK';
 let monthlyCat='';
 let monthlyClass='';
 let monthlyMonth=todayStr().slice(0,7); // YYYY-MM
-let monthlySession=0;   // 0=single(SRK/GAK/SRT), 1=ATC功课班, 2=ATC上课班 — D-A35
+let monthlySession=0;
+let _monthlyTok=0;   /* v28 */   // 0=single(SRK/GAK/SRT), 1=ATC功课班, 2=ATC上课班 — D-A35
 
 async function renderMonthly(){
   const el=document.getElementById('monthly-content');
@@ -1780,10 +1799,14 @@ async function renderMonthly(){
   // Fetch month records
   const startDate=monthlyMonth+'-01';
   const endDate=monthlyMonth+'-'+String(daysInMonth).padStart(2,'0');
-  const{data:monthRecs}=await _sb.from('attendance').select('*')
-    .gte('date',startDate).lte('date',endDate)
-    .eq('dept',monthlyDept)   /* v18 · 不再只抓本班 class_code，下面用 attClassOf 判断 */
-    .order('date').order('session');
+  let monthRecs; const _tok=++_monthlyTok;
+  try{
+    monthRecs=await _fetchAll(()=>_sb.from('attendance').select('*')
+      .gte('date',startDate).lte('date',endDate)
+      .eq('dept',monthlyDept)   /* v18 · 不再只抓本班 class_code，下面用 attClassOf 判断 */
+      .order('date').order('session').order('id'),'Monthly');   /* v28 · 分批抓到完（以前超过 1000 行就截掉月底） */
+  }catch(e){ console.error(e); if(_tok===_monthlyTok) el.innerHTML=h+_loadFailHTML(e); return; }
+  if(_tok!==_monthlyTok) return;   /* v28 · 分批要多等几下：老师已经换了班 / 月份，这一份就不画，免得旧的盖掉新的 */
   // D-A35: ATC 一天两条 (session 1/2)。不按 session 过滤 = recMap 后条覆盖前条,
   // Rate 分母翻倍, 显示哪一节不可预测。一刀切好 recMap/Rate/Marked by 三处。
   const recs=(monthRecs||[]).filter(r=>(r.session??0)===monthlySession&&attClassOf(r)===monthlyClass);
@@ -2021,8 +2044,9 @@ async function loadTrackerMatrix(){
 
   // Fetch all records for selected students in range
   const ids=active.map(s=>s.id);
-  const{data}=await _sb.from('attendance').select('*').in('student_id',ids).gte('date',trackerFrom).lte('date',trackerTo);
-  const recs=data||[];
+  let recs;
+  try{ recs=await _fetchAll(()=>_sb.from('attendance').select('*').in('student_id',ids).gte('date',trackerFrom).lte('date',trackerTo).order('id'),'Tracker'); }   /* v28 */
+  catch(e){ console.error(e); el.innerHTML=_loadFailHTML(e); return; }
 
   const ICON={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
   const BG={present:'#E1F5EE',absent:'#FCEBEB',late:'#FFF8E1',early_leave:'#FFF0E6',mc:'#EEF2F7'};
@@ -2585,9 +2609,9 @@ async function deleteRule(id){
 async function exportCSV(){
   toast('Preparing export…',4000);
   try{
-    const{data,error}=await _sb.from('attendance').select('date,dept,class_code,student_name,status,note,marked_by').order('date',{ascending:true});
-    if(error){toast('✕ Export failed');return;}
-    const rows=data||[];
+    let rows;   /* v28 · 以前只汇出最早的 1,000 行 */
+    try{ rows=await _fetchAll(()=>_sb.from('attendance').select('date,dept,class_code,student_name,status,note,marked_by').order('date',{ascending:true}).order('id'),'Export'); }
+    catch(e){ toast('✕ Export failed: '+e.message,6000); return; }
     if(!rows.length){toast('No records to export');return;}
     const cols=['date','dept','class_code','student_name','status','note','marked_by'];
     const esc=v=>{const s=(v??'').toString();return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
@@ -2610,9 +2634,9 @@ async function exportCSV(){
 async function exportData(){
   toast('Preparing export…',4000);
   try{
-    const{data,error}=await _sb.from('attendance').select('*').order('date',{ascending:true});
-    if(error){toast('✕ Export failed: '+error.message);return;}
-    const rows=data||[];
+    let rows;   /* v28 · 以前只汇出最早的 1,000 行 */
+    try{ rows=await _fetchAll(()=>_sb.from('attendance').select('*').order('date',{ascending:true}).order('id'),'Export'); }
+    catch(e){ toast('✕ Export failed: '+e.message,6000); return; }
     if(!rows.length){toast('No records to export');return;}
     const pkg={system:'OPR-AttendanceGo',version:APP_VERSION,exported:new Date().toISOString(),count:rows.length,records:rows};
     const blob=new Blob([JSON.stringify(pkg,null,2)],{type:'application/json'});
