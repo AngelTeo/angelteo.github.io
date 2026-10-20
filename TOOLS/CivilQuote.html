@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CIVIL / QUOTE · Professional Estimating Studio</title>
+<style>
+  :root{
+    --canvas:#f3f6f5; --surface:#fff; --surface-2:#f8faf9; --ink:#20323b; --muted:#5c6b71;
+    --line:#e1e9e8; --line-strong:#cad9d7; --brand:#183744; --brand-2:#266a6b; --accent:#d9b77a;
+    --fill:#f1f8f6; --warn:#b7583e; --ok:#28846c; --soft:#eff5f3;
+    --shadow:0 3px 18px rgba(31,56,62,.045); --radius:15px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--canvas);color:var(--ink);font:14px/1.55 Inter,"Segoe UI",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif;letter-spacing:.01em}
+  button,input,select,textarea{font:inherit}
+  button{cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s,transform .15s}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(45,121,119,.22);outline-offset:1px}
+  .app-shell{display:flex;min-height:100vh}
+  .sidebar{background:var(--brand);color:#fff;flex:0 0 248px;width:248px;min-height:100vh;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:10}
+  .brand-unit{display:flex;align-items:center;gap:12px;padding:27px 22px 20px}
+  .brand-emblem{height:41px;width:41px;border:1px solid rgba(202,232,222,.34);border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:rgba(255,255,255,.08);color:#b6d6cb;font-size:21px;font-weight:700;line-height:1}
+  .brand-title{font-size:14px;font-weight:800;letter-spacing:.09em;line-height:1.3}
+  .brand-sub{color:#95b5bc;font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+  .project-mini{margin:6px 13px 26px;padding:17px 16px;background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.12);border-radius:12px}
+  .eyebrow,.side-caption{letter-spacing:.15em;text-transform:uppercase;font-size:10px;font-weight:700}
+  .project-mini .eyebrow{color:#96b1b8}
+  .project-mini strong{font-size:14px;line-height:1.35;display:block;margin:8px 0 4px;font-weight:650}
+  .project-mini .side-ref{color:#acbec4;font-size:11px;overflow-wrap:anywhere}
+  .side-caption{color:#7797a0;padding:0 22px 11px}
+  nav.tabs{display:flex;flex-direction:column;gap:4px;padding:0 12px;overflow-y:auto;overflow-x:hidden;flex:1}
+  nav.tabs button{border:1px solid transparent;background:transparent;border-radius:11px;color:#adc3c8;display:flex;align-items:center;gap:12px;width:100%;padding:12px 12px;text-align:left;min-height:56px}
+  nav.tabs button:hover{background:rgba(255,255,255,.055);color:#fff}
+  nav.tabs button.on{background:#e9f3f0;color:#194350;border-color:#e9f3f0;box-shadow:0 4px 12px rgba(0,0,0,.11)}
+  nav.tabs button.internal:not(.on) .nav-num{color:#f0ce8c;border-color:rgba(240,206,140,.28)}
+  nav.tabs .nav-num{width:31px;height:31px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.17);border-radius:9px;font-size:11px;letter-spacing:.03em;font-weight:750;flex-shrink:0}
+  nav.tabs button.on .nav-num{background:rgba(30,95,94,.095);border-color:rgba(30,95,94,.11)}
+  .nav-meta{display:grid;gap:1px}
+  .nav-meta b{font-size:13px;letter-spacing:.015em}
+  .nav-meta small{font-size:10px;opacity:.74;letter-spacing:.01em}
+  .side-footer{border-top:1px solid rgba(255,255,255,.13);margin-top:auto;padding:18px 21px 22px}
+  .side-footer .local-row{display:flex;align-items:center;gap:9px;font-size:11px;color:#c0d1d2;font-weight:600}
+  .local-dot{height:7px;width:7px;background:#a5d6bd;border-radius:50%;box-shadow:0 0 0 3px rgba(165,214,189,.1)}
+  #saveState{display:block;font-size:10px;line-height:1.6;color:#87a8af;margin-top:7px}
+  .workspace{flex:1;min-width:0}
+  header.app{height:77px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 32px;position:sticky;top:0;z-index:8}
+  .crumb{display:flex;align-items:center;gap:9px;font-size:12px;color:#839397}
+  .crumb strong{color:#233e47;font-weight:750}
+  .crumb .sep{font-size:16px;color:#bac6c7}
+  .btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  button{border:1px solid #d8e3e1;border-radius:9px;background:#fff;color:#344b52;padding:9px 14px;font-size:12px;font-weight:700}
+  button:hover{background:#f3f8f6;border-color:#b5d0ca}
+  button.primary{background:var(--brand-2);color:#fff;border-color:var(--brand-2);box-shadow:0 3px 9px rgba(38,106,107,.14)}
+  button.primary:hover{background:#1f555a;border-color:#1f555a}
+  button.danger{color:#aa5843;border-color:#e9d4ce}
+  button.danger:hover{background:#fcf4f1}
+  .btn-icon{font-size:15px;margin-right:5px;vertical-align:-1px}
+  main{max-width:1530px;margin:0 auto;padding:29px 34px 55px}
+  .page-intro{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:23px}
+  .page-intro .eyebrow{color:#3e777a;margin-bottom:5px}
+  .page-intro h1{margin:0 0 3px;font-size:28px;line-height:1.27;font-weight:800;letter-spacing:-.035em;color:#1e3a43}
+  .page-intro p{margin:0;color:#5f7075;font-size:12.5px}
+  .work-meta{display:flex;gap:8px;align-items:center;padding-top:11px;white-space:nowrap}
+  .meta-pill{border:1px solid #dae6e3;background:#fff;border-radius:40px;padding:6px 10px;color:#537077;font-size:11px;font-weight:650}
+  .meta-pill::before{content:"";display:inline-block;width:6px;height:6px;background:#7bac9b;border-radius:50%;margin-right:6px}
+  .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:25px}
+  .summary-item{min-width:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px 18px 15px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .summary-item:before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;background:#aac9c1;border-radius:0 3px 3px 0}
+  .summary-item:first-child:before{background:#2b7977}
+  .summary-item:nth-child(3):before{background:#e1b68b}
+  .summary-item:nth-child(4):before{background:#bdc8c8}
+  .summary-label{color:#5f7075;font-size:11px;font-weight:650;margin-bottom:5px}
+  .summary-value{font-size:23px;font-weight:800;letter-spacing:-.035em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;line-height:1.45}
+  .summary-note{color:#66777b;font-size:10.5px;margin-top:2px}
+  section.tab{display:none}
+  section.tab.on{display:block}
+  #t-info.on,#t-terms.on,#t-int.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+  #t-info>.card:nth-child(2){grid-column:2;grid-row:1 / span 2}
+  #t-terms>.card:first-child{grid-column:1;grid-row:1 / span 3}
+  #t-int>.card:nth-child(3){grid-column:1/-1}
+  #t-bq.on{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}
+  #t-bq>.card:first-child{grid-column:1/-1}
+  #t-bq>.card:nth-child(2){grid-column:2;grid-row:2}
+  #t-bq>.card:nth-child(3){grid-column:1;grid-row:2}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:23px 23px 25px;box-shadow:var(--shadow);min-width:0;margin:0}
+  .card h2{font-size:15px;margin:0 0 17px;color:#254852;font-weight:800;letter-spacing:-.005em;display:flex;align-items:center;gap:9px}
+  .card h2:before{content:"";display:inline-block;width:5px;height:16px;background:#6a9e96;border-radius:4px}
+  .hint{color:#5f7075;font-size:11.5px;margin:-9px 0 18px;line-height:1.65}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:17px 16px}
+  label{display:block;font-size:11px;color:#55676c;font-weight:650;margin-bottom:5px;letter-spacing:.012em}
+  input,select,textarea{width:100%;padding:10px 11px;border:1px solid #d9e4e2;border-radius:9px;background:#fff;color:#253d43;font-size:12.5px;outline:none;transition:border-color .12s,box-shadow .12s}
+  input:focus,select:focus,textarea:focus{border-color:#7eaca5;box-shadow:0 0 0 3px rgba(71,132,119,.10)}
+  input.fill,textarea.fill{background:#fff4cc;border-color:#e3c463}
+  input.fill:focus,textarea.fill:focus{background:#fffbea;border-color:#c99a1e}
+  input::placeholder,textarea::placeholder{color:#b2bebd}
+  textarea{min-height:88px;resize:vertical;line-height:1.55}
+  #t-terms textarea{margin-bottom:15px;min-height:120px;font-size:12.5px}
+  .tablewrap{overflow:auto;border:1px solid #e5eded;border-radius:10px;max-width:100%;background:#fff}
+  table.bq{border-collapse:separate;border-spacing:0;width:100%;min-width:1010px;font-size:12px}
+  table.bq th{background:#edf4f2;color:#557077;text-align:left;padding:13px 10px;font-size:10.5px;white-space:nowrap;font-weight:800;position:sticky;top:0;z-index:2;border-bottom:1px solid #dce9e5;letter-spacing:.02em}
+  table.bq td{border-bottom:1px solid #ecf1f0;padding:7px 8px;vertical-align:middle}
+  table.bq tr:last-child td{border-bottom:0}
+  table.bq tr:not(.sec):not(.sub):hover td{background:#fbfdfc}
+  table.bq tr.sec td{background:#e4eeeb;color:#264951;font-weight:850;padding:10px 13px;font-size:11.5px;border-top:8px solid #fff;border-bottom:1px solid #d1e2dc}
+  table.bq tr.sub td{background:#f5f8f7;font-weight:800;color:#47645f}
+  table.bq input,table.bq select{padding:7px 7px;font-size:11.5px;min-width:0;border-radius:7px}
+  table.bq td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;color:#3b535a}
+  table.bq input.fill{background:#fff4cc;border-color:#e3c463;font-weight:700}
+  .tag{display:inline-block;font-size:10px;padding:3px 8px;border-radius:30px;background:var(--soft)}
+  .tot{display:grid;grid-template-columns:1fr auto;gap:10px 12px;max-width:100%;font-size:12px}
+  .tot div:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .tot .big{font-weight:850;font-size:14px;border-top:1px solid var(--line);padding-top:13px;margin-top:6px;color:#174950}
+  .alert,.good{padding:11px 13px;border-radius:9px;margin:10px 0;background:#fff6f2;border:1px solid #f2ddd3;color:#95503d;font-size:12px;line-height:1.6}
+  .good{background:#f0faf6;border-color:#d7eee3;color:#287057}
+  .banner-int{background:#b42318;color:#fff;border:1px solid #b42318;padding:12px 16px;border-radius:10px;grid-column:1/-1;font-size:12px;font-weight:750}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+  .row-actions select{width:auto;max-width:100%}
+  .small{font-size:11px}
+  .section-note{font-size:11px;color:#768b88}
+  .quote-warning{display:flex;align-items:center;gap:10px;padding:11px 15px;border:1px solid #e9ddd0;background:#fffaf4;border-radius:11px;margin-bottom:18px;font-size:12px;color:#8b673d}
+  .quote-warning .warning-mark{display:grid;place-items:center;flex-shrink:0;width:25px;height:25px;border-radius:50%;background:#f7eddb;color:#936d39;font-weight:900}
+  /* client-facing printed quotation */
+  #t-preview{min-width:0}
+  #doc{background:#fff;max-width:830px;margin:0 auto;padding:46px 47px 52px;border:1px solid #e0e9e7;border-radius:4px;color:#25353d;font-size:11.4px;line-height:1.55;box-shadow:0 14px 35px rgba(41,67,65,.05)}
+  #doc .doc-topline{font-size:9px;font-weight:850;letter-spacing:.15em;color:#5d988b;margin-bottom:6px}
+  #doc .doc-quote-ref{float:right;padding-top:17px;font-size:10.5px;font-weight:700;letter-spacing:0;color:#7b8a8d}
+  #doc .co{font-size:19px;font-weight:850;color:#214c51;letter-spacing:-.03em;max-width:100%;overflow-wrap:anywhere}
+  #doc .coinfo{color:#819092;font-size:9.7px;line-height:1.7}
+  #doc .title{font-size:31px;letter-spacing:-.065em;font-weight:850;margin:34px 0 20px;color:#183844;position:relative;padding-bottom:10px}
+  #doc .title:after{content:"";display:block;width:58px;height:4px;border-radius:4px;background:#75aba2;position:absolute;bottom:0;left:0}
+  #doc h3{font-size:12.5px;color:#1f5358;border-bottom:1px solid #d6e5e0;padding-bottom:8px;margin:24px 0 11px;letter-spacing:.01em}
+  #doc table{border-collapse:collapse;width:100%;margin:7px 0 15px;font-size:10.6px;table-layout:auto}
+  #doc td,#doc th{border:1px solid #dce5e3;padding:7px 9px;vertical-align:top;text-align:left;word-break:normal;overflow-wrap:anywhere}
+  #doc th{background:#204e57;color:#fff;font-weight:700}
+  #doc td.k{background:#f2f7f5;color:#557077;font-weight:700;width:27%}
+  #doc td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  #doc tr.b td{font-weight:800;background:#f3f7f6}
+  #doc ul,#doc ol{margin:7px 0 14px;padding-left:22px}
+  #doc li{margin-bottom:4px}
+  #doc .note{font-size:9.7px;color:#859195;font-style:normal}
+  #doc .pb{page-break-before:always;break-before:page}
+  .ph,#doc .ph{color:#b86839;background:#fff3e6;padding:0 2px;border-radius:2px}
+  #doc p{margin:9px 0}
+  @media(max-width:1190px){
+    .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #t-info.on,#t-terms.on,#t-int.on{grid-template-columns:1fr 1fr}
+    main{padding:25px 26px 45px}
+    .sidebar{flex-basis:215px;width:215px}
+  }
+  @media(max-width:960px){
+    .app-shell{display:block}.sidebar{position:static;width:100%;height:auto;min-height:0;padding:0;display:block}
+    .brand-unit{padding:12px 18px;display:inline-flex}.brand-emblem{height:33px;width:33px;font-size:16px}
+    .project-mini,.side-caption,.side-footer{display:none}
+    nav.tabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:0 12px 10px;gap:5px}
+    nav.tabs button{width:auto;min-width:max-content;min-height:41px;padding:8px 11px;border-radius:9px;gap:8px}
+    nav.tabs .nav-num{width:23px;height:23px;border-radius:6px;font-size:10px}
+    .nav-meta small{display:none}
+    .nav-meta b{font-size:11.5px}
+    header.app{position:static;height:auto;min-height:62px;padding:13px 18px;flex-wrap:wrap}
+    main{padding:21px 18px 40px}
+    #t-info.on,#t-terms.on,#t-int.on,#t-bq.on{display:block}
+    .card{margin-bottom:14px}
+    .page-intro h1{font-size:23px}
+    .work-meta{display:none}
+  }
+  @media(max-width:620px){
+    .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:15px}
+    .summary-item{padding:13px 13px 12px}
+    .summary-value{font-size:19px}
+    .summary-label,.summary-note{font-size:10px}
+    header.app .crumb{display:none}
+    .btns{width:100%;justify-content:space-between}
+    nav.tabs{flex-wrap:wrap;overflow:visible}
+    nav.tabs button{flex:1 1 30%;min-width:0;justify-content:center}
+    .btns button{flex:1;padding:9px 8px;white-space:nowrap}
+    .btns button .btn-icon{display:none}
+    .card{padding:18px 15px}
+    #doc{padding:24px 17px;border-radius:0}
+    #doc .title{font-size:26px}
+    #doc td,#doc th{padding:5px}
+  }
+  @media print{
+    @page{size:A4;margin:14mm 13mm 15mm}
+    body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .app-shell,.workspace{display:block;min-height:0}
+    .sidebar,header.app,nav.tabs,.page-intro,.summary-grid,.quote-warning,.noprint{display:none!important}
+    main{padding:0;margin:0;max-width:none}
+    section.tab{display:none!important}
+    section#t-preview{display:block!important}
+    #doc{max-width:none;border:0;box-shadow:none;padding:0;margin:0;font-size:12px}
+    #doc .co{font-size:18px} #doc .title{font-size:26px;margin-top:20px}
+    #doc table{font-size:11.3px}#doc td,#doc th{padding:5px 7px}
+    #doc h3{margin:17px 0 7px;font-size:13px}
+    #doc .coinfo{font-size:10.5px} #doc .note{font-size:10.5px}
+    #doc tr{break-inside:avoid}
+    #doc ul,#doc ol{padding-left:17px}
+    #doc .pb{break-before:page;page-break-before:always}
+    #doc th,#doc td.k,#doc tr.b td{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  }
+
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar noprint">
+    <div class="brand-unit">
+      <div class="brand-emblem">▦</div>
+      <div><div class="brand-title">CIVIL / QUOTE</div><div class="brand-sub">Project Costing Studio</div></div>
+    </div>
+    <div class="project-mini">
+      <div class="eyebrow">CURRENT ESTIMATE</div>
+      <strong id="sideProject">New estimate</strong>
+      <div class="side-ref" id="sideQuote">Quotation draft</div>
+    </div>
+    <div class="side-caption">WORKSPACE / 工作区</div>
+    <nav class="tabs">
+      <button data-t="t-info" class="on"><span class="nav-num">01</span><span class="nav-meta"><b>报价资料</b><small>Project details &amp; company</small></span></button>
+      <button data-t="t-bq"><span class="nav-num">02</span><span class="nav-meta"><b>BQ 工程量</b><small>Quantities &amp; pricing</small></span></button>
+      <button data-t="t-terms"><span class="nav-num">03</span><span class="nav-meta"><b>范围与条款</b><small>Scope &amp; clarifications</small></span></button>
+      <button data-t="t-preview"><span class="nav-num">04</span><span class="nav-meta"><b>客户报价单</b><small>Client-ready document</small></span></button>
+      <button data-t="t-int" class="internal"><span class="nav-num">05</span><span class="nav-meta"><b>内部风险管理</b><small>Private commercial review</small></span></button>
+    </nav>
+    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v1</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
+  </aside>
+  <div class="workspace">
+    <header class="app noprint">
+      <div class="crumb">PROJECTS <span class="sep">/</span> ESTIMATES <span class="sep">/</span> <strong id="topQuote">DRAFT</strong></div>
+      <div class="btns">
+        <button class="primary" onclick="printQuote()"><span class="btn-icon">↗</span>打印 / 导出 PDF</button>
+        <button onclick="exportJSON()"><span class="btn-icon">↓</span>备份 JSON</button>
+        <button onclick="document.getElementById('imp').click()"><span class="btn-icon">↑</span>导入备份</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(this)">
+      </div>
+    </header>
+    <main>
+      <div class="page-intro noprint">
+        <div><div class="eyebrow">ESTIMATING WORKSPACE / 专业土建工程报价</div><h1 id="pageTitle">报价资料</h1><p id="pageSub">建立客户、项目和付款资料，为报价准备可靠的基础。</p></div>
+        <div class="work-meta"><span class="meta-pill" id="metaRev">REV 01</span><span class="meta-pill" id="metaLocal">LOCAL · PRIVATE</span></div>
+      </div>
+      <div class="summary-grid noprint">
+        <div class="summary-item"><div class="summary-label">初步报价合计 / ESTIMATE</div><div class="summary-value" id="kpiTotal">RM 0.00</div><div class="summary-note">包括暂定数量，未必是最终合约价</div></div>
+        <div class="summary-item"><div class="summary-label">BQ 报价完成 / PRICED ITEMS</div><div class="summary-value" id="kpiPriced">0 / 0</div><div class="summary-note" id="kpiPricedNote">待填写单价</div></div>
+        <div class="summary-item"><div class="summary-label">未关闭重大风险 / OPEN P0</div><div class="summary-value" id="kpiRisk">0</div><div class="summary-note">提交正式报价前逐项处理</div></div>
+        <div class="summary-item"><div class="summary-label">内部审核 / REVIEW STATUS</div><div class="summary-value" id="kpiReady">IN REVIEW</div><div class="summary-note" id="kpiReadyNote">检查项目条件</div></div>
+      </div>
+      <div class="quote-warning noprint" id="reviewBanner"><span class="warning-mark">!</span><span id="reviewText">报价尚有未决事项，最终报价须核对数量和图纸。</span></div>
+
+
+<!-- 1 INFO -->
+<section class="tab on" id="t-info">
+  <div class="card"><h2>我方公司</h2>
+    <p class="hint">黄色格为输入栏。公司资料在本机保存，新建项目可继续沿用。</p>
+    <div class="grid" id="f-company"></div>
+  </div>
+  <div class="card"><h2>报价与项目</h2><div class="grid" id="f-project"></div></div>
+  <div class="card"><h2>工期与付款</h2>
+    <div class="grid" id="f-pay"></div>
+    <div id="payCheck"></div>
+  </div>
+  <div class="card"><h2>项目管理</h2>
+    <p class="hint">开新项目会清空 BQ 单价和项目资料，但保留公司资料。之前的项目请先按"备份"存档。</p>
+    <div class="row-actions">
+      <button onclick="newProject()">开新项目（空白）</button>
+      <button class="danger" onclick="loadSample()">重设为空白范本</button>
+    </div>
+  </div>
+</section>
+
+<!-- 2 BQ -->
+<section class="tab" id="t-bq">
+  <div class="card">
+    <h2>工程量与单价 · BOQ WORKSHEET</h2>
+    <p class="hint">黄色格为报价输入格；未确认数量由 QS 核实。PS 填暂定总额，OPTION 不计入正式合计。</p>
+    <div class="tablewrap"><table class="bq" id="bqTable"></table></div>
+    <div class="row-actions noprint">
+      <select id="addSec" style="width:auto"></select>
+      <button onclick="addItem()">在此部分加一项</button>
+    </div>
+  </div>
+  <div class="card"><h2>价格概览 · COST SUMMARY</h2><div class="tot" id="totals"></div></div>
+  <div class="card"><h2>变更单价 · SCHEDULE OF RATES</h2>
+    <p class="hint">事先报好单价，改动时才有依据。</p>
+    <div class="tablewrap"><table class="bq" id="rateTable"></table></div>
+  </div>
+</section>
+
+<!-- 3 TERMS -->
+<section class="tab" id="t-terms">
+  <div class="card"><h2>工程范围 · 不包括项目 · 前提假设</h2>
+    <p class="hint">每行一条。会直接出现在报价单上（英文）。</p>
+    <label>Scope of works</label><textarea id="x-scope" rows="8"></textarea>
+    <label style="margin-top:10px">Exclusions</label><textarea id="x-excl" rows="8"></textarea>
+    <label style="margin-top:10px">Assumptions</label><textarea id="x-assum" rows="7"></textarea>
+  </div>
+  <div class="card"><h2>待澄清问题</h2>
+    <p class="hint">格式：问题 | 图纸编号。每行一条。回复了就删掉，或改成已确认的内容。</p>
+    <textarea id="x-clar" rows="9"></textarea>
+  </div>
+  <div class="card"><h2>验收关口 (Hold Points)</h2>
+    <p class="hint">格式：检查内容 | 由谁签字。每行一条。</p>
+    <textarea id="x-hp" rows="5"></textarea>
+  </div>
+  <div class="card"><h2>双方代表</h2><div class="grid" id="f-reps"></div></div>
+</section>
+
+<!-- 4 PREVIEW -->
+<section class="tab" id="t-preview">
+  <div class="card noprint"><p class="hint" style="margin:0">这里是客户将收到的正式报价文件。点击右上角「打印 / 导出 PDF」，选择浏览器「另存为 PDF」。<span class="ph">橙色字</span>表示还没填。</p></div>
+  <div id="doc"></div>
+</section>
+
+<!-- 5 INTERNAL -->
+<section class="tab" id="t-int">
+  <div class="banner-int">PRIVATE WORKSPACE / 内部专用 · 只在本机分析，不会打印给客户</div>
+  <div class="card"><h2>现金流：最多要垫多少钱</h2>
+    <div class="grid" id="f-cash"></div>
+    <div id="cashOut" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><h2>Go / No-Go：签约前全部要 YES</h2><div id="gonogo"></div><div id="decision"></div></div>
+  <div class="card"><h2>风险登记</h2>
+    <p class="hint">P0 = 定价前一定要解决 · P1 = 浇灌前要解决 · P2 = 交接前要解决</p>
+    <div class="tablewrap"><table class="bq" id="riskTable"></table></div>
+    <div class="row-actions"><button onclick="addRisk()">加一项风险</button></div>
+  </div>
+</section>
+</main>
+  </div>
+</div>
+
+<script>
+const APP_VERSION=1;
+const KEY="civil-quotation-pro-v1", OLD_KEY="civil-quotation-tool-v1";
+const STATUS=["CONFIRMED","PROVISIONAL","PS","OPTION","EXCLUDED"];
+
+function sample(){
+ const it=(no,desc,st,unit,q,n,note)=>({no,desc,dwg:"",st,unit,q,n,note:note||"",rate:""});
+ return {
+  company:{name:"",ssm:"",cidb:"",sst:"",address:"",tel:"",email:"",preparer:""},
+  project:{qno:"QT-",rev:"0",date:"",valid:"14",client:"",clientAddr:"",attn:"",project:"",
+   works:"Civil foundation works for equipment: slab, piers, ring beams, reinforcement and cast-in items",
+   basis:"",received:"",meeting:"",
+   status:"CONDITIONAL – subject to the clarifications in Section 4. Items marked PROVISIONAL will be confirmed once answered.",
+   sstRate:"0"},
+  pay:{days:"",payDays:"14",dep:"25",cast:"45",hand:"25",ret:"5",dlp:"12",psMark:"",basePrep:"7"},
+  sections:[
+   {code:"A",title:"PRELIMINARIES",items:[
+    it("A1","Mobilisation and demobilisation of labour, tools and equipment","CONFIRMED","LS",1,1),
+    it("A2","Site safety, induction and permit-to-work compliance","CONFIRMED","LS",1,1),
+    it("A3","Setting out, level survey and records before and after casting","CONFIRMED","LS",1,1)]},
+   {code:"B",title:"EQUIPMENT FOUNDATIONS",items:[
+    it("B1","Mechanical scabbling of existing slab surface","PROVISIONAL","m²","",1,"Fill qty per unit"),
+    it("B2","Drill and install dowel bars with chemical anchor, as confirmed by PE","PROVISIONAL","nr","",1),
+    it("B3","Supply, cut, bend and fix T12 reinforcement","PROVISIONAL","kg","",1),
+    it("B4","Supply, cut, bend and fix links","PROVISIONAL","kg","",1),
+    it("B5","Grade C25 concrete to slab","PROVISIONAL","m³","",1),
+    it("B6","Grade C25 concrete to beams and columns","PROVISIONAL","m³","",1,"QS take-off"),
+    it("B7","Formwork to beams and columns","PROVISIONAL","m²","",1,"QS take-off"),
+    it("B8","Supply and cast-in steel plates incl. anchorage","PROVISIONAL","nr","",1),
+    it("B9","Supply and set holding-down bolts with template","PROVISIONAL","nr","",1),
+    it("B10","Cast-in drain pipe","PROVISIONAL","nr","",1)]},
+   {code:"D",title:"TESTING AND RECORDS",items:[
+    it("D1","Concrete cube tests (7-day and 28-day), per set","PROVISIONAL","set","",1),
+    it("D2","Hold-point records, photos and marked-up as-built drawings","CONFIRMED","LS",1,1)]},
+   {code:"E",title:"PROVISIONAL SUMS (on written instruction only)",items:[
+    it("E1","Scanning and marking of underground services","PS","PS",1,1),
+    it("E2","Coring / testing of existing slab, if required by PE","PS","PS",1,1),
+    it("E3","Removal or diversion of unforeseen obstructions","PS","PS",1,1),
+    it("E4","Cast-in conduit sleeves (pending electrical confirmation)","PS","PS",1,1)]}
+  ],
+  rates:[["Additional pier complete (rebar, formwork, concrete, plate, bolt)","nr"],
+   ["Grade C25 concrete, placed","m³"],["Reinforcement supplied and fixed","kg"],["Formwork","m²"],
+   ["Dowel bar with chemical anchor","nr"],["Steel plate, cast-in","nr"],["Holding-down bolt, set","nr"],
+   ["Hacking / breaking of concrete","m³"],["General worker (8 hours)","day"],["Skilled worker (8 hours)","day"],
+   ["Site supervisor","day"],["Standing time, crew on site, site not available","crew-day"],["Machinery hire (state type)","day"]
+  ].map(r=>({desc:r[0],unit:r[1],rate:""})),
+  scope:["Mobilisation, site safety compliance, setting out and level survey with records.",
+   "Surface preparation (scabbling) of the existing slab at each foundation.",
+   "Drilling and installation of dowel bars with chemical anchor, as confirmed by the PE.",
+   "Supply and fixing of reinforcement to slabs, ring beams and piers per bar schedules.",
+   "Formwork and Grade C25 concrete to slabs, ring beams and piers.",
+   "Supply and casting-in of steel plates and holding-down bolts, set with a template to the equipment manufacturer's base drawing.",
+   "Casting-in of drain pipes and conduit sleeves confirmed by the electrical contractor.",
+   "Concrete cube tests and hold-point records, photos and marked-up as-built drawings."].join("\n"),
+  excl:["Design, structural calculations and PE fees.",
+   "Earthing grid, earth electrodes and connections (we will coordinate and leave openings as instructed).",
+   "All electrical works: cables, trays, terminations, testing and commissioning.",
+   "Delivery, crane hire and lifting of equipment; fixing or welding of equipment to the steel plates.",
+   "Access steps, fencing, gravel and reinstatement beyond the foundation footprint.",
+   "Authority submissions and approvals (Bomba, DOE, ST, TNB, local council).",
+   "Fire protection, oil interceptor, or connection of drains to the site drainage system.",
+   "Removal of contaminated soil, or works to existing structures not shown on the drawings.",
+   "Night, weekend or public holiday works, unless requested and priced separately."].join("\n"),
+  assum:["The PE confirms in writing that the existing slab and the dowel embedment shown are suitable for the equipment loads.",
+   "The drawings listed are issued for construction. Clarifications agreed in writing form part of this quotation.",
+   "The equipment manufacturer's base drawings are provided at least 7 days before casting.",
+   "Sleeve sizes and positions are confirmed in writing by the electrical contractor before casting.",
+   "Site access, a laydown area, water and electricity are provided free of charge during normal working hours.",
+   "Underground services are identified by the Client or Owner; scanning is carried as a Provisional Sum.",
+   "Any flatness tolerance will be achieved by a method approved in writing by the manufacturer and the PE, and checked jointly before equipment delivery."].join("\n"),
+  clar:"",
+  hp:["Setting out, existing slab condition, underground services cleared | Client site rep.",
+   "Reinforcement, dowels, steel plates, bolts, sleeves and earthing before casting | Client + electrical contractor",
+   "Casting, cube samples taken | Client site rep.",
+   "Level survey of steel plates after casting | Client + manufacturer's rep.",
+   "Foundation handover before equipment delivery | Client authorised rep."].join("\n"),
+  reps:{appName:"",appTel:"",siteName:"",siteTel:"",ourName:"",ourTel:""},
+  cash:{mat:"",lab:"",limit:"",margin:"15"},
+  gng:["Main contractor SSM profile checked (directors, paid-up capital, filed accounts)",
+   "At least one past subcontractor confirms they were paid on time",
+   "Main contractor CIDB grade checked",
+   "Written LOA / PO received, matching our quotation and Rev",
+   "Authorised commercial representative named in writing",
+   "Deposit received before mobilisation",
+   "No pay-when-paid clause (or struck out)",
+   "Retention % and release dates written in contract",
+   "PE written reply on existing slab and dowels received",
+   "Equipment base drawing received",
+   "Insurance (CAR / third-party) confirmed by main contractor",
+   "Peak funding within our limit"].map(t=>({t,v:"PENDING"})),
+  risks:[
+   ["","Bar schedule quantities: per unit or total?","P0","Main contractor / PE","Rebar items PROVISIONAL"],
+   ["","Existing slab capacity and dowel embedment not verified","P0","PE","Assumption + coring PS"],
+   ["","Equipment point loads and centre of gravity unknown","P0","Manufacturer / PE","Design responsibility clause"],
+   ["","Flatness tolerance: surface, method, sign-off","P1","Main contractor / manufacturer","Joint level check hold point"],
+   ["","Equipment base drawing not received","P1","Main contractor / manufacturer","Start condition"],
+   ["","Sleeve sizes / positions not final","P1","Electrical contractor","Sleeves as PS; sign-off before pour"],
+   ["","Buried cables or pipes at drilling area","P1","Owner / main contractor","Scanning PS"],
+   ["","Insurance cover unknown","P1","Main contractor","Insurance clause"],
+   ["","Payment risk","P0","Us","Deposit + stage payments; Go/No-Go"]
+  ].map(r=>({dwg:r[0],issue:r[1],pr:r[2],who:r[3],prot:r[4],due:"",st:"OPEN"}))
+ };
+}
+let S;
+function load(){try{let j=localStorage.getItem(KEY);if(!j){j=localStorage.getItem(OLD_KEY);if(j)localStorage.setItem(KEY,j);}if(j){S=JSON.parse(j);return}}catch(e){} S=sample();}
+let saveTimer;
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));
+  document.getElementById("saveState").textContent="已自动保存 · "+new Date().toLocaleTimeString()+" · 资料只存在这台设备"}catch(e){
+  document.getElementById("saveState").textContent="这个浏览器不能保存，请用“备份”存档"}},300);}
+
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,""));return isNaN(n)?null:n};
+const rm=v=>(v||0).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2});
+const q3=v=>v==null?"":v.toLocaleString("en-MY",{maximumFractionDigits:3});
+const ph=(v,txt)=>v?esc(v):`<span class="ph">[${txt||"to fill"}]</span>`;
+
+function fields(id,obj,defs){
+ const el=document.getElementById(id);
+ el.innerHTML=defs.map(([k,lab,type])=>`<div><label>${lab}</label>${type==="ta"?
+   `<textarea class="fill" data-k="${k}">${esc(obj[k])}</textarea>`:
+   `<input class="fill" data-k="${k}" ${type?`type="${type}"`:""} value="${esc(obj[k])}">`}</div>`).join("");
+ el.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{obj[i.dataset.k]=i.value;save();refresh();});
+}
+
+function itemAmt(it){
+ const q=num(it.q),n=num(it.n),r=num(it.rate);
+ if(it.st==="EXCLUDED") return 0;
+ if(it.st==="PS") return r||0;
+ return (q!=null&&n!=null&&r!=null)?q*n*r:0;
+}
+function totals(){
+ const t={CONFIRMED:0,PROVISIONAL:0,PS:0,OPTION:0,EXCLUDED:0},sec={};
+ S.sections.forEach(s=>{sec[s.code]=0;s.items.forEach(it=>{const a=itemAmt(it);t[it.st]+=a;if(it.st!=="OPTION")sec[s.code]+=a;});});
+ const base=t.CONFIRMED+t.PROVISIONAL+t.PS, sst=base*(num(S.project.sstRate)||0)/100;
+ return {t,sec,base,sst,grand:base+sst};
+}
+
+function renderBQ(){
+ const tb=document.getElementById("bqTable");
+ let h=`<tr><th>Item</th><th style="min-width:260px">Description</th><th>Drawing</th><th>Status</th><th>Unit</th><th>Qty/unit</th><th>Units</th><th>Total qty</th><th>Rate (RM)</th><th>Amount (RM)</th><th style="min-width:160px">Notes</th><th></th></tr>`;
+ S.sections.forEach((s,si)=>{
+  h+=`<tr class="sec"><td>${esc(s.code)}</td><td colspan="11">${esc(s.title)}</td></tr>`;
+  s.items.forEach((it,ii)=>{
+   const tq=(num(it.q)!=null&&num(it.n)!=null)?num(it.q)*num(it.n):null;
+   h+=`<tr data-s="${si}" data-i="${ii}">
+    <td><input data-f="no" value="${esc(it.no)}" style="width:52px"></td>
+    <td><input data-f="desc" value="${esc(it.desc)}"></td>
+    <td><input data-f="dwg" value="${esc(it.dwg)}" style="width:110px"></td>
+    <td><select data-f="st" style="width:120px">${STATUS.map(x=>`<option ${x===it.st?"selected":""}>${x}</option>`).join("")}</select></td>
+    <td><input data-f="unit" value="${esc(it.unit)}" style="width:50px"></td>
+    <td><input data-f="q" value="${esc(it.q)}" style="width:80px" ${it.q===""?'class="fill"':""}></td>
+    <td><input data-f="n" value="${esc(it.n)}" style="width:50px"></td>
+    <td class="num">${it.st==="PS"?"—":q3(tq)}</td>
+    <td><input class="fill" data-f="rate" value="${esc(it.rate)}" style="width:90px" placeholder="${it.st==="PS"?"sum":"0.00"}"></td>
+    <td class="num" data-amt>${rm(itemAmt(it))}</td>
+    <td><input data-f="note" value="${esc(it.note)}"></td>
+    <td><button class="small danger" data-del title="删除">✕</button></td></tr>`;
+  });
+  h+=`<tr class="sub"><td></td><td colspan="8">Sub-total Section ${esc(s.code)} (excl. OPTION)</td><td class="num" data-sec="${esc(s.code)}"></td><td colspan="2"></td></tr>`;
+ });
+ tb.innerHTML=h;
+ tb.querySelectorAll("tr[data-s]").forEach(tr=>{
+  const it=S.sections[tr.dataset.s].items[tr.dataset.i];
+  tr.querySelectorAll("[data-f]").forEach(inp=>{
+   inp.oninput=inp.onchange=()=>{it[inp.dataset.f]=inp.value;save();
+    if(["st","q","n"].includes(inp.dataset.f)&&inp.tagName==="SELECT") renderBQ();
+    else{tr.querySelector("[data-amt]").textContent=rm(itemAmt(it));
+      const tq=(num(it.q)!=null&&num(it.n)!=null)?num(it.q)*num(it.n):null;
+      tr.children[7].textContent=it.st==="PS"?"—":q3(tq);}
+    refresh();};
+  });
+  tr.querySelector("[data-del]").onclick=()=>{if(confirm("删除 "+it.no+"？")){S.sections[tr.dataset.s].items.splice(tr.dataset.i,1);save();renderBQ();refresh();}};
+ });
+ document.getElementById("addSec").innerHTML=S.sections.map((s,i)=>`<option value="${i}">${esc(s.code)}. ${esc(s.title)}</option>`).join("");
+ refresh();
+}
+function addItem(){const si=+document.getElementById("addSec").value,s=S.sections[si];
+ s.items.push({no:s.code+(s.items.length+1),desc:"",dwg:"",st:"PROVISIONAL",unit:"nr",q:"",n:1,note:"",rate:""});save();renderBQ();}
+
+function renderRates(){
+ const tb=document.getElementById("rateTable");
+ tb.innerHTML=`<tr><th>No.</th><th>Description</th><th>Unit</th><th>Rate (RM)</th></tr>`+
+  S.rates.map((r,i)=>`<tr><td>${i+1}</td><td><input data-i="${i}" data-f="desc" value="${esc(r.desc)}"></td><td><input data-i="${i}" data-f="unit" value="${esc(r.unit)}" style="width:80px"></td><td><input class="fill" data-i="${i}" data-f="rate" value="${esc(r.rate)}" style="width:110px"></td></tr>`).join("");
+ tb.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{S.rates[inp.dataset.i][inp.dataset.f]=inp.value;save();refresh();});
+}
+
+function renderTerms(){
+ ["scope","excl","assum","clar","hp"].forEach(k=>{const el=document.getElementById("x-"+k);el.value=S[k];el.oninput=()=>{S[k]=el.value;save();refresh();};});
+ fields("f-reps",S.reps,[["appName","总包 可批钱的人（姓名/职位）"],["appTel","联络"],["siteName","总包 工地/技术代表"],["siteTel","联络"],["ourName","我方代表"],["ourTel","联络"]]);
+}
+
+function renderInternal(){
+ fields("f-cash",S.cash,[["mat","第一笔进度款前要先付的材料费 (RM)"],["lab","第一笔进度款前要先付的工钱和机械 (RM)"],["limit","我们最多愿意垫多少 (RM)"],["margin","目标利润 (%)"]]);
+ const g=document.getElementById("gonogo");
+ g.innerHTML=S.gng.map((x,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><select data-i="${i}" style="width:110px">${["PENDING","YES","NO"].map(v=>`<option ${v===x.v?"selected":""}>${v}</option>`).join("")}</select><span>${esc(x.t)}</span></div>`).join("");
+ g.querySelectorAll("select").forEach(s=>s.onchange=()=>{S.gng[s.dataset.i].v=s.value;save();refresh();});
+ renderRisks();
+}
+function renderRisks(){
+ const tb=document.getElementById("riskTable");
+ tb.innerHTML=`<tr><th>ID</th><th>Drawing</th><th style="min-width:240px">Issue</th><th>Priority</th><th>Who answers</th><th style="min-width:160px">Protection in quote</th><th>Due</th><th>Status</th><th></th></tr>`+
+  S.risks.map((r,i)=>`<tr data-i="${i}"><td>R${String(i+1).padStart(2,"0")}</td>
+   <td><input data-f="dwg" value="${esc(r.dwg)}" style="width:90px"></td><td><input data-f="issue" value="${esc(r.issue)}"></td>
+   <td><select data-f="pr" style="width:70px">${["P0","P1","P2"].map(v=>`<option ${v===r.pr?"selected":""}>${v}</option>`).join("")}</select></td>
+   <td><input data-f="who" value="${esc(r.who)}"></td><td><input data-f="prot" value="${esc(r.prot)}"></td>
+   <td><input class="fill" data-f="due" type="date" value="${esc(r.due)}" style="width:140px"></td>
+   <td><select data-f="st" style="width:110px">${["OPEN","ANSWERED","CLOSED"].map(v=>`<option ${v===r.st?"selected":""}>${v}</option>`).join("")}</select></td>
+   <td><button class="small danger" data-del>✕</button></td></tr>`).join("");
+ tb.querySelectorAll("tr[data-i]").forEach(tr=>{const r=S.risks[tr.dataset.i];
+  tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=inp.onchange=()=>{r[inp.dataset.f]=inp.value;save();refresh();});
+  tr.querySelector("[data-del]").onclick=()=>{if(confirm("删除这项风险？")){S.risks.splice(tr.dataset.i,1);save();renderRisks();}};});
+}
+function addRisk(){S.risks.push({dwg:"",issue:"",pr:"P1",who:"",prot:"",due:"",st:"OPEN"});save();renderRisks();}
+
+function refresh(){
+ const T=totals();
+ S.sections.forEach(s=>{const c=document.querySelector(`[data-sec="${CSS.escape(s.code)}"]`);if(c)c.textContent=rm(T.sec[s.code]);});
+ document.getElementById("totals").innerHTML=
+  `<div>已确认项目 CONFIRMED</div><div>${rm(T.t.CONFIRMED)}</div>
+   <div>暂定项目 PROVISIONAL</div><div>${rm(T.t.PROVISIONAL)}</div>
+   <div>暂定金额 PS</div><div>${rm(T.t.PS)}</div>
+   <div class="big">总价（不含 SST）</div><div class="big">${rm(T.base)}</div>
+   <div>SST ${esc(S.project.sstRate||0)}%</div><div>${rm(T.sst)}</div>
+   <div class="big">GRAND TOTAL</div><div class="big">${rm(T.grand)}</div>
+   <div style="color:var(--muted)">另选项 OPTION（不算进总价）</div><div style="color:var(--muted)">${rm(T.t.OPTION)}</div>`;
+ const p=S.pay, sum=["dep","cast","hand","ret"].reduce((a,k)=>a+(num(p[k])||0),0);
+ document.getElementById("payCheck").innerHTML=Math.abs(sum-100)<0.001?`<div class="good">付款比例加起来 = 100%</div>`:`<div class="alert">付款比例加起来 = ${sum}%，应该是 100%</div>`;
+ // internal
+ const c=S.cash, base=T.base, dep=base*(num(p.dep)||0)/100, out=(num(c.mat)||0)+(num(c.lab)||0), peak=Math.max(0,out-dep),
+  ret=base*(num(p.ret)||0)/100, prof=base*(num(c.margin)||0)/100, lim=num(c.limit);
+ document.getElementById("cashOut").innerHTML=`<div class="tot">
+  <div>合约价（不含 SST，来自 BQ）</div><div>${rm(base)}</div><div>收到的订金</div><div>${rm(dep)}</div>
+  <div>第一笔进度款前要付出去的</div><div>${rm(out)}</div><div class="big">最多要垫的钱</div><div class="big">${rm(peak)}</div>
+  <div>保留金（要等保修期结束）</div><div>${rm(ret)}</div><div>目标利润</div><div>${rm(prof)}</div></div>`+
+  (lim==null?`<div class="alert">还没填"最多愿意垫多少"</div>`:peak>lim?`<div class="alert">超过垫资上限 RM ${rm(peak-lim)}：提高订金，或缩短付款阶段</div>`:`<div class="good">在垫资上限之内</div>`)+
+  (prof>0&&ret>prof*0.5?`<div class="alert">保留金超过利润的一半：争取降低比例，或交接时先放一半</div>`:"");
+ const yes=S.gng.filter(x=>x.v==="YES").length, no=S.gng.some(x=>x.v==="NO");
+ document.getElementById("decision").innerHTML=no?`<div class="alert"><b>NO-GO</b>：有一项是 NO，先处理再签</div>`:yes===S.gng.length?`<div class="good"><b>GO</b>：全部满足</div>`:`<div class="alert" style="background:#fff6d6;color:#8a5a00"><b>WAIT</b>：还有 ${S.gng.length-yes} 项未确认</div>`;
+ renderDoc(T);
+ updateOverview();
+}
+
+const lines=s=>String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);
+function renderDoc(T){
+ const c=S.company,p=S.project,y=S.pay,r=S.reps;
+ const qn=`${p.qno||"QT-"} Rev ${p.rev||0}`;
+ const pay=`${ph(y.dep,"__")}% deposit · ${ph(y.cast,"__")}% on completion of casting · ${ph(y.hand,"__")}% on foundation handover · ${ph(y.ret,"__")}% retention`;
+ const secRows=S.sections.map(s=>`<tr><td>${esc(s.code)}. ${esc(s.title)}</td><td class="r">${rm(T.sec[s.code])}</td></tr>`).join("");
+ const bqRows=S.sections.map(s=>`<tr class="b"><td colspan="7" style="background:#e4eeeb">${esc(s.code)}. ${esc(s.title)}</td></tr>`+
+  s.items.map(it=>{const tq=(num(it.q)!=null&&num(it.n)!=null)?num(it.q)*num(it.n):null;
+   return `<tr><td>${esc(it.no)}</td><td>${esc(it.desc)}<div class="note">${esc(it.dwg)}</div></td><td>${esc(it.st)}</td><td>${esc(it.unit)}</td><td class="r">${it.st==="PS"?"—":(tq==null?'<span class="ph">TBC</span>':q3(tq))}</td><td class="r">${it.st==="PS"?"—":(num(it.rate)==null?'<span class="ph">[ ]</span>':rm(num(it.rate)))}</td><td class="r">${it.st==="OPTION"?"("+rm(itemAmt(it))+")":rm(itemAmt(it))}</td></tr>`}).join("")+
+  `<tr class="b"><td></td><td colspan="5">Sub-total ${esc(s.code)}</td><td class="r">${rm(T.sec[s.code])}</td></tr>`).join("");
+ const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
+ const clar=lines(S.clar).map((x,i)=>{const [a,b]=x.split("|");return `<tr><td>${i+1}</td><td>${esc(a)}</td><td>${esc(b||"")}</td></tr>`}).join("");
+ const hp=lines(S.hp).map((x,i)=>{const [a,b]=x.split("|");return `<tr><td>HP${i+1}</td><td>${esc(a)}</td><td>${esc(b||"")}</td></tr>`}).join("");
+ const rates=S.rates.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit)}</td><td class="r">${num(x.rate)==null?'<span class="ph">[ ]</span>':rm(num(x.rate))}</td></tr>`).join("");
+ document.getElementById("doc").innerHTML=`
+ <div class="doc-topline">CIVIL ENGINEERING / PROJECT QUOTATION</div>
+ <div class="co">${ph(c.name,"YOUR COMPANY NAME SDN. BHD.")}</div>
+ <div class="coinfo">SSM: ${ph(c.ssm)} · CIDB: ${ph(c.cidb,"Reg. No. / Grade / Category")} · SST: ${ph(c.sst,"Reg. No. / Not registered")}</div>
+ <div class="coinfo">${ph(c.address,"Address")} · Tel: ${ph(c.tel)} · Email: ${ph(c.email)}</div>
+ <div class="title">QUOTATION <span class="doc-quote-ref">${esc(qn)}</span></div>
+ <table>
+  <tr><td class="k">Quotation No.</td><td>${esc(qn)}</td></tr>
+  <tr><td class="k">Date / Valid until</td><td>${ph(p.date,"date")} / ${ph(p.valid,"__")} days from date</td></tr>
+  <tr><td class="k">To</td><td>${ph(p.client)}<br>${esc(p.clientAddr)}</td></tr>
+  <tr><td class="k">Attention</td><td>${ph(p.attn,"Name, Position")}</td></tr>
+  <tr><td class="k">Project</td><td>${esc(p.project)}</td></tr>
+  <tr><td class="k">Works</td><td>${esc(p.works)}</td></tr>
+  <tr><td class="k">Basis</td><td>${esc(p.basis)} (received ${ph(p.received,"date")})${p.meeting?`; site meeting dated ${esc(p.meeting)}`:""}</td></tr>
+  <tr><td class="k">Status</td><td>${esc(p.status)}</td></tr>
+ </table>
+ <p><b>Price summary (RM, excluding SST)</b></p>
+ <table><tr><th>Description</th><th style="width:28%">Amount (RM)</th></tr>${secRows}
+  <tr class="b"><td>Total excluding SST</td><td class="r">${rm(T.base)}</td></tr>
+  <tr><td>SST: prices exclude SST. Any applicable SST will be charged per prevailing law, subject to valid exemptions. ${num(p.sstRate)?`(${esc(p.sstRate)}%)`:""}</td><td class="r">${rm(T.sst)}</td></tr>
+  <tr class="b"><td>Grand total</td><td class="r">${rm(T.grand)}</td></tr>
+  <tr><td>Optional items (not included above)</td><td class="r">${rm(T.t.OPTION)}</td></tr>
+ </table>
+ <p><b>Programme and payment</b></p>
+ <ul><li>Estimated duration: ${ph(y.days,"__")} working days, excluding concrete curing before equipment placement.</li>
+  <li>Start date: agreed in writing once the deposit is received, final construction drawings and the equipment base drawings are received, and the site is safely available.</li>
+  <li>Payment: ${pay} (see Section 5).</li></ul>
+ <p><b>Key conditions</b></p>
+ <ol><li>The existing slab and dowel embedment are as confirmed in writing by the Project PE.</li>
+  <li>Equipment base drawings and final sleeve positions are provided before casting.</li>
+  <li>Any change affecting scope, quantity, method, cost or programme will be reviewed and agreed in writing before implementation.</li></ol>
+
+ <div class="pb"></div>
+ <h3>1. Scope of works</h3><ul>${li(lines(S.scope))}</ul>
+ <h3>2. Exclusions</h3><p>The following are not included unless added in writing:</p><ul>${li(lines(S.excl))}</ul>
+ <h3>3. Assumptions</h3><p>Our price is based on the following. If any does not hold, the effect on cost and time will be agreed as a variation.</p><ul>${li(lines(S.assum))}</ul>
+ <h3>4. Clarifications required before the price is confirmed</h3>
+ <table><tr><th style="width:6%">No.</th><th>Item</th><th style="width:20%">Drawing</th></tr>${clar}</table>
+
+ <h3>5. Commercial terms</h3>
+ <ul>
+  <li><b>Payment:</b> ${pay}. Half of the retention is released at handover and half at the end of a ${ph(y.dlp,"__")}-month defects period starting from our foundation handover. Payment within ${ph(y.payDays,"__")} days of each claim.</li>
+  <li><b>Variations:</b> Additional works will proceed upon written instruction from the Client's authorised representative, with agreed rates or valuation method and time impact. The Schedule of Rates applies to similar conditions and reasonable quantities.</li>
+  <li><b>Provisional Sums:</b> Expended only on written instruction and valued on records, at actual cost plus ${ph(y.psMark,"__")}% or at the agreed daywork rates.</li>
+  <li><b>Time:</b> The completion period will be adjusted for delays beyond our control, notified in writing. Any liquidated damages shall be subject to an agreed cap and apply only to delay attributable to us.</li>
+  <li><b>Standing time:</b> Standing time caused by site unavailability or other trades may be charged at the agreed daywork rates, subject to notice and site records.</li>
+  <li><b>Responsibility:</b> Our responsibility is limited to our contracted workmanship and compliance with the approved construction drawings and instructions; design adequacy remains with the appointed designers, subject to applicable law.</li>
+  <li><b>Insurance:</b> We provide SOCSO and workers' cover for our personnel. Please confirm project insurance (CAR and third-party) coverage, insured parties and deductibles. Any additional cover required from us will be quoted separately.</li>
+  <li><b>Overdue payment:</b> Parties will first resolve overdue payments promptly. Nothing in this quotation excludes rights under applicable Malaysian law, including CIPAA 2012 where applicable.</li>
+  <li><b>Order of documents:</b> If any purchase order or subcontract terms differ from this quotation, the difference will be clarified and agreed in writing before work starts.</li>
+ </ul>
+ <h3>6. Inspection and handover</h3>
+ <table><tr><th style="width:12%">Hold point</th><th>What is checked</th><th style="width:28%">Signed by</th></tr>${hp}</table>
+ <p class="note">Damage to accepted foundations caused by others after handover is not our responsibility.</p>
+ <h3>7. Representatives</h3>
+ <table><tr><th>Role</th><th>Name</th><th>Contact</th></tr>
+  <tr><td>Client – authorised to approve price and variations</td><td>${ph(r.appName," ")}</td><td>${ph(r.appTel," ")}</td></tr>
+  <tr><td>Client – site / technical representative</td><td>${ph(r.siteName," ")}</td><td>${ph(r.siteTel," ")}</td></tr>
+  <tr><td>Our representative</td><td>${ph(r.ourName," ")}</td><td>${ph(r.ourTel," ")}</td></tr></table>
+ <h3>8. Acceptance</h3>
+ <p>We accept this quotation ${esc(qn)}, the attached Bill of Quantities and the agreed clarifications.</p>
+ <table><tr><td class="k">Name / Position</td><td style="height:28px"></td></tr><tr><td class="k">Company</td><td>${esc(p.client)}</td></tr>
+  <tr><td class="k">PO / LOA No.</td><td></td></tr><tr><td class="k">Signature &amp; company stamp</td><td style="height:56px"></td></tr><tr><td class="k">Date</td><td></td></tr></table>
+ <p style="margin-top:14px">Prepared by: ${ph(c.preparer,"Name")} · For and on behalf of ${ph(c.name,"YOUR COMPANY NAME SDN. BHD.")}</p>
+
+ <div class="pb"></div>
+ <h3>Appendix A – Bill of Quantities</h3>
+ <p class="note">Status: CONFIRMED = from drawing, no open query · PROVISIONAL = subject to clarification, re-measured at the rates below · PS = Provisional Sum · OPTION = not included in total.</p>
+ <table><tr><th style="width:6%">Item</th><th>Description</th><th style="width:12%">Status</th><th style="width:6%">Unit</th><th style="width:10%">Qty</th><th style="width:12%">Rate (RM)</th><th style="width:14%">Amount (RM)</th></tr>${bqRows}
+  <tr class="b"><td></td><td colspan="5">Total excluding SST</td><td class="r">${rm(T.base)}</td></tr></table>
+ <h3>Appendix B – Schedule of Rates for variations and daywork</h3>
+ <table><tr><th style="width:6%">No.</th><th>Description</th><th style="width:12%">Unit</th><th style="width:16%">Rate (RM)</th></tr>${rates}</table>`;
+}
+
+function renderAll(){
+ fields("f-company",S.company,[["name","公司注册名称"],["ssm","SSM 号码"],["cidb","CIDB 注册号 / 等级 / 类别"],["sst","SST 注册号，或写 Not registered"],["address","地址"],["tel","电话"],["email","电邮"],["preparer","报价人姓名"]]);
+ fields("f-project",S.project,[["qno","报价编号"],["rev","版本 Rev"],["date","日期"],["valid","有效天数"],["client","客户（总包）公司名"],["clientAddr","客户地址"],["attn","收件人 姓名/职位"],["project","项目","ta"],["works","工程内容","ta"],["basis","报价依据的图纸","ta"],["received","收到图纸日期"],["meeting","工地会议日期（可留空）"],["status","报价状态","ta"],["sstRate","SST 税率 %（没注册填 0，先问会计）"]]);
+ fields("f-pay",S.pay,[["days","预计工期（工作天）"],["dep","订金 %"],["cast","浇灌完成 %"],["hand","交接 %"],["ret","保留金 %"],["dlp","保修期（月）"],["payDays","请款后几天内付款"],["psMark","暂定金额管理费 %"]]);
+ renderBQ();renderRates();renderTerms();renderInternal();refresh();
+}
+
+function newProject(){
+ if(!confirm("开新项目会清空项目资料、BQ 和内部表，只保留公司资料。确定？"))return;
+ const company=S.company; S=sample(); S.company=company;
+ S.project={qno:"QT-",rev:"0",date:"",valid:"14",client:"",clientAddr:"",attn:"",project:"",works:"",basis:"",received:"",meeting:"",status:"CONDITIONAL – subject to the clarifications in Section 4.",sstRate:"0"};
+ S.sections=S.sections.map(s=>({code:s.code,title:s.code==="A"?s.title:s.code==="E"?s.title:"",items:s.code==="A"?s.items.map(i=>({...i,rate:""})):[]}));
+ S.clar="";S.risks=[];S.reps={appName:"",appTel:"",siteName:"",siteTel:"",ourName:"",ourTel:""};
+ save();renderAll();
+}
+function loadSample(){if(!confirm("把目前的项目重设为空白范本？公司资料会保留。请先备份。"))return;const c=S.company;S=sample();S.company=c;save();renderAll();}
+
+function exportJSON(){
+ const b=new Blob([JSON.stringify(S,null,1)],{type:"application/json"}),a=document.createElement("a");
+ a.href=URL.createObjectURL(b);a.download=(S.project.qno||"quotation").replace(/[^\w\-]+/g,"_")+"_Rev"+(S.project.rev||0)+"_backup.json";a.click();
+}
+function importJSON(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.sections)throw 0;S=d;save();renderAll();alert("已还原");}catch(e){alert("这不是有效的备份档");}inp.value="";};rd.readAsText(f);}
+
+function printQuote(){
+ const T=totals();renderDoc(T);
+  const unpriced=S.sections.flatMap(s=>s.items).filter(it=>!["EXCLUDED","OPTION"].includes(it.st) && (num(it.rate)==null || (it.st!=="PS"&&(num(it.q)==null||num(it.n)==null)))).length;
+  const missing=document.querySelectorAll("#doc .ph").length;
+  const msg=[];
+  if(unpriced)msg.push(`还有 ${unpriced} 项工程量或单价未完成，总价可能偏低`);
+  if(missing)msg.push(`报价单还有 ${missing} 处资料没填（橙色字）`);
+  if(msg.length&&!confirm("打印前检查：\n· "+msg.join("\n· ")+"\n\n仍然打印初稿？"))return;
+ window.print();
+}
+
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.toggle("on",x===b));
+ document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("on",s.id===b.dataset.t));
+ updatePageMeta(); window.scrollTo(0,0);});
+
+const PAGE_META={
+  "t-info":["报价资料","建立项目基本资料、公司资质与付款条件。"],
+  "t-bq":["BQ 工程量与报价","逐项核对数量、填写单价，并即时检查报价总额。"],
+  "t-terms":["工程范围与风险条款","厘清包含、排除、前提假设及验收的责任界线。"],
+  "t-preview":["客户报价单预览","独立的客户文件版面，内部风险和利润资料不会打印。"],
+  "t-int":["内部风险管理","仅供内部决策使用：现金流、客户信用与重大风险。"]
+};
+function updateOverview(){
+  const p=S.project||{},t=totals(),all=S.sections.flatMap(x=>x.items).filter(x=>x.st!=="EXCLUDED"&&x.st!=="OPTION"),
+    complete=all.filter(x=>num(x.rate)!=null && (x.st==="PS"|| (num(x.q)!=null&&num(x.n)!=null))).length,
+    openP0=S.risks.filter(x=>x.pr==="P0"&&x.st!=="CLOSED").length,
+    pending=S.gng.filter(x=>x.v!=="YES").length;
+  document.getElementById("kpiTotal").textContent="RM "+rm(t.grand);
+  document.getElementById("kpiPriced").textContent=complete+" / "+all.length;
+  document.getElementById("kpiPricedNote").textContent=all.length-complete+" 项尚待核实／定价";
+  document.getElementById("kpiRisk").textContent=openP0;
+  document.getElementById("kpiReady").textContent=(pending===0&&openP0===0&&complete===all.length)?"CHECKED":"IN REVIEW";
+  document.getElementById("kpiReadyNote").textContent=pending+" 项内部检查未通过／待定";
+  const pn=String(p.project||"New estimate");
+  document.getElementById("sideProject").textContent=pn.length>62?pn.substring(0,59)+"…":pn;
+  document.getElementById("sideQuote").textContent=(p.qno||"QT-DRAFT")+" · REV "+(p.rev||"0");
+  document.getElementById("topQuote").textContent=p.qno||"DRAFT";
+  document.getElementById("metaRev").textContent="REV "+(p.rev||"0");
+  document.getElementById("reviewText").textContent=all.length-complete>0||openP0>0
+    ?"报价仍有 "+(all.length-complete)+" 项未完成定价、"+openP0+" 项P0风险未关闭；PDF合计并不代表可以直接发给客户。"
+    :"工程量已填妥；仍须确认图纸、付款条件与发出前审查。";
+}
+function updatePageMeta(){
+  const active=document.querySelector("nav.tabs button.on"),key=active?.dataset.t||"t-info",m=PAGE_META[key];
+  document.getElementById("pageTitle").textContent=m[0];document.getElementById("pageSub").textContent=m[1];
+}
+load();renderAll();
+updateOverview();updatePageMeta();
+</script>
+</body>
+</html>
