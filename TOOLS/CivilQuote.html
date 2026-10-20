@@ -220,6 +220,12 @@
   #priceReviewTable{min-width:1100px}
   #costLinesTable{min-width:1150px}
   #costLibraryTable{min-width:1000px}
+  #groupTable{min-width:1180px} #scopeListTable{min-width:640px} #historyTable{min-width:760px}
+  .stage-row{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:8px;margin-bottom:8px;align-items:center}
+  .fmt-row{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center}
+  .fmt-row label{display:flex;gap:7px;align-items:center;margin:0;font-size:12px;color:var(--ink)}
+  .fmt-row input[type=checkbox]{width:16px;height:16px}
+  td.dev-warn{color:#a44836;font-weight:800}
   .issue-row{display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid #edf1ef;padding:10px 2px;font-size:12px}
   .issue-icon{width:20px;height:20px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:#e2f4eb;color:#277251;font-weight:900}
   .issue-icon.no{background:#fff0e8;color:#b15b42}
@@ -258,7 +264,7 @@
        <button data-t="t-int" class="internal"><span class="nav-num">07</span><span class="nav-meta"><b>内部风险管理</b><small>Private commercial review</small></span></button>
 
 </nav>
-    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v2</div><div style="font-size:10px;color:#f0ce8c;margin-top:6px">备份 JSON 含成本与利润资料，不要外传</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
+    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v3</div><div style="font-size:10px;color:#f0ce8c;margin-top:6px">备份 JSON 含成本与利润资料，不要外传</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
   </aside>
   <div class="workspace">
     <header class="app noprint">
@@ -294,6 +300,7 @@
   <div class="card"><h2>报价与项目</h2><div class="grid" id="f-project"></div></div>
   <div class="card"><h2>工期与付款</h2>
     <div class="grid" id="f-pay"></div>
+    <label style="margin-top:16px">付款阶段（名称与 %，可加减；加上保留金要等于 100%）</label><div id="f-stages"></div><div class="row-actions" style="margin-top:4px"><button onclick="addStage()">＋ 加一个付款阶段</button></div>
     <div id="payCheck"></div>
   </div>
   <div class="card"><h2>项目管理</h2>
@@ -315,6 +322,11 @@
       <select id="addSec" style="width:auto"></select>
       <button onclick="addItem()">在此部分加一项</button>
     </div>
+  </div>
+  <div class="card"><h2>报价分组 · QUOTE GROUPS</h2>
+    <p class="hint">每一部分 = 报价单上的一行（例如「每座电池柜基础」）。填了「已报 / 指定每单位价」，这一组就用这个价钱，系统按成本反算毛利；留空就按成本自动算。</p>
+    <div class="tablewrap"><table class="bq" id="groupTable"></table></div>
+    <div class="row-actions"><button onclick="addSection()">＋ 加一个分组</button></div>
   </div>
   <div class="card"><h2>报价汇总 · ESTIMATE SUMMARY</h2><div class="tot" id="totals"></div></div>
   <div class="card"><h2>变更单价 · SCHEDULE OF RATES</h2>
@@ -341,6 +353,11 @@
   <div class="card"><h2>内部材料／人工价格库 · COST LIBRARY</h2><p class="hint">这里的空白单价必须根据采购报价或实际工钱填写；系统不会臆造马来西亚市场价格。价格库属于内部资料，不进入客户 PDF。</p>
     <div class="tablewrap"><table class="bq" id="costLibraryTable"></table></div>
     <div class="row-actions"><button onclick="addLibraryResource()">＋ 添加价格库项目</button></div>
+  </div>
+  <div class="card"><h2>历史报价参考 · PAST QUOTES</h2>
+    <p class="hint">以前报过的价钱。开新项目也会保留。报价分组可以填历史价，算出来偏差超过 15% 会提醒。</p>
+    <div class="tablewrap"><table class="bq" id="historyTable"></table></div>
+    <div class="row-actions"><button onclick="addHistory()">＋ 加一笔</button></div>
   </div>
 </section>
 <!-- 4 PRICE -->
@@ -372,6 +389,15 @@
     <label style="margin-top:10px">Exclusions</label><textarea id="x-excl" rows="8"></textarea>
     <label style="margin-top:10px">Assumptions</label><textarea id="x-assum" rows="7"></textarea>
   </div>
+  <div class="card"><h2>范围勾选清单 · SCOPE CHECKLIST</h2>
+    <p class="hint">最容易吵的项目逐项选：包括 / 不包括 / 另计 / 待确认。会印在报价单上。还有「待确认」的，不能出正式报价。</p>
+    <div class="tablewrap"><table class="bq" id="scopeListTable"></table></div>
+    <div class="row-actions"><button onclick="addScopeItem()">＋ 加一项</button></div>
+  </div>
+  <div class="card"><h2>责任界线条款 · LIMITATION OF RESPONSIBILITY</h2>
+    <p class="hint">格式：标题: 内容。每行一条。会印在报价单「Commercial terms」下面。正式签约前请律师看过第 8 条。</p>
+    <textarea id="x-limits" rows="10"></textarea>
+  </div>
   <div class="card"><h2>待澄清问题</h2>
     <p class="hint">格式：问题 | 图纸编号。每行一条。回复了就删掉，或改成已确认的内容。</p>
     <textarea id="x-clar" rows="9"></textarea>
@@ -385,7 +411,11 @@
 
 <!-- 4 PREVIEW -->
 <section class="tab" id="t-preview">
-  <div class="card noprint"><p class="hint" style="margin:0">这里只显示面向客户的报价，不包含内部材料、工人薪资和利润。正式导出须通过出具检查。<span class="ph">橙色字</span>表示还没填。</p></div>
+  <div class="card noprint"><p class="hint" style="margin:0">这里只显示面向客户的报价，不包含内部材料、工人薪资和利润。正式导出须通过出具检查。<span class="ph">橙色字</span>表示还没填。</p>
+    <div class="fmt-row" style="margin-top:12px"><span style="font-weight:700;font-size:12px">报价单格式</span>
+      <select id="fmtMode" style="width:auto"><option value="LUMP">每组总价＋做法说明（马来西亚常见）</option><option value="BQ">详细 BQ（逐项单价）</option></select>
+      <label><input type="checkbox" id="fmtAttach"> 附上工程量附录</label>
+      <label><input type="checkbox" id="fmtBank"> 印出银行资料</label></div></div>
   <div id="doc"></div>
 </section>
 
@@ -408,7 +438,7 @@
 </div>
 
 <script>
-const APP_VERSION=2;
+const APP_VERSION=3;
 const KEY="civil-quotation-cost", OLD_KEY="civil-quotation-pro-v1", LEGACY_KEY="civil-quotation-tool-v1";
 const STATUS=["CONFIRMED","PROVISIONAL","PS","OPTION","EXCLUDED"];
 
@@ -462,10 +492,9 @@ function sample(){
    "Casting-in of drain pipes and conduit sleeves confirmed by the electrical contractor.",
    "Concrete cube tests and hold-point records, photos and marked-up as-built drawings."].join("\n"),
   excl:["Design, structural calculations and PE fees.",
-   "Earthing grid, earth electrodes and connections (we will coordinate and leave openings as instructed).",
    "All electrical works: cables, trays, terminations, testing and commissioning.",
-   "Delivery, crane hire and lifting of equipment; fixing or welding of equipment to the steel plates.",
-   "Access steps, fencing, gravel and reinstatement beyond the foundation footprint.",
+   "Delivery of equipment to site.",
+   "Fencing, gravel and reinstatement beyond the foundation footprint.",
    "Authority submissions and approvals (Bomba, DOE, ST, TNB, local council).",
    "Fire protection, oil interceptor, or connection of drains to the site drainage system.",
    "Removal of contaminated soil, or works to existing structures not shown on the drawings.",
@@ -523,6 +552,22 @@ function blankLibrary(){
   ["S01","SUBCON","Concrete cube test laboratory","set"],["T01","TRANSPORT","Transport / delivery","trip"]];
  return a.map(([id,cat,desc,unit])=>({id,cat,desc,unit,rate:"",source:"",date:""}));
 }
+function defaultScope(){
+ return [["Formwork","TBC"],["Surface scabbling of existing slab","TBC"],["Chemical anchor for dowel bars","TBC"],["Cast-in drain pipes","TBC"],
+  ["Cable sleeves and openings","TBC"],["Concrete cube tests","TBC"],["Levelling of steel plates to the specified tolerance","TBC"],
+  ["Earthing grid and earth points","TBC"],["Access / maintenance steps","TBC"],["Crane and machinery for our construction works","INCL"],
+  ["Lifting and placing of equipment","EXCL"],["Fixing or welding of equipment to the steel plates","EXCL"]].map(([item,st])=>({item,st,note:""}));
+}
+function defaultLimits(){
+ return ["Design responsibility: Design adequacy, including existing slab capacity and dowel embedment, remains with the appointed PE and the main contractor. Our responsibility is limited to workmanship in accordance with the approved drawings.",
+  "Existing slab and ground: Our price assumes the existing slab and ground are suitable as designed. Any strengthening, coring or remedial works required will be treated as a variation.",
+  "Underground services: Underground services shall be identified and marked by the Client or Owner before drilling. We are not liable for damage to services that were not identified to us.",
+  "Equipment interface: Positions of plates, bolts, sleeves and openings follow the drawings and information provided to us before casting. Changes after casting will be treated as a variation.",
+  "After handover: Our responsibility for the foundations ends at joint handover. Damage caused by others after handover, including during equipment lifting and installation, is not our responsibility.",
+  "Crane: Crane and machinery are for our construction works only. Lifting and placing of equipment are excluded.",
+  "Defects: Defects liability is 12 months from our handover and covers our workmanship only.",
+  "Liability cap: Our total liability is limited to the contract sum. We are not liable for indirect or consequential loss, such as loss of production, revenue or delay to the Owner's operations."].join("\n");
+}
 function ensureCosting(state){
  if(!state||!Array.isArray(state.sections))throw Error("Invalid quotation data");
  if(!state.costing||typeof state.costing!=="object")state.costing={};
@@ -535,6 +580,14 @@ function ensureCosting(state){
  if(typeof c.approvedForIssue!=="boolean")c.approvedForIssue=false;
  if(!state.project)state.project={};
  if(!state.project.sstStatus)state.project.sstStatus="REVIEW";
+ if(!state.company)state.company={};for(const k of ["tin","bank"])if(state.company[k]==null)state.company[k]="";
+ if(!state.format||typeof state.format!=="object")state.format={mode:"BQ",attachBQ:true,printBank:false};
+ if(!state.pay)state.pay={};
+ if(!Array.isArray(state.pay.stages)){const p=state.pay;state.pay.stages=[{label:"Deposit before mobilisation",pct:p.dep??""},{label:"On completion of casting",pct:p.cast??""},{label:"On foundation handover",pct:p.hand??""}];}
+ if(!Array.isArray(state.scopeList))state.scopeList=defaultScope();
+ if(state.limits==null)state.limits=defaultLimits();
+ if(!Array.isArray(c.history))c.history=[];
+ for(const sec of state.sections||[])for(const k of ["units","uom","lsPrice","lsReason","histPrice","histRef"])if(sec[k]==null)sec[k]=(k==="uom"?"JOB":"");
  // Preserve legacy manual rates as reference: never silently treat a guessed sale rate as material cost.
  const seen=new Set();
  for(const sec of state.sections){if(!Array.isArray(sec.items))sec.items=[];
@@ -610,27 +663,43 @@ function unitCalculation(it){
  return {valid:!!ok,qty:totalQty,price:ok?rate:null,amount:ok?r2(totalQty*rate):0,direct:costed?d:null,cost:fully,fullCostTotal:ok?totalQty*fully:0,directTotal:ok?totalQty*d:0,profit:ok?totalQty*(rate-fully):0,override:!!hasOverride,overrideValid};
 }
 function itemAmt(it){return unitCalculation(it).amount||0}
+function sectionInfo(s){const units=npos(s.units),ls=npos(s.lsPrice);return {units,ls,uom:s.uom||"JOB",lump:ls!=null&&ls>0&&units!=null&&units>0};}
 function totals(){
- const t={CONFIRMED:0,PROVISIONAL:0,PS:0,OPTION:0,EXCLUDED:0},sec={},bycat={};
+ const t={CONFIRMED:0,PROVISIONAL:0,PS:0,OPTION:0,EXCLUDED:0,LUMP:0},sec={},bycat={},secCalc={};
  CAT.forEach(k=>bycat[k]=0);
- let missing=[],direct=0,fullCost=0,salesForMargin=0,profit=0,ps=0;
- S.sections.forEach(s=>{sec[s.code]=0;s.items.forEach(it=>{
-  const x=unitCalculation(it);t[it.st]+=x.amount||0;
-  if(it.st!=="OPTION"&&it.st!=="EXCLUDED"){
-   sec[s.code]+=x.amount||0;
-   if(!x.valid)missing.push(it.no||it.uid);
-   else if(x.ps)ps+=x.amount;
-   else{
-    direct+=x.directTotal;fullCost+=x.fullCostTotal;salesForMargin+=x.amount;profit+=x.profit;
-    (S.costing.recipes[it.uid]||[]).forEach(r=>{const val=resourceCost(r);if(val!=null)bycat[r.cat]=(bycat[r.cat]||0)+val*x.qty});
-   }
-  }
- });});
- const base=t.CONFIRMED+t.PROVISIONAL+t.PS;
- const sstRate=npos(S.project.sstRate),sst=base*(sstRate??0)/100;
+ let missing=[],costMissing=[],direct=0,fullCost=0,salesForMargin=0,profit=0,ps=0;
+ S.sections.forEach(s=>{const si=sectionInfo(s);sec[s.code]=0;
+  let sFull=0,sDirect=0,sAllCost=true,sCalc=0,sCalcValid=true,anyItem=false;const catAdd={};
+  s.items.forEach(it=>{
+   const x=unitCalculation(it);
+   if(it.st==="OPTION"){t.OPTION+=x.amount||0;return;}
+   if(it.st==="EXCLUDED")return;
+   if(x.ps){if(!x.valid)missing.push(it.no||it.uid);else{ps+=x.amount;t.PS+=x.amount;sec[s.code]+=x.amount;}return;}
+   anyItem=true;
+   const costKnown=x.cost!=null&&x.qty!=null&&x.qty>0;
+   if(costKnown){sFull+=x.qty*x.cost;sDirect+=x.qty*x.direct;(S.costing.recipes[it.uid]||[]).forEach(r=>{const v=resourceCost(r);if(v!=null)catAdd[r.cat]=(catAdd[r.cat]||0)+v*x.qty});}
+   else sAllCost=false;
+   if(x.valid)sCalc+=x.amount;else sCalcValid=false;
+   if(!si.lump){
+    if(x.valid){t[it.st]+=x.amount;sec[s.code]+=x.amount;direct+=x.directTotal;fullCost+=x.fullCostTotal;salesForMargin+=x.amount;profit+=x.profit;
+     (S.costing.recipes[it.uid]||[]).forEach(r=>{const v=resourceCost(r);if(v!=null)bycat[r.cat]=(bycat[r.cat]||0)+v*x.qty});}
+    else missing.push(it.no||it.uid);
+   }else if(!costKnown)costMissing.push(it.no||it.uid);
+  });
+  const calc=sCalcValid&&anyItem?r2(sCalc):null;
+  const info={calc,perUnit:calc!=null&&si.units?r2(calc/si.units):null,fullCost:sAllCost&&anyItem?sFull:null,lump:si.lump};
+  if(si.lump){const amt=r2(si.ls*si.units);t.LUMP+=amt;sec[s.code]+=amt;info.amount=amt;
+   if(sAllCost&&anyItem){fullCost+=sFull;direct+=sDirect;salesForMargin+=amt;profit+=amt-sFull;Object.entries(catAdd).forEach(([k,v])=>bycat[k]=(bycat[k]||0)+v);info.margin=100*(amt-sFull)/amt;}
+   else info.margin=null;
+  }else{info.amount=sec[s.code];info.margin=calc&&info.fullCost!=null?100*(calc-info.fullCost)/calc:null;}
+  secCalc[s.code]=info;
+ });
+ const base=r2(t.CONFIRMED+t.PROVISIONAL+t.PS+t.LUMP);
+ const sstRate=npos(S.project.sstRate),sst=r2(base*(sstRate??0)/100);
  const actualMargin=salesForMargin>0?100*profit/salesForMargin:null;
- return {t,sec,base,sst,grand:base+sst,missing,direct,fullCost,salesForMargin,profit,ps,bycat,actualMargin};
+ return {t,sec,base,sst,grand:r2(base+sst),missing,costMissing,direct,fullCost,salesForMargin,profit,ps,bycat,actualMargin,secCalc};
 }
+
 function isCosted(it){return unitCalculation(it).valid}
 
 
@@ -688,8 +757,80 @@ function renderRates(){
  tb.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{S.rates[inp.dataset.i][inp.dataset.f]=inp.value;markChanged();refresh();});
 }
 
+const SCOPE_KEYS=["earthing","earth point","access step","maintenance step","lifting","welding","oil pool","scabbling","formwork","cube test","levelling","chemical anchor"];
+function scopeConflicts(){
+ const ex=String(S.excl||"").toLowerCase();
+ return (S.scopeList||[]).filter(x=>x.st==="INCL").filter(x=>{const t=String(x.item||"").toLowerCase();return SCOPE_KEYS.some(k=>t.includes(k)&&ex.includes(k));}).map(x=>x.item);
+}
+function stages(){return Array.isArray(S.pay.stages)?S.pay.stages:[]}
+function paySum(){return stages().reduce((a,s)=>a+(num(s.pct)||0),0)+(num(S.pay.ret)||0)}
+function renderStages(){
+ const el=document.getElementById("f-stages");if(!el)return;
+ el.innerHTML=stages().map((s,i)=>`<div class="stage-row" data-i="${i}"><input class="fill" id="stage-label-${i}" data-f="label" value="${esc(s.label)}" placeholder="例：Deposit upon job confirmation"><input class="fill" id="stage-pct-${i}" data-f="pct" type="number" min="0" max="100" step="any" value="${esc(s.pct)}" placeholder="%"><button class="small danger" data-del>✕</button></div>`).join("");
+ el.querySelectorAll(".stage-row").forEach(row=>{const s=stages()[+row.dataset.i];
+  row.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=()=>{s[inp.dataset.f]=inp.value;markChanged();refresh();});
+  row.querySelector("[data-del]").onclick=()=>{stages().splice(+row.dataset.i,1);markChanged();renderStages();refresh();};});
+}
+function addStage(){stages().push({label:"",pct:""});markChanged();renderStages();refresh();}
+const SCOPE_ST={INCL:"包括 Included",EXCL:"不包括 Not included",SEP:"另计 Priced separately",TBC:"待确认 To be confirmed"};
+const SCOPE_EN={INCL:"Included",EXCL:"Not included",SEP:"Priced separately",TBC:"TO BE CONFIRMED"};
+function renderScopeList(){
+ const tb=document.getElementById("scopeListTable");if(!tb)return;
+ tb.innerHTML=`<tr><th style="min-width:260px">项目 / Item</th><th>状态</th><th style="min-width:200px">备注 / Note（会印出）</th><th></th></tr>`+
+  S.scopeList.map((x,i)=>`<tr data-i="${i}"><td><input id="scope-item-${i}" data-f="item" value="${esc(x.item)}"></td><td><select id="scope-st-${i}" data-f="st" style="width:190px">${Object.entries(SCOPE_ST).map(([k,v])=>`<option value="${k}" ${k===x.st?"selected":""}>${v}</option>`).join("")}</select></td><td><input id="scope-note-${i}" data-f="note" value="${esc(x.note)}"></td><td><button class="small danger" data-del>✕</button></td></tr>`).join("");
+ tb.querySelectorAll("tr[data-i]").forEach(tr=>{const x=S.scopeList[+tr.dataset.i];
+  tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=inp.onchange=()=>{x[inp.dataset.f]=inp.value;markChanged();refresh();});
+  tr.querySelector("[data-del]").onclick=()=>{S.scopeList.splice(+tr.dataset.i,1);markChanged();renderScopeList();refresh();};});
+}
+function addScopeItem(){S.scopeList.push({item:"",st:"TBC",note:""});markChanged();renderScopeList();refresh();}
+function renderGroups(){
+ const tb=document.getElementById("groupTable");if(!tb)return;
+ tb.innerHTML=`<tr><th>部分</th><th style="min-width:260px">报价单上的名称</th><th>数量</th><th>单位</th><th>已报 / 指定每单位价 RM</th><th style="min-width:160px">理由（填了价钱就要写）</th><th>历史参考价 RM</th><th style="min-width:120px">历史来源</th><th>按成本算 / 单位</th><th>毛利</th><th>对照</th><th></th></tr>`+
+  S.sections.map((s,i)=>`<tr data-i="${i}"><td>${esc(s.code)}</td>
+   <td><input id="grp-title-${i}" data-f="title" value="${esc(s.title)}"></td>
+   <td><input id="grp-units-${i}" data-f="units" type="number" min="0" step="any" value="${esc(s.units)}" style="width:70px" placeholder="1"></td>
+   <td><input id="grp-uom-${i}" data-f="uom" value="${esc(s.uom)}" style="width:62px"></td>
+   <td><input class="fill" id="grp-ls-${i}" data-f="lsPrice" type="number" min="0" step="any" value="${esc(s.lsPrice)}" style="width:110px" placeholder="留空=按成本"></td>
+   <td><input id="grp-reason-${i}" data-f="lsReason" value="${esc(s.lsReason)}"></td>
+   <td><input id="grp-hist-${i}" data-f="histPrice" type="number" min="0" step="any" value="${esc(s.histPrice)}" style="width:100px"></td>
+   <td><input id="grp-histref-${i}" data-f="histRef" value="${esc(s.histRef)}"></td>
+   <td class="num" data-calc></td><td class="num" data-margin></td><td data-dev style="min-width:150px"></td>
+   <td>${s.items.length?"":'<button class="small danger" data-del title="删除空的分组">✕</button>'}</td></tr>`).join("");
+ tb.querySelectorAll("tr[data-i]").forEach(tr=>{const s=S.sections[+tr.dataset.i];
+  tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=()=>{s[inp.dataset.f]=inp.value;markChanged();if(inp.dataset.f==="title"){const sel=document.getElementById("addSec");if(sel)sel.options[+tr.dataset.i].text=s.code+". "+s.title;}refresh();});
+  const del=tr.querySelector("[data-del]");if(del)del.onclick=()=>{S.sections.splice(+tr.dataset.i,1);markChanged();renderBQ();renderGroups();refresh();};});
+}
+function updateGroupCells(T){
+ const tb=document.getElementById("groupTable");if(!tb)return;
+ tb.querySelectorAll("tr[data-i]").forEach(tr=>{const s=S.sections[+tr.dataset.i];if(!s)return;const g=T.secCalc[s.code]||{};const si=sectionInfo(s);
+  const hist=npos(s.histPrice);const quoted=si.lump?si.ls:null;
+  tr.querySelector("[data-calc]").textContent=g.perUnit!=null?rm(g.perUnit):(g.calc!=null?rm(g.calc):"—");
+  tr.querySelector("[data-margin]").textContent=g.margin!=null?g.margin.toFixed(1)+"%":"—";
+  const notes=[];const cell=tr.querySelector("[data-dev]");cell.classList.remove("dev-warn");
+  if(quoted!=null&&g.perUnit!=null){const d=100*(quoted-g.perUnit)/g.perUnit;notes.push(`已报比成本价 ${d>=0?"高":"低"} ${Math.abs(d).toFixed(1)}%`);if(d<0)cell.classList.add("dev-warn");}
+  const cmp=quoted!=null?quoted:g.perUnit;
+  if(hist&&cmp!=null){const d=100*(cmp-hist)/hist;notes.push(Math.abs(d)<0.05?"与历史价相同":`比历史价 ${d>=0?"高":"低"} ${Math.abs(d).toFixed(1)}%`);if(Math.abs(d)>15)cell.classList.add("dev-warn");}
+  if(si.lump&&g.fullCost==null)notes.push("成本未完成，毛利未知");
+  cell.textContent=notes.join(" · ")||"—";});
+}
+function addSection(){const used=new Set(S.sections.map(s=>s.code));let n=1;while(used.has(String(n)))n++;
+ S.sections.push({code:String(n),title:"",items:[],units:"1",uom:"JOB",lsPrice:"",lsReason:"",histPrice:"",histRef:""});markChanged();renderBQ();renderGroups();refresh();}
+function renderHistory(){
+ const tb=document.getElementById("historyTable");if(!tb)return;
+ tb.innerHTML=`<tr><th style="min-width:240px">项目</th><th>单位</th><th>价钱 RM / 单位</th><th>报价单 / 来源</th><th>日期</th><th></th></tr>`+
+  S.costing.history.map((x,i)=>`<tr data-i="${i}"><td><input id="hist-desc-${i}" data-f="desc" value="${esc(x.desc)}"></td><td><input id="hist-uom-${i}" data-f="uom" value="${esc(x.uom)}" style="width:70px"></td><td><input id="hist-price-${i}" data-f="price" type="number" min="0" step="any" value="${esc(x.price)}" style="width:110px"></td><td><input id="hist-ref-${i}" data-f="ref" value="${esc(x.ref)}"></td><td><input id="hist-date-${i}" data-f="date" type="date" value="${esc(x.date)}" style="width:140px"></td><td><button class="small danger" data-del>✕</button></td></tr>`).join("");
+ tb.querySelectorAll("tr[data-i]").forEach(tr=>{const x=S.costing.history[+tr.dataset.i];
+  tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=()=>{x[inp.dataset.f]=inp.value;save();});
+  tr.querySelector("[data-del]").onclick=()=>{S.costing.history.splice(+tr.dataset.i,1);save();renderHistory();};});
+}
+function addHistory(){S.costing.history.push({desc:"",uom:"JOB",price:"",ref:"",date:""});save();renderHistory();}
+function renderFormat(){
+ const f=S.format,m=document.getElementById("fmtMode"),a=document.getElementById("fmtAttach"),b=document.getElementById("fmtBank");if(!m)return;
+ m.value=f.mode;a.checked=!!f.attachBQ;b.checked=!!f.printBank;
+ m.onchange=()=>{f.mode=m.value;markChanged();refresh();};a.onchange=()=>{f.attachBQ=a.checked;markChanged();refresh();};b.onchange=()=>{f.printBank=b.checked;markChanged();refresh();};
+}
 function renderTerms(){
- ["scope","excl","assum","clar","hp"].forEach(k=>{const el=document.getElementById("x-"+k);el.value=S[k];el.oninput=()=>{S[k]=el.value;markChanged();refresh();};});
+ ["scope","excl","assum","clar","hp","limits"].forEach(k=>{const el=document.getElementById("x-"+k);el.value=S[k];el.oninput=()=>{S[k]=el.value;markChanged();refresh();};});
  fields("f-reps",S.reps,[["appName","总包 可批钱的人（姓名/职位）"],["appTel","联络"],["siteName","总包 工地/技术代表"],["siteTel","联络"],["ourName","我方代表"],["ourTel","联络"]]);
 }
 
@@ -722,14 +863,15 @@ function refresh(){
  document.getElementById("totals").innerHTML=`<div>已估算 CONFIRMED</div><div>${rm(T.t.CONFIRMED)}</div>
  <div>暂定数量 PROVISIONAL</div><div>${rm(T.t.PROVISIONAL)}</div>
  <div>暂定金额 PS（不计利润）</div><div>${rm(T.t.PS)}</div>
+ <div>分组总价 LUMP SUM</div><div>${rm(T.t.LUMP)}</div>
  <div class="big">已估算总价（未计SST）</div><div class="big">RM ${rm(T.base)}</div>
  <div>SST (${esc(S.project.sstRate||"未确认")}%)</div><div>${rm(T.sst)}</div>
  <div class="big">已估算合计（含已填SST）</div><div class="big">RM ${rm(T.grand)}</div>
  <div>OPTION 备选（不包括）</div><div>${rm(T.t.OPTION)}</div>
- ${T.missing.length?`<div style="grid-column:1/-1" class="alert">尚有 ${T.missing.length} 项未完成真实成本／暂定金额，以上只是已定价部分，不是完整总报价。</div>`:""}`;
- const p=S.pay,sum=["dep","cast","hand","ret"].reduce((a,k)=>a+(num(p[k])||0),0);
+ ${T.missing.length?`<div style="grid-column:1/-1" class="alert">尚有 ${T.missing.length} 项未完成真实成本／暂定金额，以上只是已定价部分，不是完整总报价。</div>`:""}${T.costMissing.length?`<div style="grid-column:1/-1" class="alert">已报价分组还有 ${T.costMissing.length} 项没有成本：售价已定，但毛利还算不出来。</div>`:""}`;
+ const p=S.pay,sum=paySum();
  document.getElementById("payCheck").innerHTML=Math.abs(sum-100)<0.001?`<div class="good">付款比例总计 100%</div>`:`<div class="alert">付款比例总计 ${sum}%，需要为100%</div>`;
- const c=S.cash,base=T.base,dep=base*(num(p.dep)||0)/100,out=(num(c.mat)||0)+(num(c.lab)||0),initialGap=Math.max(0,out-dep),ret=base*(num(p.ret)||0)/100,lim=npos(c.limit);
+ const c=S.cash,base=T.base,dep=base*(num(stages()[0]?.pct)||0)/100,out=(num(c.mat)||0)+(num(c.lab)||0),initialGap=Math.max(0,out-dep),ret=base*(num(p.ret)||0)/100,lim=npos(c.limit);
  document.getElementById("cashOut").innerHTML=`<div class="tot"><div>完整成本预测（排除PS）</div><div>RM ${rm(T.fullCost)}</div>
  <div>报价收入（排除PS）</div><div>RM ${rm(T.salesForMargin)}</div>
  <div>项目预计利润（排除PS）</div><div>RM ${rm(T.profit)}</div>
@@ -740,7 +882,7 @@ function refresh(){
  ${lim==null?'<div class="alert">尚未设垫资上限</div>':initialGap>lim?'<div class="alert">超过垫资上限 RM '+rm(initialGap-lim)+'</div>':'<div class="good">此阶段现金缺口在设定上限内（不代表全程现金流安全）</div>'}`;
  const yes=S.gng.filter(x=>x.v==="YES").length,no=S.gng.some(x=>x.v==="NO");
  document.getElementById("decision").innerHTML=no?`<div class="alert"><b>NO-GO</b>：有一项为 NO，先处理再签合同</div>`:yes===S.gng.length?'<div class="good"><b>GO</b>：签约条件已确认</div>':`<div class="alert"><b>WAIT</b>：还有 ${S.gng.length-yes} 项签约条件未确认</div>`;
- renderDoc(T);updateOverview();
+ renderDoc(T);updateOverview();updateGroupCells(T);
  updatePricingSummary(T);updateCostSummary(T);updateIssueChecklist();
 }
 
@@ -749,7 +891,9 @@ const lines=s=>String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);
 function renderDoc(T){
  const c=S.company,p=S.project,y=S.pay,r=S.reps;
  const qn=`${p.qno||"QT-"} Rev ${p.rev||0}`;
- const pay=`${ph(y.dep,"__")}% deposit · ${ph(y.cast,"__")}% on completion of casting · ${ph(y.hand,"__")}% on foundation handover · ${ph(y.ret,"__")}% retention`;
+ const retPct=npos(y.ret)||0;
+ const pay=stages().map(s=>`${ph(s.pct,"__")}% ${s.label?esc(s.label):ph("","stage")}`).join(" · ")+(retPct>0?` · ${esc(y.ret)}% retention`:"");
+ const fmt=S.format||{mode:"BQ"};
  const secRows=S.sections.map(s=>`<tr><td>${esc(s.code)}. ${esc(s.title)}</td><td class="r">${rm(T.sec[s.code])}</td></tr>`).join("");
    const bqRows=S.sections.map(s=>`<tr class="b"><td colspan="7" style="background:#e4eeeb">${esc(s.code)}. ${esc(s.title)}</td></tr>`+
    s.items.filter(it=>it.st!=='EXCLUDED'&&(it.st!=='OPTION'||unitCalculation(it).valid)).map(it=>{
@@ -764,12 +908,42 @@ const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
  const clar=lines(S.clar).map((x,i)=>{const [a,b]=x.split("|");return `<tr><td>${i+1}</td><td>${esc(a)}</td><td>${esc(b||"")}</td></tr>`}).join("");
  const hp=lines(S.hp).map((x,i)=>{const [a,b]=x.split("|");return `<tr><td>HP${i+1}</td><td>${esc(a)}</td><td>${esc(b||"")}</td></tr>`}).join("");
  const rates=S.rates.filter(x=>!quoteReady()||npos(x.rate)!=null).map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit)}</td><td class="r">${num(x.rate)==null?'<span class="ph">[ ]</span>':rm(num(x.rate))}</td></tr>`).join("");
+
+ let lumpNo=0;
+ const lumpRows=S.sections.map(s=>{const its=s.items.filter(it=>!["EXCLUDED","OPTION"].includes(it.st));const si=sectionInfo(s);
+   if(!its.length&&!si.lump)return "";
+   const amt=T.sec[s.code],priced=si.lump||!its.some(it=>!unitCalculation(it).valid);
+   const u=si.units||1;lumpNo++;
+   const bullets=its.filter(it=>it.st!=="PS").map((it,k)=>`<div style="padding-left:12px">${String.fromCharCode(97+k%26)}) ${esc(it.desc)}</div>`).join("")+its.filter(it=>it.st==="PS").map(it=>`<div style="padding-left:12px">Provisional sum: ${esc(it.desc)}</div>`).join("");
+   return `<tr><td>${lumpNo}.</td><td><b>${esc(s.title)}</b>${bullets}</td><td class="r">${q3(u)}</td><td>${esc(si.uom)}</td><td class="r">${priced?rm(r2(amt/u)):'<span class="ph">PENDING</span>'}</td><td class="r">${priced?rm(amt):'<span class="ph">PENDING</span>'}</td></tr>`;}).join("");
+ const scopeRows=(S.scopeList||[]).filter(x=>String(x.item||"").trim()).map(x=>`<tr><td>${esc(x.item)}</td><td>${x.st==="TBC"?'<span class="ph">TO BE CONFIRMED</span>':esc(SCOPE_EN[x.st]||x.st)}</td><td>${esc(x.note)}</td></tr>`).join("");
+ const limitRows=lines(S.limits).map(l=>{const k=l.indexOf(":");return k>0?`<li><b>${esc(l.slice(0,k))}:</b>${esc(l.slice(k+1))}</li>`:`<li>${esc(l)}</li>`}).join("");
+ const qtyRows=S.sections.map(s=>{const its=s.items.filter(it=>!["EXCLUDED","OPTION","PS"].includes(it.st));if(!its.length)return "";
+   return `<tr class="b"><td colspan="4" style="background:#e4eeeb">${esc(s.code)}. ${esc(s.title)}</td></tr>`+its.map(it=>{const x=unitCalculation(it);return `<tr><td>${esc(it.no)}</td><td>${esc(it.desc)}<div class="note">${esc(it.dwg)}</div></td><td>${esc(it.unit)}</td><td class="r">${x.qty==null?'<span class="ph">TBC</span>':q3(x.qty)}</td></tr>`}).join("");}).join("");
+ const anyRate=S.rates.some(x=>npos(x.rate)!=null);
+ const bqHTML=` <p><b>Price summary (RM, excluding SST)</b></p>${T.missing.length?`<p style="color:#a35436"><b>INCOMPLETE: ${T.missing.length} BQ items pending pricing.</b></p>`:""}
+ <table><tr><th>Description</th><th style="width:28%">Amount (RM)</th></tr>${secRows}
+  <tr class="b"><td>Priced subtotal excluding SST${T.missing.length?' (incomplete)':''}</td><td class="r">${rm(T.base)}</td></tr>
+  <tr><td>SST: prices exclude SST. Any applicable SST will be charged per prevailing law, subject to valid exemptions. ${num(p.sstRate)?`(${esc(p.sstRate)}%)`:""}</td><td class="r">${rm(T.sst)}</td></tr>
+  <tr class="b"><td>${T.missing.length?'INCOMPLETE PRICED SUBTOTAL':'Grand total'}</td><td class="r">${rm(T.grand)}</td></tr>
+  <tr><td>Optional items (not included above)</td><td class="r">${rm(T.t.OPTION)}</td></tr>
+ </table>
+`;
+ const lumpHTML=` <p><b>Quotation (RM, excluding SST)</b></p>${T.missing.length?`<p style="color:#a35436"><b>INCOMPLETE: ${T.missing.length} items pending pricing.</b></p>`:""}
+ <table><tr><th style="width:6%">Item</th><th>Description</th><th style="width:8%">Qty</th><th style="width:8%">UOM</th><th style="width:15%">Unit price (RM)</th><th style="width:16%">Total (RM)</th></tr>${lumpRows}
+  <tr class="b"><td></td><td colspan="4">Sub total (excluding tax)${T.missing.length?' (incomplete)':''}</td><td class="r">${rm(T.base)}</td></tr>
+  <tr><td></td><td colspan="4">${num(p.sstRate)?`Service Tax @ ${esc(p.sstRate)}% on ${rm(T.base)}`:"SST: prices exclude SST. Any applicable SST will be charged per prevailing law, subject to valid exemptions."}</td><td class="r">${rm(T.sst)}</td></tr>
+  <tr class="b"><td></td><td colspan="4">${T.missing.length?'INCOMPLETE TOTAL':'Total (inclusive of tax)'}</td><td class="r">${rm(T.grand)}</td></tr>
+  ${T.t.OPTION?`<tr><td></td><td colspan="4">Optional items (not included above)</td><td class="r">${rm(T.t.OPTION)}</td></tr>`:""}
+ </table>
+`;
+ const priceBlock=fmt.mode==="LUMP"?lumpHTML:bqHTML;
  document.getElementById("doc").innerHTML=`
   <div class="draft-mark">INTERNAL DRAFT — NOT FOR ISSUE</div>
   ${!quoteReady()?'<p style="color:#a45238;font-weight:800">WORKING PREVIEW · NOT APPROVED FOR ISSUE</p>':''}
   <div class="doc-topline">CIVIL ENGINEERING / PROJECT QUOTATION</div>
  <div class="co">${ph(c.name,"YOUR COMPANY NAME SDN. BHD.")}</div>
- <div class="coinfo">SSM: ${ph(c.ssm)} · CIDB: ${ph(c.cidb,"Reg. No. / Grade / Category")} · SST: ${ph(c.sst,"Reg. No. / Not registered")}</div>
+ <div class="coinfo">SSM: ${ph(c.ssm)} · TIN: ${ph(c.tin)} · Service Tax ID: ${ph(c.sst,"Reg. No. / Not registered")} · CIDB: ${ph(c.cidb,"Reg. No. / Grade / Category")}</div>
  <div class="coinfo">${ph(c.address,"Address")} · Tel: ${ph(c.tel)} · Email: ${ph(c.email)}</div>
  <div class="title">QUOTATION <span class="doc-quote-ref">${esc(qn)}</span></div>
  <table>
@@ -782,13 +956,7 @@ const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
   <tr><td class="k">Basis</td><td>${esc(p.basis)} (received ${ph(p.received,"date")})${p.meeting?`; site meeting dated ${esc(p.meeting)}`:""}</td></tr>
   <tr><td class="k">Status</td><td>${esc(p.status)}</td></tr>
  </table>
- <p><b>Price summary (RM, excluding SST)</b></p>${T.missing.length?`<p style="color:#a35436"><b>INCOMPLETE: ${T.missing.length} BQ items pending pricing.</b></p>`:""}
- <table><tr><th>Description</th><th style="width:28%">Amount (RM)</th></tr>${secRows}
-  <tr class="b"><td>Priced subtotal excluding SST${T.missing.length?' (incomplete)':''}</td><td class="r">${rm(T.base)}</td></tr>
-  <tr><td>SST: prices exclude SST. Any applicable SST will be charged per prevailing law, subject to valid exemptions. ${num(p.sstRate)?`(${esc(p.sstRate)}%)`:""}</td><td class="r">${rm(T.sst)}</td></tr>
-  <tr class="b"><td>${T.missing.length?'INCOMPLETE PRICED SUBTOTAL':'Grand total'}</td><td class="r">${rm(T.grand)}</td></tr>
-  <tr><td>Optional items (not included above)</td><td class="r">${rm(T.t.OPTION)}</td></tr>
- </table>
+${priceBlock}
  <p><b>Programme and payment</b></p>
  <ul><li>Estimated duration: ${ph(y.days,"__")} working days, excluding concrete curing before equipment placement.</li>
   <li>Start date: agreed in writing once the deposit is received, final construction drawings and the equipment base drawings are received, and the site is safely available.</li>
@@ -800,6 +968,7 @@ const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
 
  <div class="pb"></div>
  <h3>1. Scope of works</h3><ul>${li(lines(S.scope))}</ul>
+ ${scopeRows?`<p><b>Scope checklist</b></p><table><tr><th>Item</th><th style="width:24%">Status</th><th style="width:30%">Note</th></tr>${scopeRows}</table>`:""}
  <h3>2. Exclusions</h3><p>The following are not included unless added in writing:</p><ul>${li(lines(S.excl))}</ul>
  <h3>3. Assumptions</h3><p>Our price is based on the following. If any does not hold, the effect on cost and time will be agreed as a variation.</p><ul>${li(lines(S.assum))}</ul>
  <h3>4. Clarifications required before the price is confirmed</h3>
@@ -807,19 +976,18 @@ const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
 
  <h3>5. Commercial terms</h3>
  <ul>
-  <li><b>Payment:</b> ${pay}. Half of the retention is released at handover and half at the end of a ${ph(y.dlp,"__")}-month defects period starting from our foundation handover. Payment within ${ph(y.payDays,"__")} days of each claim.</li>
+  <li><b>Payment:</b> ${pay}. ${retPct>0?`Half of the retention is released at handover and half at the end of a ${ph(y.dlp,"__")}-month defects period starting from our foundation handover. `:""}Payment within ${ph(y.payDays,"__")} days of each claim.</li>
   <li><b>Variations:</b> Additional works will proceed upon written instruction from the Client's authorised representative, with agreed rates or valuation method and time impact. The Schedule of Rates applies to similar conditions and reasonable quantities.</li>
   <li><b>Provisional Sums:</b> Expended only on written instruction and valued on records, at actual cost plus ${ph(y.psMark,"__")}% or at the agreed daywork rates.</li>
   <li><b>Time:</b> The completion period will be adjusted for delays beyond our control, notified in writing. Any liquidated damages shall be subject to an agreed cap and apply only to delay attributable to us.</li>
   <li><b>Standing time:</b> Standing time caused by site unavailability or other trades may be charged at the agreed daywork rates, subject to notice and site records.</li>
-  <li><b>Responsibility:</b> Our responsibility is limited to our contracted workmanship and compliance with the approved construction drawings and instructions; design adequacy remains with the appointed designers, subject to applicable law.</li>
   <li><b>Insurance:</b> We provide SOCSO and workers' cover for our personnel. Please confirm project insurance (CAR and third-party) coverage, insured parties and deductibles. Any additional cover required from us will be quoted separately.</li>
   <li><b>Overdue payment:</b> Parties will first resolve overdue payments promptly. Nothing in this quotation excludes rights under applicable Malaysian law, including CIPAA 2012 where applicable.</li>
+${limitRows?`</ul><p><b>Limitation of responsibility</b></p><ul>${limitRows}`:""}
   <li><b>Order of documents:</b> If any purchase order or subcontract terms differ from this quotation, the difference will be clarified and agreed in writing before work starts.</li>
  </ul>
  <h3>6. Inspection and handover</h3>
  <table><tr><th style="width:12%">Hold point</th><th>What is checked</th><th style="width:28%">Signed by</th></tr>${hp}</table>
- <p class="note">Damage to accepted foundations caused by others after handover is not our responsibility.</p>
  <h3>7. Representatives</h3>
  <table><tr><th>Role</th><th>Name</th><th>Contact</th></tr>
   <tr><td>Client – authorised to approve price and variations</td><td>${ph(r.appName," ")}</td><td>${ph(r.appTel," ")}</td></tr>
@@ -829,15 +997,16 @@ const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
  <p>We accept this quotation ${esc(qn)}, the attached Bill of Quantities and the agreed clarifications.</p>
  <table><tr><td class="k">Name / Position</td><td style="height:28px"></td></tr><tr><td class="k">Company</td><td>${esc(p.client)}</td></tr>
   <tr><td class="k">PO / LOA No.</td><td></td></tr><tr><td class="k">Signature &amp; company stamp</td><td style="height:56px"></td></tr><tr><td class="k">Date</td><td></td></tr></table>
- <p style="margin-top:14px">Prepared by: ${ph(c.preparer,"Name")} · For and on behalf of ${ph(c.name,"YOUR COMPANY NAME SDN. BHD.")}</p>
+ <p style="margin-top:14px">Prepared by: ${ph(c.preparer,"Name")} · For and on behalf of ${ph(c.name,"YOUR COMPANY NAME SDN. BHD.")}</p>${fmt.printBank&&c.bank?`<p class="note">Bank: ${esc(c.bank)}</p>`:""}
 
- <div class="pb"></div>
+ ${fmt.mode==="LUMP"?(fmt.attachBQ&&qtyRows?`<div class="pb"></div><h3>Appendix A – Scope quantities (for reference only)</h3><table><tr><th style="width:8%">Item</th><th>Description</th><th style="width:10%">Unit</th><th style="width:14%">Qty</th></tr>${qtyRows}</table>`:""):` <div class="pb"></div>
  <h3>Appendix A – Bill of Quantities</h3>
  <p class="note">Status: CONFIRMED = quantity agreed · PROVISIONAL = quantity subject to clarification · PS = provisional sum, expended only on written instruction · OPTION = excluded from quoted total. Rates exclude SST.</p>
  <table><tr><th style="width:6%">Item</th><th>Description</th><th style="width:12%">Status</th><th style="width:6%">Unit</th><th style="width:10%">Qty</th><th style="width:12%">Rate (RM)</th><th style="width:14%">Amount (RM)</th></tr>${bqRows}
   <tr class="b"><td></td><td colspan="5">Total excluding SST</td><td class="r">${rm(T.base)}</td></tr></table>
  <h3>Appendix B – Schedule of Rates for variations and daywork</h3>
- <table><tr><th style="width:6%">No.</th><th>Description</th><th style="width:12%">Unit</th><th style="width:16%">Rate (RM)</th></tr>${rates}</table>`;
+ <table><tr><th style="width:6%">No.</th><th>Description</th><th style="width:12%">Unit</th><th style="width:16%">Rate (RM)</th></tr>${rates}</table>`}
+ ${anyRate||!quoteReady()?`<h3>Appendix B – Schedule of Rates for variations and daywork</h3><table><tr><th style="width:6%">No.</th><th>Description</th><th style="width:12%">Unit</th><th style="width:16%">Rate (RM)</th></tr>${rates}</table>`:""}`;
 }
 
 // --------- COST & PRICING UI ----------
@@ -991,13 +1160,16 @@ function updatePricingSummary(T){
 function issueProblems(){
  const T=totals(),p=S.project,openP0=S.risks.filter(x=>x.pr==='P0'&&x.st!=='CLOSED');
  const checks=[
-  ['公司及客户法定资料、报价编号和收件人齐全', [S.company.name,S.company.ssm,S.company.cidb,S.company.sst,S.company.address,S.company.tel,S.company.email,S.company.preparer,p.qno,p.date,p.valid,p.client,p.attn,p.project,p.works,p.basis,p.received].every(v=>String(v??'').trim().length>0)],
-  ['工期、付款、负责人和条款数字均已填写',[S.pay.days,S.pay.dep,S.pay.cast,S.pay.hand,S.pay.ret,S.pay.payDays,S.pay.dlp,S.reps.appName,S.reps.appTel,S.reps.ourName,S.reps.ourTel].concat(allItems().some(x=>x.st==='PS')?[S.pay.psMark]:[]).every(v=>String(v??'').trim().length>0)],
+  ['公司及客户法定资料、报价编号和收件人齐全', [S.company.name,S.company.ssm,S.company.tin,S.company.cidb,S.company.sst,S.company.address,S.company.tel,S.company.email,S.company.preparer,p.qno,p.date,p.valid,p.client,p.attn,p.project,p.works,p.basis,p.received].every(v=>String(v??'').trim().length>0)],
+  ['工期、付款、负责人和条款数字均已填写',[S.pay.days,S.pay.payDays,S.pay.dlp,S.reps.appName,S.reps.appTel,S.reps.ourName,S.reps.ourTel].concat(allItems().some(x=>x.st==='PS')?[S.pay.psMark]:[]).every(v=>String(v??'').trim().length>0)&&stages().length>0&&stages().every(s=>String(s.label||'').trim()&&npos(s.pct)!=null)],
   ['变更单价表至少有 1 项已核价（空白的不会印出）',S.rates.some(r=>npos(r.rate)!=null)],
-  ['所有纳入报价的 BQ 项目有成本／PS金额（用不到的项目请改成 EXCLUDED 或删除）',allItems().length>0&&T.missing.length===0],
-  ['项目实际毛利率达到下限 '+S.costing.settings.minMarginPct+'%',T.actualMargin!=null&&T.actualMargin>=(npos(S.costing.settings.minMarginPct)||0)],
+  ['所有纳入报价的 BQ 项目有成本／PS金额（用不到的项目请改成 EXCLUDED 或删除）',allItems().length>0&&T.missing.length===0&&T.costMissing.length===0],
+  ['项目实际毛利率达到下限 '+(String(S.costing.settings.minMarginPct||'').trim()?S.costing.settings.minMarginPct+'%':'（未设定）'),T.actualMargin!=null&&T.actualMargin>=(npos(S.costing.settings.minMarginPct)||0)],
   ['无尚未关闭的关键 P0 风险',openP0.length===0],
-  ['付款比例合计100%',Math.abs(['dep','cast','hand','ret'].reduce((a,k)=>a+(num(S.pay[k])||0),0)-100)<.001],
+  ['付款比例合计100%（各阶段＋保留金）',Math.abs(paySum()-100)<.001],
+  ['范围清单选「包括」的项目，没有同时写在「不包括项目」里',scopeConflicts().length===0],
+  ['范围勾选清单没有「待确认」',!(S.scopeList||[]).some(x=>x.st==='TBC'&&String(x.item||'').trim())],
+  ['填了已报价的分组都写了理由',S.sections.every(s=>!sectionInfo(s).lump||String(s.lsReason||'').trim().length>=4)],
   ['适用SST已确认（注册状态与税率一致）',p.sstStatus!=='REVIEW'&&p.sstStatus!=null && (p.sstStatus==='REGISTERED'?(npos(p.sstRate)!=null&&npos(p.sstRate)>0):npos(p.sstRate)===0||String(p.sstRate||'').trim()==='')],
   ['管理费、风险、毛利、折扣、最低毛利均已设定',[S.costing.settings.overheadPct,S.costing.settings.riskPct,S.costing.settings.targetMarginPct,S.costing.settings.discountPct,S.costing.settings.minMarginPct].every(x=>npos(x)!=null)&&npos(S.costing.settings.targetMarginPct)<100&&npos(S.costing.settings.discountPct)<100&&npos(S.costing.settings.minMarginPct)<=100],
   ['报价格式与条款经负责人批准',!!S.costing.approvedForIssue]
@@ -1019,24 +1191,24 @@ function ensureCompanySstField(){
 }
 
 function renderAll(){
- fields("f-company",S.company,[["name","公司注册名称"],["ssm","SSM 号码"],["cidb","CIDB 注册号 / 等级 / 类别"],["sst","SST 注册号，或写 Not registered"],["address","地址"],["tel","电话"],["email","电邮"],["preparer","报价人姓名"]]);
+ fields("f-company",S.company,[["name","公司注册名称"],["ssm","SSM 号码"],["cidb","CIDB 注册号 / 等级 / 类别"],["tin","TIN 所得税号"],["sst","Service Tax ID（SST 注册号），没注册写 Not registered"],["bank","银行资料（选择印出才会出现）"],["address","地址"],["tel","电话"],["email","电邮"],["preparer","报价人姓名"]]);
  fields("f-project",S.project,[["qno","报价编号"],["rev","版本 Rev"],["date","日期"],["valid","有效天数"],["client","客户（总包）公司名"],["clientAddr","客户地址"],["attn","收件人 姓名/职位"],["project","项目","ta"],["works","工程内容","ta"],["basis","报价依据的图纸","ta"],["received","收到图纸日期"],["meeting","工地会议日期（可留空）"],["status","报价状态","ta"],["sstRate","SST 税率 %（没注册填 0，先问会计）"]]);
- fields("f-pay",S.pay,[["days","预计工期（工作天）"],["dep","订金 %"],["cast","浇灌完成 %"],["hand","交接 %"],["ret","保留金 %"],["dlp","保修期（月）"],["payDays","请款后几天内付款"],["psMark","暂定金额管理费 %"]]);
-   ensureCompanySstField();renderBQ();renderRates();renderTerms();renderInternal();renderCostUI();renderPricingUI();refresh();
+ fields("f-pay",S.pay,[["days","预计工期（工作天）"],["ret","保留金 %（没有填 0）"],["dlp","保修期（月）"],["payDays","请款后几天内付款"],["psMark","暂定金额管理费 %（有 PS 才要）"]]);
+   ensureCompanySstField();renderStages();renderBQ();renderGroups();renderRates();renderTerms();renderScopeList();renderInternal();renderCostUI();renderHistory();renderPricingUI();renderFormat();refresh();
 }
 
 function newProject(){
  if(!confirm("开新项目会清空当前项目和其成本估算，建议先导出JSON备份。确认继续？"))return;
- const c=S.company,library=S.costing.library,settings={...S.costing.settings};S=ensureCosting(sample());S.company=c;
+ const c=S.company,library=S.costing.library,settings={...S.costing.settings},history=S.costing.history,format=S.format;S=ensureCosting(sample());S.company=c;S.format=format;
  S.project={qno:"QT-",rev:"0",date:"",valid:"14",client:"",clientAddr:"",attn:"",project:"",works:"",basis:"",received:"",meeting:"",status:"CONDITIONAL – subject to clarifications.",sstRate:"",sstStatus:"REVIEW"};
- S.sections=S.sections.map(x=>({code:x.code,title:x.code==="A"?x.title:x.code==="E"?x.title:"",items:[]}));
- S.costing.library=library;S.costing.settings=settings;S.costing.recipes={};S.costing.overrides={};S.costing.approvedForIssue=false;
+ S.sections=S.sections.map(x=>({code:x.code,title:x.code==="A"?x.title:x.code==="E"?x.title:"",items:[],units:"",uom:"JOB",lsPrice:"",lsReason:"",histPrice:"",histRef:""}));
+ S.costing.library=library;S.costing.settings=settings;S.costing.history=history;S.costing.recipes={};S.costing.overrides={};S.costing.approvedForIssue=false;
  S.clar="";S.risks=[];S.reps={appName:"",appTel:"",siteName:"",siteTel:"",ourName:"",ourTel:""};ACTIVE_ITEM_ID=null;
  save();renderAll();
 }
 function loadSample(){
  if(!confirm("把目前的项目重设为空白范本？公司资料和价格库会保留，其他会清空。请先备份。继续？"))return;
- const c=S.company,library=S.costing.library;S=ensureCosting(sample());S.company=c;S.costing.library=library;ACTIVE_ITEM_ID=null;save();renderAll();
+ const c=S.company,library=S.costing.library,history=S.costing.history;S=ensureCosting(sample());S.company=c;S.costing.library=library;S.costing.history=history;ACTIVE_ITEM_ID=null;save();renderAll();
 }
 
 
