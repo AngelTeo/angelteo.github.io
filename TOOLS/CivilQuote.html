@@ -264,7 +264,7 @@
        <button data-t="t-int" class="internal"><span class="nav-num">07</span><span class="nav-meta"><b>内部风险管理</b><small>Private commercial review</small></span></button>
 
 </nav>
-    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v3</div><div style="font-size:10px;color:#f0ce8c;margin-top:6px">备份 JSON 含成本与利润资料，不要外传</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
+    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v4</div><div style="font-size:10px;color:#f0ce8c;margin-top:6px">备份 JSON 含成本与利润资料，不要外传</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
   </aside>
   <div class="workspace">
     <header class="app noprint">
@@ -376,6 +376,8 @@
   <div class="card"><h2>出具报价 · ISSUE GATE</h2>
     <p class="hint">正式报价前必须完成成本、关键资料及利润门槛复核。P0风险未解决时，只允许输出带 DRAFT 标记的内部工作稿，不允许作为正式报价发给客户。</p>
     <div id="issueChecklist"></div>
+    <label class="approval" style="background:#fff6f1;border-color:#efd4c4"><input type="checkbox" id="skipCost"> <span>已报价、暂不做成本分析（毛利未知，风险自负）——只适合价钱已经报出去、要补发或改版的情况</span></label>
+    <div style="margin:-6px 0 14px"><label for="skipReason">跳过成本的原因（至少 4 个字）</label><input id="skipReason" placeholder="例：价钱已在 Q00141026 报出，先发补充说明"></div>
     <label class="approval"><input type="checkbox" id="approveIssue"> <span>我已检查成本、商业条件、适用税务与报价版本，批准正式出具客户报价</span></label>
     <div class="row-actions"><button class="primary" onclick="printQuote()">正式报价 / PDF</button><button onclick="printDraft()">仅打印内部 DRAFT</button></div>
   </div>
@@ -438,7 +440,7 @@
 </div>
 
 <script>
-const APP_VERSION=3;
+const APP_VERSION=4;
 const KEY="civil-quotation-cost", OLD_KEY="civil-quotation-pro-v1", LEGACY_KEY="civil-quotation-tool-v1";
 const STATUS=["CONFIRMED","PROVISIONAL","PS","OPTION","EXCLUDED"];
 
@@ -1120,6 +1122,10 @@ function renderPricingUI(){
  fields('f-pricing',settings,[['overheadPct','管理费 / 现场间接费 %'],['riskPct','风险准备 %'],['targetMarginPct','目标毛利率 %（不是成本加成）'],['discountPct','全项目报价折扣 %'],['minMarginPct','最低容许实际毛利率 %']]);
  const form=document.getElementById('f-pricing');form.querySelectorAll('input').forEach(inp=>{inp.type='number';inp.min='0';inp.max=inp.dataset.k==='targetMarginPct'?'80':'100';inp.step='0.1';
   inp.addEventListener('input',()=>{markChanged();renderBQ();refreshCostUnitBanner();renderPriceReview();refresh()});});
+ const sk=document.getElementById('skipCost'),sr=document.getElementById('skipReason');
+ if(sk){sk.checked=!!S.costing.skipCost;sr.value=S.costing.skipReason||'';
+  sk.onchange=()=>{S.costing.skipCost=sk.checked;markChanged();refresh();};
+  sr.oninput=()=>{S.costing.skipReason=sr.value;markChanged();refresh();};}
  const approve=document.getElementById('approveIssue');approve.checked=S.costing.approvedForIssue;
  approve.onchange=()=>{S.costing.approvedForIssue=approve.checked;save();updateIssueChecklist();updateOverview();};
  renderPriceReview();
@@ -1154,24 +1160,26 @@ function updatePricingSummary(T){
   <div class="metric ${T.actualMargin!=null&&T.actualMargin<min?'warn':''}"><small>实际毛利率（折扣后）</small><strong>${margin}</strong></div>
  </div><div class="tot"><div>预计毛利金额（排除PS）</div><div>RM ${rm(T.profit)}</div>
  <div>暂定金额PS（不计利润）</div><div>RM ${rm(T.ps)}</div><div>已估算客户报价合计（含已填SST）</div><div>RM ${rm(T.grand)}</div></div>
- ${T.missing.length?'<div class="alert">还有 '+T.missing.length+' 项未完成成本：整项利润和总价仍然不完整。</div>':''}
+ ${S.costing.skipCost?'<div class="alert"><b>已选择「已报价、暂不做成本」：这份报价的毛利未知。</b>有空请补上成本，确认没有报低。</div>':''} ${T.missing.length?'<div class="alert">还有 '+T.missing.length+' 项未完成成本：整项利润和总价仍然不完整。</div>':''}
  ${T.actualMargin!=null&&T.actualMargin<min?'<div class="alert">实际毛利率低于最低容许值 '+min+'%，不可正式发出。</div>':''}`;
 }
+function skipCostOn(){return !!S.costing.skipCost&&String(S.costing.skipReason||'').trim().length>=4}
 function issueProblems(){
- const T=totals(),p=S.project,openP0=S.risks.filter(x=>x.pr==='P0'&&x.st!=='CLOSED');
+ const T=totals(),p=S.project,openP0=S.risks.filter(x=>x.pr==='P0'&&x.st!=='CLOSED'),skip=skipCostOn();
  const checks=[
   ['公司及客户法定资料、报价编号和收件人齐全', [S.company.name,S.company.ssm,S.company.tin,S.company.cidb,S.company.sst,S.company.address,S.company.tel,S.company.email,S.company.preparer,p.qno,p.date,p.valid,p.client,p.attn,p.project,p.works,p.basis,p.received].every(v=>String(v??'').trim().length>0)],
   ['工期、付款、负责人和条款数字均已填写',[S.pay.days,S.pay.payDays,S.pay.dlp,S.reps.appName,S.reps.appTel,S.reps.ourName,S.reps.ourTel].concat(allItems().some(x=>x.st==='PS')?[S.pay.psMark]:[]).every(v=>String(v??'').trim().length>0)&&stages().length>0&&stages().every(s=>String(s.label||'').trim()&&npos(s.pct)!=null)],
   ['变更单价表至少有 1 项已核价（空白的不会印出）',S.rates.some(r=>npos(r.rate)!=null)],
-  ['所有纳入报价的 BQ 项目有成本／PS金额（用不到的项目请改成 EXCLUDED 或删除）',allItems().length>0&&T.missing.length===0&&T.costMissing.length===0],
-  ['项目实际毛利率达到下限 '+(String(S.costing.settings.minMarginPct||'').trim()?S.costing.settings.minMarginPct+'%':'（未设定）'),T.actualMargin!=null&&T.actualMargin>=(npos(S.costing.settings.minMarginPct)||0)],
+  ['所有纳入报价的 BQ 项目有成本／PS金额（用不到的项目请改成 EXCLUDED 或删除）',allItems().length>0&&T.missing.length===0&&(skip||T.costMissing.length===0)],
+  [skip?'毛利检查已跳过（已报价、暂不做成本）':'项目实际毛利率达到下限 '+(String(S.costing.settings.minMarginPct||'').trim()?S.costing.settings.minMarginPct+'%':'（未设定）'),skip||(T.actualMargin!=null&&T.actualMargin>=(npos(S.costing.settings.minMarginPct)||0))],
+  ['勾了「暂不做成本」就要写原因',!S.costing.skipCost||skip],
   ['无尚未关闭的关键 P0 风险',openP0.length===0],
   ['付款比例合计100%（各阶段＋保留金）',Math.abs(paySum()-100)<.001],
   ['范围清单选「包括」的项目，没有同时写在「不包括项目」里',scopeConflicts().length===0],
   ['范围勾选清单没有「待确认」',!(S.scopeList||[]).some(x=>x.st==='TBC'&&String(x.item||'').trim())],
   ['填了已报价的分组都写了理由',S.sections.every(s=>!sectionInfo(s).lump||String(s.lsReason||'').trim().length>=4)],
   ['适用SST已确认（注册状态与税率一致）',p.sstStatus!=='REVIEW'&&p.sstStatus!=null && (p.sstStatus==='REGISTERED'?(npos(p.sstRate)!=null&&npos(p.sstRate)>0):npos(p.sstRate)===0||String(p.sstRate||'').trim()==='')],
-  ['管理费、风险、毛利、折扣、最低毛利均已设定',[S.costing.settings.overheadPct,S.costing.settings.riskPct,S.costing.settings.targetMarginPct,S.costing.settings.discountPct,S.costing.settings.minMarginPct].every(x=>npos(x)!=null)&&npos(S.costing.settings.targetMarginPct)<100&&npos(S.costing.settings.discountPct)<100&&npos(S.costing.settings.minMarginPct)<=100],
+  [skip?'百分比检查已跳过（已报价、暂不做成本）':'管理费、风险、毛利、折扣、最低毛利均已设定',skip||[S.costing.settings.overheadPct,S.costing.settings.riskPct,S.costing.settings.targetMarginPct,S.costing.settings.discountPct,S.costing.settings.minMarginPct].every(x=>npos(x)!=null)&&npos(S.costing.settings.targetMarginPct)<100&&npos(S.costing.settings.discountPct)<100&&npos(S.costing.settings.minMarginPct)<=100],
   ['报价格式与条款经负责人批准',!!S.costing.approvedForIssue]
  ];
  return checks;
