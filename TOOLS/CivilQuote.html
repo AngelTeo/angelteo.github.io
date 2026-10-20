@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>CIVIL / QUOTE · Professional Estimating Studio</title>
+<title>CIVIL / QUOTE · Cost-to-Quotation Studio</title>
 <style>
   :root{
     --canvas:#f3f6f5; --surface:#fff; --surface-2:#f8faf9; --ink:#20323b; --muted:#5c6b71;
@@ -200,6 +200,39 @@
     #doc th,#doc td.k,#doc tr.b td{print-color-adjust:exact;-webkit-print-color-adjust:exact}
   }
 
+
+  /* cost estimating layers */
+  #t-cost.on,#t-price.on{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+  #t-cost .card,#t-price .card{min-width:0}
+  .cost-picker{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:14px;align-items:end;margin-bottom:17px}
+  .cost-pill{border:1px solid var(--line);background:#f3f8f6;border-radius:9px;padding:11px;color:#315c5c;font-weight:700;font-size:12px}
+  .cost-pill.wait{color:#92563b;background:#fff7ec;border-color:#f0decb}
+  .cost-item-desc{font-size:12px;color:#667a7a;border-bottom:1px solid var(--line);padding:0 0 12px;margin-bottom:14px}
+  .cost-unit-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+  .cost-unit-summary > div,.metric{background:#f4f9f7;border:1px solid #e1ece7;border-radius:10px;padding:12px 14px}
+  .cost-unit-summary small,.metric small{font-size:11px;color:#607675;display:block}
+  .cost-unit-summary strong,.metric strong{display:block;font-size:19px;color:#214b4b;margin-top:3px;font-variant-numeric:tabular-nums}
+  .formula-note{border:1px solid #d9e7e1;background:#f5faf8;border-radius:11px;margin-top:20px;padding:14px 16px;display:grid;gap:5px;font-size:12px;color:#536c67}
+  .formula-note b{color:#295750}
+  .pricing-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:10px 0 18px}
+  .metric.warn{background:#fff6f1;border-color:#efd4c4}
+  .metric.warn strong{color:#9e4c38}
+  #priceReviewTable{min-width:1100px}
+  #costLinesTable{min-width:1150px}
+  #costLibraryTable{min-width:1000px}
+  .issue-row{display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid #edf1ef;padding:10px 2px;font-size:12px}
+  .issue-icon{width:20px;height:20px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:#e2f4eb;color:#277251;font-weight:900}
+  .issue-icon.no{background:#fff0e8;color:#b15b42}
+  .approval{display:flex;align-items:flex-start;gap:10px;margin:17px 0;background:#f3f8f6;border:1px solid #dceae5;padding:15px;border-radius:10px;cursor:pointer;font-weight:700}
+  .approval input{width:18px;height:18px;flex:0 0 18px;margin:1px 0;accent-color:#266a6b}
+  .muted{color:#849493} .price-negative{color:#a44836;font-weight:800}
+  .costhint{color:#a45e31;font-size:10px;display:block}
+  #doc .draft-mark{display:none}
+  body.print-draft #doc{position:relative}
+  body.print-draft #doc .draft-mark{display:block;text-align:center;border:2px dashed #c48f78;background:#fff2ec;color:#994a36;letter-spacing:.25em;font-size:20px;font-weight:900;padding:11px;margin-bottom:20px}
+  @media(max-width:960px){#t-cost.on,#t-price.on{display:block}.pricing-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:620px){.cost-picker{grid-template-columns:1fr}.cost-unit-summary{grid-template-columns:1fr}.pricing-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media print{body.print-draft #doc .draft-mark{display:block!important}#doc .draft-mark{display:none!important}}
 </style>
 </head>
 <body>
@@ -207,7 +240,7 @@
   <aside class="sidebar noprint">
     <div class="brand-unit">
       <div class="brand-emblem">▦</div>
-      <div><div class="brand-title">CIVIL / QUOTE</div><div class="brand-sub">Project Costing Studio</div></div>
+      <div><div class="brand-title">CIVIL / QUOTE</div><div class="brand-sub">Cost → Price → Quote</div></div>
     </div>
     <div class="project-mini">
       <div class="eyebrow">CURRENT ESTIMATE</div>
@@ -217,19 +250,22 @@
     <div class="side-caption">WORKSPACE / 工作区</div>
     <nav class="tabs">
       <button data-t="t-info" class="on"><span class="nav-num">01</span><span class="nav-meta"><b>报价资料</b><small>Project details &amp; company</small></span></button>
-      <button data-t="t-bq"><span class="nav-num">02</span><span class="nav-meta"><b>BQ 工程量</b><small>Quantities &amp; pricing</small></span></button>
-      <button data-t="t-terms"><span class="nav-num">03</span><span class="nav-meta"><b>范围与条款</b><small>Scope &amp; clarifications</small></span></button>
-      <button data-t="t-preview"><span class="nav-num">04</span><span class="nav-meta"><b>客户报价单</b><small>Client-ready document</small></span></button>
-      <button data-t="t-int" class="internal"><span class="nav-num">05</span><span class="nav-meta"><b>内部风险管理</b><small>Private commercial review</small></span></button>
-    </nav>
-    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v1</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
+      <button data-t="t-bq"><span class="nav-num">02</span><span class="nav-meta"><b>工程量 BQ</b><small>Take-off &amp; quantities</small></span></button>
+       <button data-t="t-cost"><span class="nav-num">03</span><span class="nav-meta"><b>成本估算</b><small>Materials · Labour · Plant</small></span></button>
+       <button data-t="t-price"><span class="nav-num">04</span><span class="nav-meta"><b>售价与利润</b><small>Pricing &amp; margins</small></span></button>
+       <button data-t="t-terms"><span class="nav-num">05</span><span class="nav-meta"><b>范围与条款</b><small>Scope &amp; clarifications</small></span></button>
+       <button data-t="t-preview"><span class="nav-num">06</span><span class="nav-meta"><b>客户报价单</b><small>Client-ready document</small></span></button>
+       <button data-t="t-int" class="internal"><span class="nav-num">07</span><span class="nav-meta"><b>内部风险管理</b><small>Private commercial review</small></span></button>
+
+</nav>
+    <div class="side-footer"><div class="local-row"><span class="local-dot"></span> LOCAL WORKSPACE · 本机资料 · v2</div><div style="font-size:10px;color:#f0ce8c;margin-top:6px">备份 JSON 含成本与利润资料，不要外传</div><div id="saveState">资料只存在这台设备的浏览器</div></div>
   </aside>
   <div class="workspace">
     <header class="app noprint">
       <div class="crumb">PROJECTS <span class="sep">/</span> ESTIMATES <span class="sep">/</span> <strong id="topQuote">DRAFT</strong></div>
       <div class="btns">
-        <button class="primary" onclick="printQuote()"><span class="btn-icon">↗</span>打印 / 导出 PDF</button>
-        <button onclick="exportJSON()"><span class="btn-icon">↓</span>备份 JSON</button>
+        <button class="primary" onclick="printQuote()"><span class="btn-icon">↗</span>正式报价 PDF</button>
+        <button onclick="exportJSON()"><span class="btn-icon">↓</span>项目备份 JSON</button>
         <button onclick="document.getElementById('imp').click()"><span class="btn-icon">↑</span>导入备份</button>
         <input type="file" id="imp" accept=".json" style="display:none" onchange="importJSON(this)">
       </div>
@@ -240,11 +276,12 @@
         <div class="work-meta"><span class="meta-pill" id="metaRev">REV 01</span><span class="meta-pill" id="metaLocal">LOCAL · PRIVATE</span></div>
       </div>
       <div class="summary-grid noprint">
-        <div class="summary-item"><div class="summary-label">初步报价合计 / ESTIMATE</div><div class="summary-value" id="kpiTotal">RM 0.00</div><div class="summary-note">包括暂定数量，未必是最终合约价</div></div>
-        <div class="summary-item"><div class="summary-label">BQ 报价完成 / PRICED ITEMS</div><div class="summary-value" id="kpiPriced">0 / 0</div><div class="summary-note" id="kpiPricedNote">待填写单价</div></div>
+        <div class="summary-item"><div class="summary-label">已估算报价 / PRICED VALUE</div><div class="summary-value" id="kpiTotal">RM 0.00</div><div class="summary-note">仅完成定价项目，不含未估成本项目</div></div>
+        <div class="summary-item"><div class="summary-label">成本估算完成 / COSTED ITEMS</div><div class="summary-value" id="kpiPriced">0 / 0</div><div class="summary-note" id="kpiPricedNote">材料、人工与机械成本须齐全</div></div>
         <div class="summary-item"><div class="summary-label">未关闭重大风险 / OPEN P0</div><div class="summary-value" id="kpiRisk">0</div><div class="summary-note">提交正式报价前逐项处理</div></div>
-        <div class="summary-item"><div class="summary-label">内部审核 / REVIEW STATUS</div><div class="summary-value" id="kpiReady">IN REVIEW</div><div class="summary-note" id="kpiReadyNote">检查项目条件</div></div>
+        <div class="summary-item"><div class="summary-label">报价状态 / ISSUE CONTROL</div><div class="summary-value" id="kpiReady">IN REVIEW</div><div class="summary-note" id="kpiReadyNote">检查项目条件</div></div>
       </div>
+      <div class="alert noprint" id="migrationBanner" hidden><b>已从旧版搬入资料。</b>原本填的单价保留作参考（成本页每项会显示「原本单价」），总价要等你在「成本估算」补上成本才会算出来。<button class="small" style="margin-left:8px" onclick="S.migrationNotice=false;save();showMigration()">知道了</button></div>
       <div class="quote-warning noprint" id="reviewBanner"><span class="warning-mark">!</span><span id="reviewText">报价尚有未决事项，最终报价须核对数量和图纸。</span></div>
 
 
@@ -271,22 +308,63 @@
 <!-- 2 BQ -->
 <section class="tab" id="t-bq">
   <div class="card">
-    <h2>工程量与单价 · BOQ WORKSHEET</h2>
-    <p class="hint">黄色格为报价输入格；未确认数量由 QS 核实。PS 填暂定总额，OPTION 不计入正式合计。</p>
+    <h2>工程量与售价 · BILL OF QUANTITIES</h2>
+     <p class="hint">先输入数量。一般 BQ 单价从「成本估算」与「售价与利润」自动计算，不能直接随意填售价。PS 暂定金额单独填写，不纳入毛利预测。</p>
     <div class="tablewrap"><table class="bq" id="bqTable"></table></div>
     <div class="row-actions noprint">
       <select id="addSec" style="width:auto"></select>
       <button onclick="addItem()">在此部分加一项</button>
     </div>
   </div>
-  <div class="card"><h2>价格概览 · COST SUMMARY</h2><div class="tot" id="totals"></div></div>
+  <div class="card"><h2>报价汇总 · ESTIMATE SUMMARY</h2><div class="tot" id="totals"></div></div>
   <div class="card"><h2>变更单价 · SCHEDULE OF RATES</h2>
     <p class="hint">事先报好单价，改动时才有依据。</p>
     <div class="tablewrap"><table class="bq" id="rateTable"></table></div>
   </div>
 </section>
 
-<!-- 3 TERMS -->
+<!-- 3 COST -->
+<section class="tab" id="t-cost">
+  <div class="card"><h2>逐项成本分析 · UNIT RATE BUILD-UP</h2>
+    <p class="hint">选择 BQ 项目，为「每 1 个 BQ 单位」填写材料数量、人工工日、机械台班、运输、分包等。成本源自下方价格库；若现场价格不同，可在该项覆写，留空则跟随价格库。</p>
+    <div class="cost-picker">
+      <div><label for="costItemSelect">选择 BQ 工程项目</label><select id="costItemSelect"></select></div>
+      <div><label>当前项目估算状态</label><div class="cost-pill" id="costItemStatus">请选择项目</div></div>
+    </div>
+    <div id="costItemDesc" class="cost-item-desc"></div>
+    <div class="tablewrap"><table class="bq" id="costLinesTable"></table></div>
+    <div class="row-actions noprint"><button class="primary" onclick="addCostLineFromLibrary()">＋ 从价格库加入资源</button><select id="addResourceSelect" style="max-width:340px"></select><button onclick="addCustomCostLine()">＋ 自定义成本行</button></div>
+    <div id="unitCostTotal" class="cost-unit-summary"></div>
+    <p class="hint" style="margin:13px 0 0">提示：Qty 是每个 BQ 单位消耗量；人工可用「工日／m³」等生产率换算。例如 3名工人做2天完成10m³，则每m³人工用量=0.6工日。</p>
+  </div>
+  <div class="card"><h2>项目成本统计 · COST BREAKDOWN</h2><div id="costBreakdown"></div></div>
+  <div class="card"><h2>内部材料／人工价格库 · COST LIBRARY</h2><p class="hint">这里的空白单价必须根据采购报价或实际工钱填写；系统不会臆造马来西亚市场价格。价格库属于内部资料，不进入客户 PDF。</p>
+    <div class="tablewrap"><table class="bq" id="costLibraryTable"></table></div>
+    <div class="row-actions"><button onclick="addLibraryResource()">＋ 添加价格库项目</button></div>
+  </div>
+</section>
+<!-- 4 PRICE -->
+<section class="tab" id="t-price">
+  <div class="card"><h2>成本加成与目标毛利 · PRICING POLICY</h2>
+    <p class="hint">系统先计算每单位直接成本，再加入管理费用和风险准备，最后反推目标毛利售价。全项目折扣将在最后计算，实际毛利率会同步下降。</p>
+    <div class="grid" id="f-pricing"></div>
+    <p class="hint" style="margin:14px 0 0"><b>首次使用请先填写5个百分比</b>，如无折扣也需明确填写 0。管理费若已包含在 A 部分独立的现场杂费中，请避免重复计算。</p>
+    <div class="formula-note"><b>核心公式</b><span>完整成本 = 直接成本 × (1 + 管理费%) × (1 + 风险准备%)</span><span>单位售价 = 完整成本 ÷ (1 − 目标毛利率%) × (1 − 折扣%)</span></div>
+  </div>
+  <div class="card"><h2>成本／售价／利润实况 · PROJECT PROFITABILITY</h2><div id="pricingSummary"></div></div>
+  <div class="card"><h2>项目售价审查 · ITEM PRICING REVIEW</h2>
+    <p class="hint">售价来自成本计算。确需策略性调整某项价格时，可设置人工售价，但必须填写理由；实际毛利率仍按真实成本重新计算。</p>
+    <div class="tablewrap"><table class="bq" id="priceReviewTable"></table></div>
+  </div>
+  <div class="card"><h2>出具报价 · ISSUE GATE</h2>
+    <p class="hint">正式报价前必须完成成本、关键资料及利润门槛复核。P0风险未解决时，只允许输出带 DRAFT 标记的内部工作稿，不允许作为正式报价发给客户。</p>
+    <div id="issueChecklist"></div>
+    <label class="approval"><input type="checkbox" id="approveIssue"> <span>我已检查成本、商业条件、适用税务与报价版本，批准正式出具客户报价</span></label>
+    <div class="row-actions"><button class="primary" onclick="printQuote()">正式报价 / PDF</button><button onclick="printDraft()">仅打印内部 DRAFT</button></div>
+  </div>
+</section>
+
+<!-- 5 TERMS -->
 <section class="tab" id="t-terms">
   <div class="card"><h2>工程范围 · 不包括项目 · 前提假设</h2>
     <p class="hint">每行一条。会直接出现在报价单上（英文）。</p>
@@ -307,7 +385,7 @@
 
 <!-- 4 PREVIEW -->
 <section class="tab" id="t-preview">
-  <div class="card noprint"><p class="hint" style="margin:0">这里是客户将收到的正式报价文件。点击右上角「打印 / 导出 PDF」，选择浏览器「另存为 PDF」。<span class="ph">橙色字</span>表示还没填。</p></div>
+  <div class="card noprint"><p class="hint" style="margin:0">这里只显示面向客户的报价，不包含内部材料、工人薪资和利润。正式导出须通过出具检查。<span class="ph">橙色字</span>表示还没填。</p></div>
   <div id="doc"></div>
 </section>
 
@@ -315,7 +393,7 @@
 <section class="tab" id="t-int">
   <div class="banner-int">PRIVATE WORKSPACE / 内部专用 · 只在本机分析，不会打印给客户</div>
   <div class="card"><h2>现金流：最多要垫多少钱</h2>
-    <div class="grid" id="f-cash"></div>
+    <div class="grid" id="f-cash"></div><p class="hint" style="margin:12px 0 0">垫资推算是「首笔进度款前净现金缺口」的简化估算，不是整个施工期间的最大现金缺口。它与上面的完整项目成本不同。</p>
     <div id="cashOut" style="margin-top:10px"></div>
   </div>
   <div class="card"><h2>Go / No-Go：签约前全部要 YES</h2><div id="gonogo"></div><div id="decision"></div></div>
@@ -330,8 +408,8 @@
 </div>
 
 <script>
-const APP_VERSION=1;
-const KEY="civil-quotation-pro-v1", OLD_KEY="civil-quotation-tool-v1";
+const APP_VERSION=2;
+const KEY="civil-quotation-cost", OLD_KEY="civil-quotation-pro-v1", LEGACY_KEY="civil-quotation-tool-v1";
 const STATUS=["CONFIRMED","PROVISIONAL","PS","OPTION","EXCLUDED"];
 
 function sample(){
@@ -342,7 +420,7 @@ function sample(){
    works:"Civil foundation works for equipment: slab, piers, ring beams, reinforcement and cast-in items",
    basis:"",received:"",meeting:"",
    status:"CONDITIONAL – subject to the clarifications in Section 4. Items marked PROVISIONAL will be confirmed once answered.",
-   sstRate:"0"},
+   sstRate:"",sstStatus:"REVIEW"},
   pay:{days:"",payDays:"14",dep:"25",cast:"45",hand:"25",ret:"5",dlp:"12",psMark:"",basePrep:"7"},
   sections:[
    {code:"A",title:"PRELIMINARIES",items:[
@@ -432,12 +510,52 @@ function sample(){
   ].map(r=>({dwg:r[0],issue:r[1],pr:r[2],who:r[3],prot:r[4],due:"",st:"OPEN"}))
  };
 }
-let S;
-function load(){try{let j=localStorage.getItem(KEY);if(!j){j=localStorage.getItem(OLD_KEY);if(j)localStorage.setItem(KEY,j);}if(j){S=JSON.parse(j);return}}catch(e){} S=sample();}
+let S, ACTIVE_ITEM_ID=null, draftMode=false;
+let idCounter=0;
+function makeId(prefix="id"){return prefix+"_"+Date.now().toString(36)+"_"+(++idCounter).toString(36)}
+function blankLibrary(){
+ const a=[
+  ["M01","MATERIAL","Concrete C25 ready mix","m³"],["M02","MATERIAL","Steel reinforcement T12","kg"],["M03","MATERIAL","Steel reinforcement T10","kg"],
+  ["M04","MATERIAL","Steel reinforcement T8","kg"],["M05","MATERIAL","Chemical anchor resin / consumable","set"],["M06","MATERIAL","M20 anchor bolt","nr"],
+  ["M07","MATERIAL","Steel plate 300×300×10mm","nr"],["M08","MATERIAL","Formwork materials","m²"],
+  ["L01","LABOUR","Skilled construction worker","man-day"],["L02","LABOUR","General construction worker","man-day"],
+  ["L03","LABOUR","Site supervisor","man-day"],["P01","PLANT","Drilling machine / tools","machine-day"],["P02","PLANT","Concrete pump / plant","day"],
+  ["S01","SUBCON","Concrete cube test laboratory","set"],["T01","TRANSPORT","Transport / delivery","trip"]];
+ return a.map(([id,cat,desc,unit])=>({id,cat,desc,unit,rate:"",source:"",date:""}));
+}
+function ensureCosting(state){
+ if(!state||!Array.isArray(state.sections))throw Error("Invalid quotation data");
+ if(!state.costing||typeof state.costing!=="object")state.costing={};
+ const c=state.costing;
+ if(!c.settings)c.settings={overheadPct:"",riskPct:"",targetMarginPct:"",discountPct:"",minMarginPct:""};
+ for(const k of ["overheadPct","riskPct","targetMarginPct","discountPct","minMarginPct"])if(c.settings[k]==null)c.settings[k]="";
+ if(!Array.isArray(c.library))c.library=blankLibrary();
+ if(!c.recipes||typeof c.recipes!=="object")c.recipes={};
+ if(!c.overrides||typeof c.overrides!=="object")c.overrides={};
+ if(typeof c.approvedForIssue!=="boolean")c.approvedForIssue=false;
+ if(!state.project)state.project={};
+ if(!state.project.sstStatus)state.project.sstStatus="REVIEW";
+ // Preserve legacy manual rates as reference: never silently treat a guessed sale rate as material cost.
+ const seen=new Set();
+ for(const sec of state.sections){if(!Array.isArray(sec.items))sec.items=[];
+  for(const it of sec.items){if(!it.uid||seen.has(it.uid))it.uid=makeId("bq");seen.add(it.uid);
+   if(it.legacyRate===undefined)it.legacyRate=(it.st==="PS"?"":(it.rate??""));
+   if(it.st==="PS"&&it.psAllowance===undefined)it.psAllowance=it.rate??"";
+   if(!Array.isArray(c.recipes[it.uid]))c.recipes[it.uid]=[];
+  }}
+ return state;
+}
+function load(){
+ try{let j=localStorage.getItem(KEY),migrated=false;if(!j){j=localStorage.getItem(OLD_KEY)||localStorage.getItem(LEGACY_KEY);migrated=!!j;}
+  if(j){S=ensureCosting(JSON.parse(j));if(migrated)S.migrationNotice=true;return;}}catch(e){console.warn("Load fallback",e)}
+ S=ensureCosting(sample());
+}
 let saveTimer;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));
-  document.getElementById("saveState").textContent="已自动保存 · "+new Date().toLocaleTimeString()+" · 资料只存在这台设备"}catch(e){
-  document.getElementById("saveState").textContent="这个浏览器不能保存，请用“备份”存档"}},300);}
+ const sv=document.getElementById("saveState");if(sv)sv.textContent="已自动保存 · "+new Date().toLocaleTimeString()+" · 资料只存在这台设备";
+ }catch(e){const sv=document.getElementById("saveState");if(sv)sv.textContent="本机保存失败，请导出JSON备份";}},200);}
+function markChanged(){if(S.costing.approvedForIssue)S.costing.approvedForIssue=false;save();}
+
 
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const num=v=>{const n=parseFloat(String(v).replace(/,/g,""));return isNaN(n)?null:n};
@@ -450,73 +568,128 @@ function fields(id,obj,defs){
  el.innerHTML=defs.map(([k,lab,type])=>`<div><label>${lab}</label>${type==="ta"?
    `<textarea class="fill" data-k="${k}">${esc(obj[k])}</textarea>`:
    `<input class="fill" data-k="${k}" ${type?`type="${type}"`:""} value="${esc(obj[k])}">`}</div>`).join("");
- el.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{obj[i.dataset.k]=i.value;save();refresh();});
+ el.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{obj[i.dataset.k]=i.value;markChanged();refresh();});
 }
 
-function itemAmt(it){
- const q=num(it.q),n=num(it.n),r=num(it.rate);
- if(it.st==="EXCLUDED") return 0;
- if(it.st==="PS") return r||0;
- return (q!=null&&n!=null&&r!=null)?q*n*r:0;
+const CAT_LABELS={MATERIAL:"材料",LABOUR:"人工",PLANT:"机械",SUBCON:"分包",TRANSPORT:"运输",OTHER:"其他"};
+const CAT=Object.keys(CAT_LABELS);
+const npos=x=>{const a=num(x);return a!=null&&Number.isFinite(a)&&a>=0?a:null};
+function allItems(){return S.sections.flatMap(sec=>sec.items)}
+function libraryById(id){return S.costing.library.find(x=>x.id===id)}
+function resourceCost(row){
+ const qty=npos(row.qty),w=npos(row.waste||"0");const lib=libraryById(row.libId);
+ const rate=npos(row.overrideRate!==""&&row.overrideRate!=null?row.overrideRate:lib?.rate??row.rate??"");
+ if(qty==null||rate==null||w==null)return null;
+ if(qty===0&&rate===0)return 0;
+ return qty*(row.cat==="MATERIAL"?(1+w/100):1)*rate;
 }
+const r2=v=>Math.round((v+Number.EPSILON)*100)/100, r3=v=>Math.round((v+Number.EPSILON)*1000)/1000;
+function unitCalculation(it){
+ if(it.st==="EXCLUDED")return {valid:true,excluded:true,qty:0,price:0,amount:0,direct:0,cost:0};
+ if(it.st==="PS"){
+  const allowance=npos(it.psAllowance);
+  return {valid:allowance!=null&&allowance>0,ps:true,qty:1,price:allowance==null?null:r2(allowance),amount:allowance?r2(allowance):0,direct:0,cost:0};
+ }
+ const qty=npos(it.q),n=npos(it.n),totalQty=qty!=null&&n!=null?r3(qty*n):null;
+ const rows=S.costing.recipes[it.uid]||[];
+ const costs=rows.map(resourceCost);
+ const costed=rows.length>0&&costs.every(x=>x!=null)&&costs.some(x=>x>0);
+ const valid=costed&&totalQty!=null&&totalQty>0;
+ const d=costed?costs.reduce((a,b)=>a+b,0):null;
+ const sets=S.costing.settings;
+ const oh=npos(sets.overheadPct),risk=npos(sets.riskPct),margin=npos(sets.targetMarginPct),discount=npos(sets.discountPct);
+ const policy=oh!=null&&risk!=null&&margin!=null&&margin<100&&discount!=null&&discount<100;
+ const fully=costed&&policy?d*(1+oh/100)*(1+risk/100):null;
+ const base=fully!=null?fully/(1-margin/100)*(1-discount/100):null;
+ const override=S.costing.overrides[it.uid];
+ const hasOverride=override&&String(override.rate??"").trim()!=="";
+ const overrideValid=!hasOverride||(npos(override.rate)!=null&&String(override.reason||"").trim().length>=8);
+ const rawRate=hasOverride&&overrideValid?npos(override.rate):base;
+ const rate=rawRate==null?null:r2(rawRate);
+ const ok=valid&&policy&&overrideValid&&rate!=null&&rate>0;
+ return {valid:!!ok,qty:totalQty,price:ok?rate:null,amount:ok?r2(totalQty*rate):0,direct:costed?d:null,cost:fully,fullCostTotal:ok?totalQty*fully:0,directTotal:ok?totalQty*d:0,profit:ok?totalQty*(rate-fully):0,override:!!hasOverride,overrideValid};
+}
+function itemAmt(it){return unitCalculation(it).amount||0}
 function totals(){
- const t={CONFIRMED:0,PROVISIONAL:0,PS:0,OPTION:0,EXCLUDED:0},sec={};
- S.sections.forEach(s=>{sec[s.code]=0;s.items.forEach(it=>{const a=itemAmt(it);t[it.st]+=a;if(it.st!=="OPTION")sec[s.code]+=a;});});
- const base=t.CONFIRMED+t.PROVISIONAL+t.PS, sst=base*(num(S.project.sstRate)||0)/100;
- return {t,sec,base,sst,grand:base+sst};
+ const t={CONFIRMED:0,PROVISIONAL:0,PS:0,OPTION:0,EXCLUDED:0},sec={},bycat={};
+ CAT.forEach(k=>bycat[k]=0);
+ let missing=[],direct=0,fullCost=0,salesForMargin=0,profit=0,ps=0;
+ S.sections.forEach(s=>{sec[s.code]=0;s.items.forEach(it=>{
+  const x=unitCalculation(it);t[it.st]+=x.amount||0;
+  if(it.st!=="OPTION"&&it.st!=="EXCLUDED"){
+   sec[s.code]+=x.amount||0;
+   if(!x.valid)missing.push(it.no||it.uid);
+   else if(x.ps)ps+=x.amount;
+   else{
+    direct+=x.directTotal;fullCost+=x.fullCostTotal;salesForMargin+=x.amount;profit+=x.profit;
+    (S.costing.recipes[it.uid]||[]).forEach(r=>{const val=resourceCost(r);if(val!=null)bycat[r.cat]=(bycat[r.cat]||0)+val*x.qty});
+   }
+  }
+ });});
+ const base=t.CONFIRMED+t.PROVISIONAL+t.PS;
+ const sstRate=npos(S.project.sstRate),sst=base*(sstRate??0)/100;
+ const actualMargin=salesForMargin>0?100*profit/salesForMargin:null;
+ return {t,sec,base,sst,grand:base+sst,missing,direct,fullCost,salesForMargin,profit,ps,bycat,actualMargin};
 }
+function isCosted(it){return unitCalculation(it).valid}
+
 
 function renderBQ(){
  const tb=document.getElementById("bqTable");
- let h=`<tr><th>Item</th><th style="min-width:260px">Description</th><th>Drawing</th><th>Status</th><th>Unit</th><th>Qty/unit</th><th>Units</th><th>Total qty</th><th>Rate (RM)</th><th>Amount (RM)</th><th style="min-width:160px">Notes</th><th></th></tr>`;
+ let h=`<tr><th>Item</th><th style="min-width:240px">工程项目 / Description</th><th>Drawing</th><th>Status</th><th>Unit</th><th>Qty/unit</th><th>Units</th><th>合计量</th><th>直接成本/单位</th><th>售价/单位</th><th>合计售价 RM</th><th style="min-width:160px">Notes</th><th></th></tr>`;
  S.sections.forEach((s,si)=>{
-  h+=`<tr class="sec"><td>${esc(s.code)}</td><td colspan="11">${esc(s.title)}</td></tr>`;
-  s.items.forEach((it,ii)=>{
-   const tq=(num(it.q)!=null&&num(it.n)!=null)?num(it.q)*num(it.n):null;
-   h+=`<tr data-s="${si}" data-i="${ii}">
-    <td><input data-f="no" value="${esc(it.no)}" style="width:52px"></td>
-    <td><input data-f="desc" value="${esc(it.desc)}"></td>
-    <td><input data-f="dwg" value="${esc(it.dwg)}" style="width:110px"></td>
-    <td><select data-f="st" style="width:120px">${STATUS.map(x=>`<option ${x===it.st?"selected":""}>${x}</option>`).join("")}</select></td>
-    <td><input data-f="unit" value="${esc(it.unit)}" style="width:50px"></td>
-    <td><input data-f="q" value="${esc(it.q)}" style="width:80px" ${it.q===""?'class="fill"':""}></td>
-    <td><input data-f="n" value="${esc(it.n)}" style="width:50px"></td>
-    <td class="num">${it.st==="PS"?"—":q3(tq)}</td>
-    <td><input class="fill" data-f="rate" value="${esc(it.rate)}" style="width:90px" placeholder="${it.st==="PS"?"sum":"0.00"}"></td>
-    <td class="num" data-amt>${rm(itemAmt(it))}</td>
-    <td><input data-f="note" value="${esc(it.note)}"></td>
-    <td><button class="small danger" data-del title="删除">✕</button></td></tr>`;
-  });
-  h+=`<tr class="sub"><td></td><td colspan="8">Sub-total Section ${esc(s.code)} (excl. OPTION)</td><td class="num" data-sec="${esc(s.code)}"></td><td colspan="2"></td></tr>`;
+ h+=`<tr class="sec"><td>${esc(s.code)}</td><td colspan="12">${esc(s.title)}</td></tr>`;
+ s.items.forEach((it,ii)=>{
+ const x=unitCalculation(it),qty=x.qty;
+ const psInput=it.st==="PS"?`<input class="fill" data-f="psAllowance" type="number" min="0" step="any" value="${esc(it.psAllowance??"")}" placeholder="PS sum">`:x.valid?rm(x.price):'<span class="costhint">待成本估算</span>';
+ h+=`<tr data-s="${si}" data-i="${ii}">
+ <td><input data-f="no" value="${esc(it.no)}" style="width:58px"></td>
+ <td><input data-f="desc" value="${esc(it.desc)}" style="min-width:225px"></td>
+ <td><input data-f="dwg" value="${esc(it.dwg)}" style="width:100px"></td>
+ <td><select data-f="st" style="width:115px">${STATUS.map(st=>`<option ${st===it.st?'selected':''}>${st}</option>`).join('')}</select></td>
+ <td><input data-f="unit" value="${esc(it.unit)}" style="width:55px"></td>
+ <td><input data-f="q" value="${esc(it.q)}" style="width:80px" ${it.q===""?'class="fill"':''}></td>
+ <td><input data-f="n" value="${esc(it.n)}" style="width:55px"></td>
+ <td class="num">${x.ps?'—':qty==null?'TBC':q3(qty)}</td>
+ <td class="num">${x.direct==null?'—':rm(x.direct)}</td>
+ <td class="num">${psInput}</td>
+ <td class="num">${x.valid?rm(x.amount):'<span class="costhint">PENDING</span>'}</td>
+ <td><input data-f="note" value="${esc(it.note)}"></td>
+ <td><button class="small danger" data-del title="删除">✕</button></td></tr>`;
+ });
+ h+=`<tr class="sub"><td></td><td colspan="9">Sub-total Section ${esc(s.code)} (excluding OPTION)</td><td class="num" data-sec="${esc(s.code)}"></td><td colspan="2"></td></tr>`;
  });
  tb.innerHTML=h;
  tb.querySelectorAll("tr[data-s]").forEach(tr=>{
   const it=S.sections[tr.dataset.s].items[tr.dataset.i];
   tr.querySelectorAll("[data-f]").forEach(inp=>{
-   inp.oninput=inp.onchange=()=>{it[inp.dataset.f]=inp.value;save();
-    if(["st","q","n"].includes(inp.dataset.f)&&inp.tagName==="SELECT") renderBQ();
-    else{tr.querySelector("[data-amt]").textContent=rm(itemAmt(it));
-      const tq=(num(it.q)!=null&&num(it.n)!=null)?num(it.q)*num(it.n):null;
-      tr.children[7].textContent=it.st==="PS"?"—":q3(tq);}
+   inp.oninput=inp.onchange=()=>{it[inp.dataset.f]=inp.value;markChanged();
+    if(inp.tagName==="SELECT")renderBQ();
+    else if(["q","n","psAllowance"].includes(inp.dataset.f)){
+     const x=unitCalculation(it);tr.children[7].textContent=x.ps?'—':x.qty==null?'TBC':q3(x.qty);
+     tr.children[10].innerHTML=x.valid?rm(x.amount):'<span class="costhint">PENDING</span>';
+    }
     refresh();};
   });
-  tr.querySelector("[data-del]").onclick=()=>{if(confirm("删除 "+it.no+"？")){S.sections[tr.dataset.s].items.splice(tr.dataset.i,1);save();renderBQ();refresh();}};
+  tr.querySelector("[data-del]").onclick=()=>{if(confirm("删除 "+it.no+"？")){delete S.costing.recipes[it.uid];delete S.costing.overrides[it.uid];S.sections[tr.dataset.s].items.splice(tr.dataset.i,1);markChanged();renderBQ();renderCostUI();refresh();}};
  });
  document.getElementById("addSec").innerHTML=S.sections.map((s,i)=>`<option value="${i}">${esc(s.code)}. ${esc(s.title)}</option>`).join("");
  refresh();
 }
+
+
 function addItem(){const si=+document.getElementById("addSec").value,s=S.sections[si];
- s.items.push({no:s.code+(s.items.length+1),desc:"",dwg:"",st:"PROVISIONAL",unit:"nr",q:"",n:1,note:"",rate:""});save();renderBQ();}
+ s.items.push({uid:makeId("bq"),no:s.code+(s.items.length+1),desc:"",dwg:"",st:"PROVISIONAL",unit:"nr",q:"",n:1,note:"",rate:"",legacyRate:""});markChanged();renderBQ();renderCostUI();}
 
 function renderRates(){
  const tb=document.getElementById("rateTable");
  tb.innerHTML=`<tr><th>No.</th><th>Description</th><th>Unit</th><th>Rate (RM)</th></tr>`+
   S.rates.map((r,i)=>`<tr><td>${i+1}</td><td><input data-i="${i}" data-f="desc" value="${esc(r.desc)}"></td><td><input data-i="${i}" data-f="unit" value="${esc(r.unit)}" style="width:80px"></td><td><input class="fill" data-i="${i}" data-f="rate" value="${esc(r.rate)}" style="width:110px"></td></tr>`).join("");
- tb.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{S.rates[inp.dataset.i][inp.dataset.f]=inp.value;save();refresh();});
+ tb.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{S.rates[inp.dataset.i][inp.dataset.f]=inp.value;markChanged();refresh();});
 }
 
 function renderTerms(){
- ["scope","excl","assum","clar","hp"].forEach(k=>{const el=document.getElementById("x-"+k);el.value=S[k];el.oninput=()=>{S[k]=el.value;save();refresh();};});
+ ["scope","excl","assum","clar","hp"].forEach(k=>{const el=document.getElementById("x-"+k);el.value=S[k];el.oninput=()=>{S[k]=el.value;markChanged();refresh();};});
  fields("f-reps",S.reps,[["appName","总包 可批钱的人（姓名/职位）"],["appTel","联络"],["siteName","总包 工地/技术代表"],["siteTel","联络"],["ourName","我方代表"],["ourTel","联络"]]);
 }
 
@@ -538,7 +711,7 @@ function renderRisks(){
    <td><select data-f="st" style="width:110px">${["OPEN","ANSWERED","CLOSED"].map(v=>`<option ${v===r.st?"selected":""}>${v}</option>`).join("")}</select></td>
    <td><button class="small danger" data-del>✕</button></td></tr>`).join("");
  tb.querySelectorAll("tr[data-i]").forEach(tr=>{const r=S.risks[tr.dataset.i];
-  tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=inp.onchange=()=>{r[inp.dataset.f]=inp.value;save();refresh();});
+  tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=inp.onchange=()=>{r[inp.dataset.f]=inp.value;markChanged();refresh();});
   tr.querySelector("[data-del]").onclick=()=>{if(confirm("删除这项风险？")){S.risks.splice(tr.dataset.i,1);save();renderRisks();}};});
 }
 function addRisk(){S.risks.push({dwg:"",issue:"",pr:"P1",who:"",prot:"",due:"",st:"OPEN"});save();renderRisks();}
@@ -546,30 +719,31 @@ function addRisk(){S.risks.push({dwg:"",issue:"",pr:"P1",who:"",prot:"",due:"",s
 function refresh(){
  const T=totals();
  S.sections.forEach(s=>{const c=document.querySelector(`[data-sec="${CSS.escape(s.code)}"]`);if(c)c.textContent=rm(T.sec[s.code]);});
- document.getElementById("totals").innerHTML=
-  `<div>已确认项目 CONFIRMED</div><div>${rm(T.t.CONFIRMED)}</div>
-   <div>暂定项目 PROVISIONAL</div><div>${rm(T.t.PROVISIONAL)}</div>
-   <div>暂定金额 PS</div><div>${rm(T.t.PS)}</div>
-   <div class="big">总价（不含 SST）</div><div class="big">${rm(T.base)}</div>
-   <div>SST ${esc(S.project.sstRate||0)}%</div><div>${rm(T.sst)}</div>
-   <div class="big">GRAND TOTAL</div><div class="big">${rm(T.grand)}</div>
-   <div style="color:var(--muted)">另选项 OPTION（不算进总价）</div><div style="color:var(--muted)">${rm(T.t.OPTION)}</div>`;
- const p=S.pay, sum=["dep","cast","hand","ret"].reduce((a,k)=>a+(num(p[k])||0),0);
- document.getElementById("payCheck").innerHTML=Math.abs(sum-100)<0.001?`<div class="good">付款比例加起来 = 100%</div>`:`<div class="alert">付款比例加起来 = ${sum}%，应该是 100%</div>`;
- // internal
- const c=S.cash, base=T.base, dep=base*(num(p.dep)||0)/100, out=(num(c.mat)||0)+(num(c.lab)||0), peak=Math.max(0,out-dep),
-  ret=base*(num(p.ret)||0)/100, prof=base*(num(c.margin)||0)/100, lim=num(c.limit);
- document.getElementById("cashOut").innerHTML=`<div class="tot">
-  <div>合约价（不含 SST，来自 BQ）</div><div>${rm(base)}</div><div>收到的订金</div><div>${rm(dep)}</div>
-  <div>第一笔进度款前要付出去的</div><div>${rm(out)}</div><div class="big">最多要垫的钱</div><div class="big">${rm(peak)}</div>
-  <div>保留金（要等保修期结束）</div><div>${rm(ret)}</div><div>目标利润</div><div>${rm(prof)}</div></div>`+
-  (lim==null?`<div class="alert">还没填"最多愿意垫多少"</div>`:peak>lim?`<div class="alert">超过垫资上限 RM ${rm(peak-lim)}：提高订金，或缩短付款阶段</div>`:`<div class="good">在垫资上限之内</div>`)+
-  (prof>0&&ret>prof*0.5?`<div class="alert">保留金超过利润的一半：争取降低比例，或交接时先放一半</div>`:"");
- const yes=S.gng.filter(x=>x.v==="YES").length, no=S.gng.some(x=>x.v==="NO");
- document.getElementById("decision").innerHTML=no?`<div class="alert"><b>NO-GO</b>：有一项是 NO，先处理再签</div>`:yes===S.gng.length?`<div class="good"><b>GO</b>：全部满足</div>`:`<div class="alert" style="background:#fff6d6;color:#8a5a00"><b>WAIT</b>：还有 ${S.gng.length-yes} 项未确认</div>`;
- renderDoc(T);
- updateOverview();
+ document.getElementById("totals").innerHTML=`<div>已估算 CONFIRMED</div><div>${rm(T.t.CONFIRMED)}</div>
+ <div>暂定数量 PROVISIONAL</div><div>${rm(T.t.PROVISIONAL)}</div>
+ <div>暂定金额 PS（不计利润）</div><div>${rm(T.t.PS)}</div>
+ <div class="big">已估算总价（未计SST）</div><div class="big">RM ${rm(T.base)}</div>
+ <div>SST (${esc(S.project.sstRate||"未确认")}%)</div><div>${rm(T.sst)}</div>
+ <div class="big">已估算合计（含已填SST）</div><div class="big">RM ${rm(T.grand)}</div>
+ <div>OPTION 备选（不包括）</div><div>${rm(T.t.OPTION)}</div>
+ ${T.missing.length?`<div style="grid-column:1/-1" class="alert">尚有 ${T.missing.length} 项未完成真实成本／暂定金额，以上只是已定价部分，不是完整总报价。</div>`:""}`;
+ const p=S.pay,sum=["dep","cast","hand","ret"].reduce((a,k)=>a+(num(p[k])||0),0);
+ document.getElementById("payCheck").innerHTML=Math.abs(sum-100)<0.001?`<div class="good">付款比例总计 100%</div>`:`<div class="alert">付款比例总计 ${sum}%，需要为100%</div>`;
+ const c=S.cash,base=T.base,dep=base*(num(p.dep)||0)/100,out=(num(c.mat)||0)+(num(c.lab)||0),initialGap=Math.max(0,out-dep),ret=base*(num(p.ret)||0)/100,lim=npos(c.limit);
+ document.getElementById("cashOut").innerHTML=`<div class="tot"><div>完整成本预测（排除PS）</div><div>RM ${rm(T.fullCost)}</div>
+ <div>报价收入（排除PS）</div><div>RM ${rm(T.salesForMargin)}</div>
+ <div>项目预计利润（排除PS）</div><div>RM ${rm(T.profit)}</div>
+ <div>订金（按已估算总额）</div><div>RM ${rm(dep)}</div>
+ <div>首笔中期款前材料＋人工等付款</div><div>RM ${rm(out)}</div>
+ <div class="big">首笔中期款前现金缺口估算</div><div class="big">RM ${rm(initialGap)}</div>
+ <div>合约保留金估算</div><div>RM ${rm(ret)}</div></div>
+ ${lim==null?'<div class="alert">尚未设垫资上限</div>':initialGap>lim?'<div class="alert">超过垫资上限 RM '+rm(initialGap-lim)+'</div>':'<div class="good">此阶段现金缺口在设定上限内（不代表全程现金流安全）</div>'}`;
+ const yes=S.gng.filter(x=>x.v==="YES").length,no=S.gng.some(x=>x.v==="NO");
+ document.getElementById("decision").innerHTML=no?`<div class="alert"><b>NO-GO</b>：有一项为 NO，先处理再签合同</div>`:yes===S.gng.length?'<div class="good"><b>GO</b>：签约条件已确认</div>':`<div class="alert"><b>WAIT</b>：还有 ${S.gng.length-yes} 项签约条件未确认</div>`;
+ renderDoc(T);updateOverview();
+ updatePricingSummary(T);updateCostSummary(T);updateIssueChecklist();
 }
+
 
 const lines=s=>String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);
 function renderDoc(T){
@@ -577,16 +751,23 @@ function renderDoc(T){
  const qn=`${p.qno||"QT-"} Rev ${p.rev||0}`;
  const pay=`${ph(y.dep,"__")}% deposit · ${ph(y.cast,"__")}% on completion of casting · ${ph(y.hand,"__")}% on foundation handover · ${ph(y.ret,"__")}% retention`;
  const secRows=S.sections.map(s=>`<tr><td>${esc(s.code)}. ${esc(s.title)}</td><td class="r">${rm(T.sec[s.code])}</td></tr>`).join("");
- const bqRows=S.sections.map(s=>`<tr class="b"><td colspan="7" style="background:#e4eeeb">${esc(s.code)}. ${esc(s.title)}</td></tr>`+
-  s.items.map(it=>{const tq=(num(it.q)!=null&&num(it.n)!=null)?num(it.q)*num(it.n):null;
-   return `<tr><td>${esc(it.no)}</td><td>${esc(it.desc)}<div class="note">${esc(it.dwg)}</div></td><td>${esc(it.st)}</td><td>${esc(it.unit)}</td><td class="r">${it.st==="PS"?"—":(tq==null?'<span class="ph">TBC</span>':q3(tq))}</td><td class="r">${it.st==="PS"?"—":(num(it.rate)==null?'<span class="ph">[ ]</span>':rm(num(it.rate)))}</td><td class="r">${it.st==="OPTION"?"("+rm(itemAmt(it))+")":rm(itemAmt(it))}</td></tr>`}).join("")+
-  `<tr class="b"><td></td><td colspan="5">Sub-total ${esc(s.code)}</td><td class="r">${rm(T.sec[s.code])}</td></tr>`).join("");
- const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
+   const bqRows=S.sections.map(s=>`<tr class="b"><td colspan="7" style="background:#e4eeeb">${esc(s.code)}. ${esc(s.title)}</td></tr>`+
+   s.items.filter(it=>it.st!=='EXCLUDED'&&(it.st!=='OPTION'||unitCalculation(it).valid)).map(it=>{
+    const x=unitCalculation(it),tq=x.qty;
+    const shownPrice=x.valid?rm(x.price):'<span class="ph">PENDING</span>';
+    const shownAmount=x.valid?rm(x.amount):'<span class="ph">PENDING</span>';
+    return `<tr><td>${esc(it.no)}</td><td>${esc(it.desc)}<div class="note">${esc(it.dwg)}</div></td><td>${esc(it.st)}</td><td>${esc(it.unit)}</td><td class="r">${it.st==="PS"?'—':tq==null?'<span class="ph">TBC</span>':q3(tq)}</td><td class="r">${it.st==="PS"?'—':shownPrice}</td><td class="r">${it.st==="OPTION"?'('+shownAmount+')':shownAmount}</td></tr>`}).join('')+
+   `<tr class="b"><td></td><td colspan="5">Sub-total ${esc(s.code)}</td><td class="r">${rm(T.sec[s.code])}</td></tr>`).join("");
+
+
+const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
  const clar=lines(S.clar).map((x,i)=>{const [a,b]=x.split("|");return `<tr><td>${i+1}</td><td>${esc(a)}</td><td>${esc(b||"")}</td></tr>`}).join("");
  const hp=lines(S.hp).map((x,i)=>{const [a,b]=x.split("|");return `<tr><td>HP${i+1}</td><td>${esc(a)}</td><td>${esc(b||"")}</td></tr>`}).join("");
- const rates=S.rates.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit)}</td><td class="r">${num(x.rate)==null?'<span class="ph">[ ]</span>':rm(num(x.rate))}</td></tr>`).join("");
+ const rates=S.rates.filter(x=>!quoteReady()||npos(x.rate)!=null).map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit)}</td><td class="r">${num(x.rate)==null?'<span class="ph">[ ]</span>':rm(num(x.rate))}</td></tr>`).join("");
  document.getElementById("doc").innerHTML=`
- <div class="doc-topline">CIVIL ENGINEERING / PROJECT QUOTATION</div>
+  <div class="draft-mark">INTERNAL DRAFT — NOT FOR ISSUE</div>
+  ${!quoteReady()?'<p style="color:#a45238;font-weight:800">WORKING PREVIEW · NOT APPROVED FOR ISSUE</p>':''}
+  <div class="doc-topline">CIVIL ENGINEERING / PROJECT QUOTATION</div>
  <div class="co">${ph(c.name,"YOUR COMPANY NAME SDN. BHD.")}</div>
  <div class="coinfo">SSM: ${ph(c.ssm)} · CIDB: ${ph(c.cidb,"Reg. No. / Grade / Category")} · SST: ${ph(c.sst,"Reg. No. / Not registered")}</div>
  <div class="coinfo">${ph(c.address,"Address")} · Tel: ${ph(c.tel)} · Email: ${ph(c.email)}</div>
@@ -601,11 +782,11 @@ function renderDoc(T){
   <tr><td class="k">Basis</td><td>${esc(p.basis)} (received ${ph(p.received,"date")})${p.meeting?`; site meeting dated ${esc(p.meeting)}`:""}</td></tr>
   <tr><td class="k">Status</td><td>${esc(p.status)}</td></tr>
  </table>
- <p><b>Price summary (RM, excluding SST)</b></p>
+ <p><b>Price summary (RM, excluding SST)</b></p>${T.missing.length?`<p style="color:#a35436"><b>INCOMPLETE: ${T.missing.length} BQ items pending pricing.</b></p>`:""}
  <table><tr><th>Description</th><th style="width:28%">Amount (RM)</th></tr>${secRows}
-  <tr class="b"><td>Total excluding SST</td><td class="r">${rm(T.base)}</td></tr>
+  <tr class="b"><td>Priced subtotal excluding SST${T.missing.length?' (incomplete)':''}</td><td class="r">${rm(T.base)}</td></tr>
   <tr><td>SST: prices exclude SST. Any applicable SST will be charged per prevailing law, subject to valid exemptions. ${num(p.sstRate)?`(${esc(p.sstRate)}%)`:""}</td><td class="r">${rm(T.sst)}</td></tr>
-  <tr class="b"><td>Grand total</td><td class="r">${rm(T.grand)}</td></tr>
+  <tr class="b"><td>${T.missing.length?'INCOMPLETE PRICED SUBTOTAL':'Grand total'}</td><td class="r">${rm(T.grand)}</td></tr>
   <tr><td>Optional items (not included above)</td><td class="r">${rm(T.t.OPTION)}</td></tr>
  </table>
  <p><b>Programme and payment</b></p>
@@ -652,47 +833,234 @@ function renderDoc(T){
 
  <div class="pb"></div>
  <h3>Appendix A – Bill of Quantities</h3>
- <p class="note">Status: CONFIRMED = from drawing, no open query · PROVISIONAL = subject to clarification, re-measured at the rates below · PS = Provisional Sum · OPTION = not included in total.</p>
+ <p class="note">Status: CONFIRMED = quantity agreed · PROVISIONAL = quantity subject to clarification · PS = provisional sum, expended only on written instruction · OPTION = excluded from quoted total. Rates exclude SST.</p>
  <table><tr><th style="width:6%">Item</th><th>Description</th><th style="width:12%">Status</th><th style="width:6%">Unit</th><th style="width:10%">Qty</th><th style="width:12%">Rate (RM)</th><th style="width:14%">Amount (RM)</th></tr>${bqRows}
   <tr class="b"><td></td><td colspan="5">Total excluding SST</td><td class="r">${rm(T.base)}</td></tr></table>
  <h3>Appendix B – Schedule of Rates for variations and daywork</h3>
  <table><tr><th style="width:6%">No.</th><th>Description</th><th style="width:12%">Unit</th><th style="width:16%">Rate (RM)</th></tr>${rates}</table>`;
 }
 
+// --------- COST & PRICING UI ----------
+function pickItem(){return allItems().find(x=>x.uid===ACTIVE_ITEM_ID)}
+function renderCostUI(){
+ const select=document.getElementById('costItemSelect');if(!select)return;
+ const items=allItems().filter(x=>x.st!=='EXCLUDED');
+ if(!items.some(x=>x.uid===ACTIVE_ITEM_ID))ACTIVE_ITEM_ID=items[0]?.uid||null;
+ select.innerHTML=items.map(it=>`<option value="${esc(it.uid)}" ${it.uid===ACTIVE_ITEM_ID?'selected':''}>${esc(it.no)} · ${esc(it.desc.slice(0,85))}</option>`).join('');
+ select.onchange=()=>{ACTIVE_ITEM_ID=select.value;renderCostEditor()};
+ const libsel=document.getElementById('addResourceSelect');
+ libsel.innerHTML=S.costing.library.map(r=>`<option value="${esc(r.id)}">${esc(CAT_LABELS[r.cat]||r.cat)} · ${esc(r.desc)}</option>`).join('');
+ renderCostEditor();renderLibrary();
+}
+function renderCostEditor(){
+ const it=pickItem();const status=document.getElementById('costItemStatus'),desc=document.getElementById('costItemDesc'),tb=document.getElementById('costLinesTable');
+ if(!it){status.textContent='未有工程项目';tb.innerHTML='';desc.textContent='请先到BQ加入工程量';return}
+ const x=unitCalculation(it);
+ status.textContent=it.st==='PS'?'PS 暂定金额：在BQ直接填写':x.valid?'成本与售价已齐全 · RM '+rm(x.direct)+'/单位':x.direct!=null?'直接成本已齐全 · 待售价政策确认':'成本未完成 · 须填资源量与单价';
+ status.classList.toggle('wait',!x.valid);
+ desc.textContent=`${it.no} · ${it.desc} · BQ单位: ${it.unit} · 数量: ${x.qty??'待填'} · 状态: ${it.st}`+(npos(it.legacyRate)!=null?` · 原本单价（参考）: RM ${rm(npos(it.legacyRate))}`:'');
+ if(it.st==='PS'){
+  tb.innerHTML='<tr><td>PS为暂定总金额，不预估毛利，请到BQ页面填PS Allowance。</td></tr>';
+  document.getElementById('unitCostTotal').innerHTML='';return;
+ }
+ const rows=S.costing.recipes[it.uid]||[];
+ tb.innerHTML=`<tr><th>类别</th><th style="min-width:230px">成本资源 / Resource</th><th>资源单位</th><th>每BQ单位数量</th><th>材料损耗 %</th><th>成本单价 (RM)</th><th>单位成本 (RM)</th><th>价格来源</th><th></th></tr>`+
+ rows.map((r,i)=>{const lib=libraryById(r.libId),unitRate=r.overrideRate!==''&&r.overrideRate!=null?r.overrideRate:(lib?.rate??r.rate??'');
+ const total=resourceCost(r);
+ return `<tr data-i="${i}"><td><select data-f="cat" style="width:110px">${CAT.map(cat=>`<option value="${cat}" ${cat===r.cat?'selected':''}>${CAT_LABELS[cat]}</option>`).join('')}</select></td>
+ <td><input data-f="desc" value="${esc(r.desc)}" style="min-width:220px"></td>
+ <td><input data-f="unit" value="${esc(r.unit)}" style="width:85px"></td>
+ <td><input class="fill" data-f="qty" type="number" min="0" step="any" value="${esc(r.qty)}" style="width:110px"></td>
+ <td><input data-f="waste" type="number" min="0" step="any" value="${esc(r.waste||'0')}" ${r.cat!=='MATERIAL'?'disabled':''} style="width:85px"></td>
+ <td><input class="fill" data-f="overrideRate" type="number" min="0" step="any" value="${esc(r.overrideRate??'')}" placeholder="${lib?.rate?esc(lib.rate):'填写金额'}" style="width:120px"><span class="costhint">${r.libId?'空白跟随价格库':'需填写'}</span></td>
+ <td class="num" data-rowcost>${total==null?'<span class="costhint">PENDING</span>':rm(total)}</td>
+ <td class="small">${lib?esc(lib.source||'来源未填')+' / '+esc(lib.date||'日期未填'):'自定义'}</td>
+ <td><button class="danger small" data-del>✕</button></td></tr>`}).join('');
+ tb.querySelectorAll('tr[data-i]').forEach(tr=>{
+  const r=rows[+tr.dataset.i];
+  tr.querySelectorAll('[data-f]').forEach(inp=>{inp.oninput=inp.onchange=()=>{
+   r[inp.dataset.f]=inp.value;
+   if(inp.dataset.f==='cat'){if(r.cat!=='MATERIAL')r.waste='0';markChanged();renderCostEditor()}
+   else{markChanged();const amount=resourceCost(r);tr.querySelector('[data-rowcost]').innerHTML=amount==null?'<span class="costhint">PENDING</span>':rm(amount);
+    refresh();refreshCostUnitBanner();renderPriceReview();renderBQ();}
+  }});
+  tr.querySelector('[data-del]').onclick=()=>{rows.splice(+tr.dataset.i,1);markChanged();renderCostEditor();renderBQ();refresh()};
+ });
+ refreshCostUnitBanner();
+}
+function refreshCostUnitBanner(){
+ const it=pickItem();if(!it)return;const x=unitCalculation(it);
+ document.getElementById('unitCostTotal').innerHTML=
+ `<div><small>直接成本 / BQ单位</small><strong>${x.direct==null?'—':'RM '+rm(x.direct)}</strong></div>
+ <div><small>完整成本 / BQ单位</small><strong>${x.cost==null?'—':'RM '+rm(x.cost)}</strong></div>
+ <div><small>客户售价 / BQ单位</small><strong>${x.price==null?'—':'RM '+rm(x.price)}</strong></div>`;
+ document.getElementById('costItemStatus').textContent=x.valid?'已完成成本与售价估算':x.direct!=null?'直接成本已齐 · 待完成利润参数':'成本尚未完成';
+ document.getElementById('costItemStatus').classList.toggle('wait',!x.valid);
+}
+function addCostLineFromLibrary(){
+ const it=pickItem();if(!it||it.st==='PS')return;
+ const id=document.getElementById('addResourceSelect').value,r=libraryById(id);if(!r)return;
+ S.costing.recipes[it.uid].push({id:makeId('resource'),libId:r.id,cat:r.cat,desc:r.desc,unit:r.unit,qty:'',waste:'0',overrideRate:''});
+ markChanged();renderCostEditor();renderBQ();refresh();
+}
+function addCustomCostLine(){
+ const it=pickItem();if(!it||it.st==='PS')return;
+ S.costing.recipes[it.uid].push({id:makeId('resource'),libId:'',cat:'OTHER',desc:'',unit:'LS',qty:'',waste:'0',overrideRate:''});
+ markChanged();renderCostEditor();renderBQ();refresh();
+}
+function renderLibrary(){
+ const tb=document.getElementById('costLibraryTable');
+ tb.innerHTML='<tr><th>Code</th><th>类别</th><th style="min-width:240px">材料／工种／设备</th><th>单位</th><th>成本价 RM</th><th>供应商 / 来源</th><th>报价日期</th><th></th></tr>'+
+ S.costing.library.map((r,i)=>`<tr data-i="${i}"><td>${esc(r.id)}</td>
+ <td><select data-f="cat" style="width:100px">${CAT.map(c=>`<option value="${c}" ${r.cat===c?'selected':''}>${CAT_LABELS[c]}</option>`).join('')}</select></td>
+ <td><input data-f="desc" value="${esc(r.desc)}" style="min-width:220px"></td>
+ <td><input data-f="unit" value="${esc(r.unit)}" style="width:75px"></td>
+ <td><input class="fill" data-f="rate" type="number" min="0" step="any" value="${esc(r.rate)}" style="width:110px" placeholder="未报价"></td>
+ <td><input data-f="source" value="${esc(r.source)}" style="min-width:150px" placeholder="供应商／工资依据"></td>
+ <td><input data-f="date" type="date" value="${esc(r.date)}" style="width:140px"></td>
+ <td><button class="danger small" data-del>✕</button></td></tr>`).join('');
+ tb.querySelectorAll('tr[data-i]').forEach(tr=>{const r=S.costing.library[+tr.dataset.i];
+  tr.querySelectorAll('[data-f]').forEach(inp=>{
+   const f=inp.dataset.f;
+   const handler=()=>{r[f]=inp.value;markChanged();
+    if(f==='cat'){renderCostUI();refresh();return;}
+    if(f==='desc'||f==='unit'){refreshResourceOptions();refresh();return;}
+    if(f==='rate'){renderCostEditor();renderBQ();renderPriceReview();}
+    refresh();};
+   if(f==='cat')inp.onchange=handler;else inp.oninput=handler;
+  });
+  tr.querySelector('[data-del]').onclick=()=>{if(S.costing.recipes&&Object.values(S.costing.recipes).some(a=>a.some(r=>r.libId===S.costing.library[+tr.dataset.i].id))){alert('该资源已被成本明细引用，请先移除相关成本行。');return;}
+   S.costing.library.splice(+tr.dataset.i,1);markChanged();renderCostUI();refresh()};
+ });
+}
+function refreshResourceOptions(){
+ const libsel=document.getElementById('addResourceSelect');if(!libsel)return;const keep=libsel.value;
+ libsel.innerHTML=S.costing.library.map(r=>`<option value="${esc(r.id)}">${esc(CAT_LABELS[r.cat]||r.cat)} · ${esc(r.desc)}</option>`).join('');
+ if(keep)libsel.value=keep;
+}
+function addLibraryResource(){
+ S.costing.library.push({id:makeId('LIB'),cat:'MATERIAL',desc:'',unit:'nr',rate:'',source:'',date:''});markChanged();renderCostUI();refresh();
+}
+function updateCostSummary(T){
+ const el=document.getElementById('costBreakdown');if(!el)return;
+ el.innerHTML=`<div class="pricing-metrics">${CAT.map(cat=>`<div class="metric"><small>${CAT_LABELS[cat]}</small><strong>RM ${rm(T.bycat[cat]||0)}</strong></div>`).join('')}</div>
+ <p class="hint" style="margin:0">只汇总已完成成本分析且纳入报价的项目。未估成本项不会被假设为RM0，PS也不计入成本利润预测。</p>`;
+}
+function renderPricingUI(){
+ const settings=S.costing.settings;
+ fields('f-pricing',settings,[['overheadPct','管理费 / 现场间接费 %'],['riskPct','风险准备 %'],['targetMarginPct','目标毛利率 %（不是成本加成）'],['discountPct','全项目报价折扣 %'],['minMarginPct','最低容许实际毛利率 %']]);
+ const form=document.getElementById('f-pricing');form.querySelectorAll('input').forEach(inp=>{inp.type='number';inp.min='0';inp.max=inp.dataset.k==='targetMarginPct'?'80':'100';inp.step='0.1';
+  inp.addEventListener('input',()=>{markChanged();renderBQ();refreshCostUnitBanner();renderPriceReview();refresh()});});
+ const approve=document.getElementById('approveIssue');approve.checked=S.costing.approvedForIssue;
+ approve.onchange=()=>{S.costing.approvedForIssue=approve.checked;save();updateIssueChecklist();updateOverview();};
+ renderPriceReview();
+}
+function renderPriceReview(){
+ const tb=document.getElementById('priceReviewTable');if(!tb)return;
+ tb.innerHTML='<tr><th>项目</th><th style="min-width:190px">内容</th><th>数量</th><th>直接成本/单位</th><th>完整成本/单位</th><th>系统售价/单位</th><th>人工指定售价</th><th>调整理由（至少8字）</th><th>实际毛利</th></tr>'+
+ allItems().filter(x=>x.st!=='EXCLUDED'&&x.st!=='PS').map(it=>{
+  const x=unitCalculation(it),o=S.costing.overrides[it.uid]||{},margin=x.valid&&x.price>0?100*(x.price-x.cost)/x.price:null;
+  return `<tr data-uid="${esc(it.uid)}"><td>${esc(it.no)}</td><td>${esc(it.desc)}</td>
+   <td class="num">${x.qty??'TBC'}</td><td class="num">${x.direct==null?'—':rm(x.direct)}</td><td class="num">${x.cost==null?'—':rm(x.cost)}</td>
+   <td class="num">${x.valid?rm(x.price):'PENDING'}</td>
+   <td><input data-f="rate" type="number" step="any" min="0" value="${esc(o.rate??'')}" placeholder="留空自动计算" style="width:125px"></td>
+   <td><input data-f="reason" value="${esc(o.reason??'')}" placeholder="客户议价／策略原因" style="min-width:160px"></td>
+   <td class="num ${margin!=null&&margin<(npos(S.costing.settings.minMarginPct)||0)?'price-negative':''}">${margin==null?'—':margin.toFixed(1)+'%'}</td></tr>`;
+ }).join('');
+ tb.querySelectorAll('tr[data-uid]').forEach(tr=>{
+  const uid=tr.dataset.uid;tr.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{
+   S.costing.overrides[uid]??={rate:'',reason:''};S.costing.overrides[uid][inp.dataset.f]=inp.value;
+   markChanged();refresh();renderBQ();refreshCostUnitBanner();
+  });
+ });
+}
+function updatePricingSummary(T){
+ const el=document.getElementById('pricingSummary');if(!el)return;
+ const margin=T.actualMargin!=null?T.actualMargin.toFixed(1)+'%':'—';
+ const min=npos(S.costing.settings.minMarginPct)||0;
+ el.innerHTML=`<div class="pricing-metrics">
+  <div class="metric"><small>总直接成本（已估算）</small><strong>RM ${rm(T.direct)}</strong></div>
+  <div class="metric"><small>含间接费与风险完整成本</small><strong>RM ${rm(T.fullCost)}</strong></div>
+  <div class="metric"><small>预计销售收入（排除PS）</small><strong>RM ${rm(T.salesForMargin)}</strong></div>
+  <div class="metric ${T.actualMargin!=null&&T.actualMargin<min?'warn':''}"><small>实际毛利率（折扣后）</small><strong>${margin}</strong></div>
+ </div><div class="tot"><div>预计毛利金额（排除PS）</div><div>RM ${rm(T.profit)}</div>
+ <div>暂定金额PS（不计利润）</div><div>RM ${rm(T.ps)}</div><div>已估算客户报价合计（含已填SST）</div><div>RM ${rm(T.grand)}</div></div>
+ ${T.missing.length?'<div class="alert">还有 '+T.missing.length+' 项未完成成本：整项利润和总价仍然不完整。</div>':''}
+ ${T.actualMargin!=null&&T.actualMargin<min?'<div class="alert">实际毛利率低于最低容许值 '+min+'%，不可正式发出。</div>':''}`;
+}
+function issueProblems(){
+ const T=totals(),p=S.project,openP0=S.risks.filter(x=>x.pr==='P0'&&x.st!=='CLOSED');
+ const checks=[
+  ['公司及客户法定资料、报价编号和收件人齐全', [S.company.name,S.company.ssm,S.company.cidb,S.company.sst,S.company.address,S.company.tel,S.company.email,S.company.preparer,p.qno,p.date,p.valid,p.client,p.attn,p.project,p.works,p.basis,p.received].every(v=>String(v??'').trim().length>0)],
+  ['工期、付款、负责人和条款数字均已填写',[S.pay.days,S.pay.dep,S.pay.cast,S.pay.hand,S.pay.ret,S.pay.payDays,S.pay.dlp,S.reps.appName,S.reps.appTel,S.reps.ourName,S.reps.ourTel].concat(allItems().some(x=>x.st==='PS')?[S.pay.psMark]:[]).every(v=>String(v??'').trim().length>0)],
+  ['变更单价表至少有 1 项已核价（空白的不会印出）',S.rates.some(r=>npos(r.rate)!=null)],
+  ['所有纳入报价的 BQ 项目有成本／PS金额（用不到的项目请改成 EXCLUDED 或删除）',allItems().length>0&&T.missing.length===0],
+  ['项目实际毛利率达到下限 '+S.costing.settings.minMarginPct+'%',T.actualMargin!=null&&T.actualMargin>=(npos(S.costing.settings.minMarginPct)||0)],
+  ['无尚未关闭的关键 P0 风险',openP0.length===0],
+  ['付款比例合计100%',Math.abs(['dep','cast','hand','ret'].reduce((a,k)=>a+(num(S.pay[k])||0),0)-100)<.001],
+  ['适用SST已确认（注册状态与税率一致）',p.sstStatus!=='REVIEW'&&p.sstStatus!=null && (p.sstStatus==='REGISTERED'?(npos(p.sstRate)!=null&&npos(p.sstRate)>0):npos(p.sstRate)===0||String(p.sstRate||'').trim()==='')],
+  ['管理费、风险、毛利、折扣、最低毛利均已设定',[S.costing.settings.overheadPct,S.costing.settings.riskPct,S.costing.settings.targetMarginPct,S.costing.settings.discountPct,S.costing.settings.minMarginPct].every(x=>npos(x)!=null)&&npos(S.costing.settings.targetMarginPct)<100&&npos(S.costing.settings.discountPct)<100&&npos(S.costing.settings.minMarginPct)<=100],
+  ['报价格式与条款经负责人批准',!!S.costing.approvedForIssue]
+ ];
+ return checks;
+}
+function updateIssueChecklist(){
+ const el=document.getElementById('issueChecklist');if(!el)return;
+ const checks=issueProblems();
+ el.innerHTML=checks.map(([t,v])=>`<div class="issue-row"><span class="issue-icon ${v?'':'no'}">${v?'✓':'!'}</span><span>${esc(t)}</span></div>`).join('');
+ const approve=document.getElementById('approveIssue');if(approve)approve.checked=S.costing.approvedForIssue;
+}
+function quoteReady(){return issueProblems().every(([_,v])=>v)}
+function ensureCompanySstField(){
+ const p=S.project;const host=document.getElementById('f-project');
+ if(!host||host.querySelector('[data-sststatus]'))return;
+ const wrap=document.createElement('div');wrap.innerHTML=`<label>SST 适用状态（需要会计确认）</label><select data-sststatus><option value="REVIEW">未确认 · 不可正式报价</option><option value="NOT_REGISTERED">本公司未注册SST（已核对）</option><option value="REGISTERED">已注册，按适用税率收费</option><option value="EXEMPT">符合豁免，留存支持文件</option></select>`;
+ host.appendChild(wrap);const sel=wrap.querySelector('select');sel.value=p.sstStatus||'REVIEW';sel.onchange=()=>{p.sstStatus=sel.value;markChanged();refresh()};
+}
+
 function renderAll(){
  fields("f-company",S.company,[["name","公司注册名称"],["ssm","SSM 号码"],["cidb","CIDB 注册号 / 等级 / 类别"],["sst","SST 注册号，或写 Not registered"],["address","地址"],["tel","电话"],["email","电邮"],["preparer","报价人姓名"]]);
  fields("f-project",S.project,[["qno","报价编号"],["rev","版本 Rev"],["date","日期"],["valid","有效天数"],["client","客户（总包）公司名"],["clientAddr","客户地址"],["attn","收件人 姓名/职位"],["project","项目","ta"],["works","工程内容","ta"],["basis","报价依据的图纸","ta"],["received","收到图纸日期"],["meeting","工地会议日期（可留空）"],["status","报价状态","ta"],["sstRate","SST 税率 %（没注册填 0，先问会计）"]]);
  fields("f-pay",S.pay,[["days","预计工期（工作天）"],["dep","订金 %"],["cast","浇灌完成 %"],["hand","交接 %"],["ret","保留金 %"],["dlp","保修期（月）"],["payDays","请款后几天内付款"],["psMark","暂定金额管理费 %"]]);
- renderBQ();renderRates();renderTerms();renderInternal();refresh();
+   ensureCompanySstField();renderBQ();renderRates();renderTerms();renderInternal();renderCostUI();renderPricingUI();refresh();
 }
 
 function newProject(){
- if(!confirm("开新项目会清空项目资料、BQ 和内部表，只保留公司资料。确定？"))return;
- const company=S.company; S=sample(); S.company=company;
- S.project={qno:"QT-",rev:"0",date:"",valid:"14",client:"",clientAddr:"",attn:"",project:"",works:"",basis:"",received:"",meeting:"",status:"CONDITIONAL – subject to the clarifications in Section 4.",sstRate:"0"};
- S.sections=S.sections.map(s=>({code:s.code,title:s.code==="A"?s.title:s.code==="E"?s.title:"",items:s.code==="A"?s.items.map(i=>({...i,rate:""})):[]}));
- S.clar="";S.risks=[];S.reps={appName:"",appTel:"",siteName:"",siteTel:"",ourName:"",ourTel:""};
+ if(!confirm("开新项目会清空当前项目和其成本估算，建议先导出JSON备份。确认继续？"))return;
+ const c=S.company,library=S.costing.library,settings={...S.costing.settings};S=ensureCosting(sample());S.company=c;
+ S.project={qno:"QT-",rev:"0",date:"",valid:"14",client:"",clientAddr:"",attn:"",project:"",works:"",basis:"",received:"",meeting:"",status:"CONDITIONAL – subject to clarifications.",sstRate:"",sstStatus:"REVIEW"};
+ S.sections=S.sections.map(x=>({code:x.code,title:x.code==="A"?x.title:x.code==="E"?x.title:"",items:[]}));
+ S.costing.library=library;S.costing.settings=settings;S.costing.recipes={};S.costing.overrides={};S.costing.approvedForIssue=false;
+ S.clar="";S.risks=[];S.reps={appName:"",appTel:"",siteName:"",siteTel:"",ourName:"",ourTel:""};ACTIVE_ITEM_ID=null;
  save();renderAll();
 }
-function loadSample(){if(!confirm("把目前的项目重设为空白范本？公司资料会保留。请先备份。"))return;const c=S.company;S=sample();S.company=c;save();renderAll();}
+function loadSample(){
+ if(!confirm("把目前的项目重设为空白范本？公司资料和价格库会保留，其他会清空。请先备份。继续？"))return;
+ const c=S.company,library=S.costing.library;S=ensureCosting(sample());S.company=c;S.costing.library=library;ACTIVE_ITEM_ID=null;save();renderAll();
+}
+
 
 function exportJSON(){
  const b=new Blob([JSON.stringify(S,null,1)],{type:"application/json"}),a=document.createElement("a");
  a.href=URL.createObjectURL(b);a.download=(S.project.qno||"quotation").replace(/[^\w\-]+/g,"_")+"_Rev"+(S.project.rev||0)+"_backup.json";a.click();
 }
-function importJSON(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();
- rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.sections)throw 0;S=d;save();renderAll();alert("已还原");}catch(e){alert("这不是有效的备份档");}inp.value="";};rd.readAsText(f);}
-
-function printQuote(){
- const T=totals();renderDoc(T);
-  const unpriced=S.sections.flatMap(s=>s.items).filter(it=>!["EXCLUDED","OPTION"].includes(it.st) && (num(it.rate)==null || (it.st!=="PS"&&(num(it.q)==null||num(it.n)==null)))).length;
-  const missing=document.querySelectorAll("#doc .ph").length;
-  const msg=[];
-  if(unpriced)msg.push(`还有 ${unpriced} 项工程量或单价未完成，总价可能偏低`);
-  if(missing)msg.push(`报价单还有 ${missing} 处资料没填（橙色字）`);
-  if(msg.length&&!confirm("打印前检查：\n· "+msg.join("\n· ")+"\n\n仍然打印初稿？"))return;
- window.print();
+function importJSON(inp){const f=inp.files[0];if(!f)return;
+ const rd=new FileReader();rd.onload=()=>{
+ try{const d=JSON.parse(rd.result);ensureCosting(d);
+ if(!confirm('导入备份会覆盖本机当前工作；建议先备份现有项目。确定导入？')){inp.value='';return;}
+ S=d;ACTIVE_ITEM_ID=null;save();renderAll();alert('已还原并转换到成本估算版本。历史报价单价仅作参考，不会被当成材料成本。');
+ }catch(e){alert('无法导入：备份格式无效 '+(e.message||''))}inp.value='';};rd.readAsText(f);
 }
+function printQuote(){
+ if(!quoteReady()){const failed=issueProblems().filter(([t,v])=>!v).map(x=>'• '+x[0]);alert('正式报价不可导出，请先完成：\n'+failed.join('\n')+'\n\n内部工作稿可用「仅打印内部 DRAFT」。');return;}
+ draftMode=false;document.body.classList.remove('print-draft');renderDoc(totals());window.print();
+}
+function printDraft(){
+ draftMode=true;document.body.classList.add('print-draft');renderDoc(totals());window.print();
+}
+window.addEventListener('afterprint',()=>{if(draftMode){document.body.classList.remove('print-draft');draftMode=false;}});
+
+
 
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
  document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.toggle("on",x===b));
@@ -701,37 +1069,41 @@ document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
 
 const PAGE_META={
   "t-info":["报价资料","建立项目基本资料、公司资质与付款条件。"],
-  "t-bq":["BQ 工程量与报价","逐项核对数量、填写单价，并即时检查报价总额。"],
+  "t-bq":["BQ 工程量","根据图纸填写工程量。客户售价会从成本与利润设置自动生成。"],
+   "t-cost":["成本估算","逐项输入材料、人工、机械与外包成本，形成可追溯的单位成本。"],
+   "t-price":["售价与利润","设置管理费、风险、目标毛利，并审查正式报价是否可发出。"],
   "t-terms":["工程范围与风险条款","厘清包含、排除、前提假设及验收的责任界线。"],
-  "t-preview":["客户报价单预览","独立的客户文件版面，内部风险和利润资料不会打印。"],
+  "t-preview":["客户报价单预览","独立客户文件：不显示工资、材料进价或成本利润。"],
   "t-int":["内部风险管理","仅供内部决策使用：现金流、客户信用与重大风险。"]
 };
 function updateOverview(){
-  const p=S.project||{},t=totals(),all=S.sections.flatMap(x=>x.items).filter(x=>x.st!=="EXCLUDED"&&x.st!=="OPTION"),
-    complete=all.filter(x=>num(x.rate)!=null && (x.st==="PS"|| (num(x.q)!=null&&num(x.n)!=null))).length,
-    openP0=S.risks.filter(x=>x.pr==="P0"&&x.st!=="CLOSED").length,
-    pending=S.gng.filter(x=>x.v!=="YES").length;
-  document.getElementById("kpiTotal").textContent="RM "+rm(t.grand);
-  document.getElementById("kpiPriced").textContent=complete+" / "+all.length;
-  document.getElementById("kpiPricedNote").textContent=all.length-complete+" 项尚待核实／定价";
-  document.getElementById("kpiRisk").textContent=openP0;
-  document.getElementById("kpiReady").textContent=(pending===0&&openP0===0&&complete===all.length)?"CHECKED":"IN REVIEW";
-  document.getElementById("kpiReadyNote").textContent=pending+" 项内部检查未通过／待定";
-  const pn=String(p.project||"New estimate");
-  document.getElementById("sideProject").textContent=pn.length>62?pn.substring(0,59)+"…":pn;
-  document.getElementById("sideQuote").textContent=(p.qno||"QT-DRAFT")+" · REV "+(p.rev||"0");
-  document.getElementById("topQuote").textContent=p.qno||"DRAFT";
-  document.getElementById("metaRev").textContent="REV "+(p.rev||"0");
-  document.getElementById("reviewText").textContent=all.length-complete>0||openP0>0
-    ?"报价仍有 "+(all.length-complete)+" 项未完成定价、"+openP0+" 项P0风险未关闭；PDF合计并不代表可以直接发给客户。"
-    :"工程量已填妥；仍须确认图纸、付款条件与发出前审查。";
+ const p=S.project||{},t=totals(),all=allItems().filter(x=>x.st!=="EXCLUDED"&&x.st!=="OPTION"),
+ complete=all.filter(x=>unitCalculation(x).valid).length,
+ openP0=S.risks.filter(x=>x.pr==="P0"&&x.st!=="CLOSED").length;
+ document.getElementById("kpiTotal").textContent="RM "+rm(t.grand);
+ document.getElementById("kpiPriced").textContent=complete+" / "+all.length;
+ document.getElementById("kpiPricedNote").textContent=t.missing.length+" 项尚未完成成本或PS";
+ document.getElementById("kpiRisk").textContent=openP0;
+ document.getElementById("kpiReady").textContent=quoteReady()?"APPROVED":"DRAFT";
+ document.getElementById("kpiReadyNote").textContent=issueProblems().filter(([_,v])=>!v).length+" 项发出条件待核实";
+ const pn=String(p.project||"New estimate");
+ document.getElementById("sideProject").textContent=pn.length>62?pn.substring(0,59)+"…":pn;
+ document.getElementById("sideQuote").textContent=(p.qno||"QT-DRAFT")+" · REV "+(p.rev||"0");
+ document.getElementById("topQuote").textContent=p.qno||"DRAFT";
+ document.getElementById("metaRev").textContent="REV "+(p.rev||"0");
+ document.getElementById("reviewText").textContent=t.missing.length||openP0
+ ?`报价仍有 ${t.missing.length} 项未估算、${openP0} 项P0未关闭；不得将已估金额当完整合同总价。`
+ :"已录入的 BQ 均完成成本分析；还需进行商业与出具审核。";
 }
+
+
+function showMigration(){const b=document.getElementById("migrationBanner");if(b)b.hidden=!S.migrationNotice;}
 function updatePageMeta(){
   const active=document.querySelector("nav.tabs button.on"),key=active?.dataset.t||"t-info",m=PAGE_META[key];
   document.getElementById("pageTitle").textContent=m[0];document.getElementById("pageSub").textContent=m[1];
 }
 load();renderAll();
-updateOverview();updatePageMeta();
+updateOverview();updatePageMeta();showMigration();
 </script>
 </body>
 </html>
