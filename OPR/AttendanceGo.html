@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v29</title>
+<title>OPR-AttendanceGo v30</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -26,6 +26,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 .ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
 .ntab{padding:11px 14px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:transparent;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:inherit}
 .ntab:hover{color:#fff}
+body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 / 管理层 */
 .ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
 .nav-r{margin-left:auto;display:flex;gap:5px;align-items:center;padding-left:10px;flex-shrink:0}
 .btn-nav{padding:5px 12px;border-radius:6px;border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -178,15 +179,15 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v29</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v30</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
-    <button class="ntab" onclick="goPage('tracker')">Tracker</button>
-    <button class="ntab" onclick="goPage('rules')">Exceptions</button>
-    <button class="ntab" onclick="goPage('atcweek')">ATC Week</button>
-    <button class="ntab" onclick="goPage('manage')">Manage</button>
-    <div class="nav-r"><span class="saved" id="last-saved"></span><button class="btn-nav" onclick="exportData()">↑ Export</button><label class="btn-nav" style="cursor:pointer">↓ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"/></label></div>
+    <button class="ntab adm-only" onclick="goPage('tracker')">Tracker</button>
+    <button class="ntab adm-only" onclick="goPage('rules')">Exceptions</button>
+    <button class="ntab adm-only" onclick="goPage('atcweek')">ATC Week</button>
+    <button class="ntab adm-only" onclick="goPage('manage')">Manage</button>
+    <div class="nav-r"><span class="saved" id="last-saved"></span><button class="btn-nav adm-only" onclick="exportData()">↑ Export</button><label class="btn-nav adm-only" style="cursor:pointer">↓ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"/></label></div>
   </div>
 
   <div class="page on" id="page-dashboard"><div id="dash-content"></div></div>
@@ -264,7 +265,8 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=29;   /* v29 · Step 1 学生请假：点名页读 MiscGo 的家长请假通知 → 名字旁「Notified · MC」，按 Absent 原因预选；缺席选单补 School event / Family matter / Notified · no reason；All ✓ 不碰有请假通知的孩子。通知只读，点名一律老师按下才写入 */   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
+const APP_VERSION=30;   /* v30 · Step A：老师 / 行政画面分流（老师只留 Dashboard、Mark、Monthly 只读）；All ✓ 只补还没点的、不碰固定例外的孩子；按 Absent 依固定例外预选；Calendar「中心关门」算不用上课 */
+// v29 ·   /* v29 · Step 1 学生请假：点名页读 MiscGo 的家长请假通知 → 名字旁「Notified · MC」，按 Absent 原因预选；缺席选单补 School event / Family matter / Notified · no reason；All ✓ 不碰有请假通知的孩子。通知只读，点名一律老师按下才写入 */   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
 /* v26 · E-Class 网课：Present / Late 的格子显示 E·AM / E·NN；双班学生在另一班显示灰色 E（不算出席率）（Owner 10-10） */
 /* v25 · 点名一行只剩 Present / Absent / Late / Early；按 Absent 再选 MC · Holiday · Stay back(ATC) · Other，可选 Not informed（Owner 10-07） */
 /* v24 · ATC 按 Late 直接记现在的时间（不跳视窗）；再按一次 Late 可以改时间（Owner 10-07） */
@@ -309,7 +311,7 @@ function attMark(r,ICON){
   return ICON[r.status];
 }
 /* 按 Absent 之后的选单。回传 {status,note} 或 null（取消） */
-function absentPicker(dept,name,notice){   /* v29 · notice = MiscGo 家长请假（有就预选） */
+function absentPicker(dept,name,notice,rule){   /* v30 · rule = 当天的固定例外（缺席类）→ 预选 */   /* v29 · notice = MiscGo 家长请假（有就预选） */
   return new Promise(resolve=>{
     const ov=document.createElement('div'); ov.id='abs-ov';
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
@@ -318,8 +320,11 @@ function absentPicker(dept,name,notice){   /* v29 · notice = MiscGo 家长请�
     const _nt=notice&&NT_REASON[notice.reason_code]?NT_REASON[notice.reason_code]:null;
     const btn=(k,t,st)=>`<button data-k="${k}" style="flex:1 1 40%;min-height:46px;margin:4px;border-radius:10px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;${st||''}">${t}</button>`;
     const nm=String(name||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const _rl=(!_nt&&rule)?String(rule.reason||'').trim():null;   /* v30 · 家长通知优先；没有才用固定例外 */
+    const _rlH=_rl===null?'':String(_rl||'Weekly exception').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const step1=()=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Absent — ${nm}</div>`
       +(_nt?`<div style="margin:0 4px 8px;padding:8px 10px;border-radius:10px;background:#E7F6EC;color:#1E6B3A;font-size:13px">Parent notified the office: <b>${_nt.label}</b></div>${btn('nt','Absent · '+_nt.label+' (as notified)','background:#1E6B3A;color:#fff;border-color:transparent;flex-basis:100%')}<div style="font-size:12px;color:var(--mut);margin:6px 4px 2px">Or choose another reason:</div>`:'')
+      +(_rl!==null?`<div style="margin:0 4px 8px;padding:8px 10px;border-radius:10px;background:#EEF0FB;color:#3D3A8C;font-size:13px">Weekly exception: <b>${_rlH}</b></div>${btn('rl','Absent · '+_rlH+' (weekly exception)','background:#3D3A8C;color:#fff;border-color:transparent;flex-basis:100%')}`:'')
       +`<div style="display:flex;flex-wrap:wrap">${opts.map(([k,t])=>btn(k,t)).join('')}</div>${btn('cancel','Cancel','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
     const step2=k=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">${k==='stay'?'Stay back':'Other'} — ${nm}</div>
       <input id="abs-why" placeholder="${k==='stay'?'Reason (e.g. extra class at school)':'Reason'}" style="width:100%;box-sizing:border-box;min-height:44px;padding:8px 12px;border:1px solid var(--bdr);border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:6px">
@@ -341,6 +346,7 @@ function absentPicker(dept,name,notice){   /* v29 · notice = MiscGo 家长请�
       if(k==='family') return done({status:'absent',note:'Absent: Family matter'});     /* v29 */
       if(k==='nonr') return done({status:'absent',note:'Absent: Notified — no reason'}); /* v29 */
       if(k==='nt'&&_nt) return done(Object.assign({},_nt.pick));                        /* v29 · 照家长通知 */
+      if(k==='rl'&&_rl!==null) return done({status:'absent',note:'Absent: Other — '+(_rl||'Weekly exception')+' (weekly exception)'});   /* v30 */
       if(k==='stay'||k==='other'){ cur=k; return draw(); }
       if(k==='back'){ cur=null; return draw(); }
       const label=cur==='stay'?'Stay back':'Other';
@@ -456,6 +462,7 @@ async function initApp(){
   }
   /* v29 · 行政 / 管理层看得到四个部门的请假通知；老师只看自己部门 */
   try{ const r=await _sb.rpc('can_access',{p_system:'OPR-AttendanceNotice'}); noticeEditor=!!(r&&r.data&&r.data[0]&&r.data[0].can_edit); }catch(e){ noticeEditor=false; }
+  document.body.classList.toggle('is-office',noticeEditor);   /* v30 · 行政 = OPR-AttendanceNotice 可编辑（ADMIN / MGMT / TOP_MGMT / OWNER）；读不到一律当老师 */
   try{
     /* v28 · 名单也分批抓（学生 375、班籍 553，离 1000 不远） */
     const[stuData, memData, calData]=await Promise.all([
@@ -517,7 +524,7 @@ async function loadAttendance(date){
 // ── Holiday check: returns matching holiday or null ──
 // public_holiday / school_holiday / special_holiday / festival = no school
 // extra_class = override, school ON even during holiday
-const NO_SCHOOL_TYPES=['public_holiday','school_holiday','special_holiday','festival'];
+const NO_SCHOOL_TYPES=['public_holiday','school_holiday','special_holiday','festival','centre_off'];   /* v30 · Calendar「中心关门」（Calendar v15 起有）以前没算进来 */
 function getHoliday(dateStr,dept){
   return allCalendar.find(ev=>{
     if(!NO_SCHOOL_TYPES.includes(ev.type)) return false;
@@ -948,7 +955,9 @@ function shortClassName(code){
   return parts.length>=4?parts.slice(2).join('_'):parts.pop();
 }
 
+const OFFICE_PAGES=['tracker','rules','atcweek','manage'];   /* v30 */
 function goPage(p){
+  if(!noticeEditor&&OFFICE_PAGES.includes(p)) p='dashboard';   /* v30 · 老师进不了行政页 */
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
   document.getElementById('page-'+p).classList.add('on');
@@ -1737,12 +1746,12 @@ async function markStudent(studentId,studentName,dept,classCode,status){
     if(status==='late'&&_atc&&!_prevT) _lateTip='Late '+input+' · tap Late again to change the time';
   }
   if(status==='absent'&&!_hwAbs){
-    const pick=await absentPicker(dept,studentName,noticeFor(studentId,dept,currentSession));   /* v29 */
+    const pick=await absentPicker(dept,studentName,noticeFor(studentId,dept,currentSession),(rule&&rule.rule_type==='absent')?rule:null);   /* v29 · v30 加固定例外 */
     if(!pick) return;
     status=pick.status; note=pick.note;
   }
   if(status==='early_leave'){
-    const reason=prompt('Left early — what time and why? (e.g. 3:30 piano — you can leave this blank):','');
+    const reason=prompt('Left early — what time and why? (e.g. 3:30 piano — you can leave this blank):',(rule&&rule.rule_type==='early_leave')?String(rule.reason||''):'');   /* v30 · 固定例外预填 */
     if(reason===null) return;
     note=reason?'Early: '+reason:'Early leave';
   }
@@ -1775,7 +1784,12 @@ async function markAll(dept,classCode,status){
   const _all=getClassStudents(dept,classCode).filter(s=>!swAwayOn(s.id,classCode,selectedDate));   /* v19 · 换走的不点，免得盖掉他在来访班的纪录 */
   /* v29 · 家长已请假的孩子不跟着 All ✓：老师自己按（来了按 Present，没来按 Absent 原因已预选） */
   const _skip=_all.filter(s=>noticeFor(s.id,dept,currentSession));
-  const students=_all.filter(s=>!_skip.includes(s));
+  /* v30 · All ✓ 只补「还没点」的孩子 —— 以前会把老师已经点好的 Absent / MC / Late 盖成 Present（Owner 10-21 回报）；
+     当天有固定例外（Exceptions）的孩子也不跟着点，老师自己按 */
+  const _dowA=new Date(selectedDate+'T12:00:00').getDay();
+  const _done=_all.filter(s=>!_skip.includes(s)&&getStatus(s.id,dept,currentSession)!=='unmarked');
+  const _rule=_all.filter(s=>!_skip.includes(s)&&!_done.includes(s)&&getRule(s.id,dept,_dowA,currentSession,selectedDate));
+  const students=_all.filter(s=>!_skip.includes(s)&&!_done.includes(s)&&!_rule.includes(s));
   for(const s of students){
     const existing=todayRecords.findIndex(r=>r.student_id===s.id&&r.dept===dept&&(r.session??0)===currentSession);
     if(existing>=0) todayRecords[existing].status=status;
@@ -1791,11 +1805,12 @@ async function markAll(dept,classCode,status){
     session:currentSession,
     updated_at:new Date().toISOString()
   }));
-  if(!rows.length){ toast('Everyone here has a parent absence notice — mark them one by one',4000); return; }   /* v29 */
+  const _left=[_skip.length?_skip.length+' with a parent notice':'',_rule.length?_rule.length+' with a weekly exception':''].filter(Boolean).join(' · ');   /* v30 */
+  if(!rows.length){ toast(_left?('Nothing to mark · '+_left+' — mark them one by one'):'Everyone is already marked',4500); return; }
   try{
     const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session'});
     if(error){ console.error('Batch save failed:',error); toast('✕ Save failed'); }
-    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast(_skip.length?('✓ All marked · '+_skip.length+' with a parent absence notice left for you to mark'):'✓ All marked',_skip.length?4000:undefined); }
+    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast(_left?('✓ Marked '+rows.length+' · left for you: '+_left):('✓ Marked '+rows.length),_left?4000:undefined); }
   }catch(e){console.error('Batch error:',e);toast('✕ Save error');}
 }
 
@@ -2708,6 +2723,7 @@ async function exportCSV(){
 
 // ── Export JSON (Template standard) ──
 async function exportData(){
+  if(!noticeEditor){ toast('Office only'); return; }   /* v30 */
   toast('Preparing export…',4000);
   try{
     let rows;   /* v28 · 以前只汇出最早的 1,000 行 */
@@ -2729,6 +2745,7 @@ async function exportData(){
 
 // ── Import JSON (Template standard) ──
 async function importData(e){
+  if(!noticeEditor){ toast('Office only'); e.target.value=''; return; }   /* v30 */
   const file=e.target.files[0];
   if(!file){return;}
   try{
