@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v28</title>
+<title>OPR-AttendanceGo v29</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -178,7 +178,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v27</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v29</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -264,7 +264,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=28;   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
+const APP_VERSION=29;   /* v29 · Step 1 学生请假：点名页读 MiscGo 的家长请假通知 → 名字旁「Notified · MC」，按 Absent 原因预选；缺席选单补 School event / Family matter / Notified · no reason；All ✓ 不碰有请假通知的孩子。通知只读，点名一律老师按下才写入 */   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
 /* v26 · E-Class 网课：Present / Late 的格子显示 E·AM / E·NN；双班学生在另一班显示灰色 E（不算出席率）（Owner 10-10） */
 /* v25 · 点名一行只剩 Present / Absent / Late / Early；按 Absent 再选 MC · Holiday · Stay back(ATC) · Other，可选 Not informed（Owner 10-07） */
 /* v24 · ATC 按 Late 直接记现在的时间（不跳视窗）；再按一次 Late 可以改时间（Owner 10-07） */
@@ -286,6 +286,9 @@ function absKind(status,note){
   if(/^Absent: Stay back/.test(n)) return 'Stay back';
   if(/^Absent: Not informed/.test(n)) return 'Not informed';
   if(/^Absent: Other/.test(n)) return /Not informed$/.test(n)?'Not informed':'Other';
+  if(/^Absent: School event/.test(n)) return 'School event';     /* v29 */
+  if(/^Absent: Family matter/.test(n)) return 'Family matter';   /* v29 */
+  if(/^Absent: Notified/.test(n)) return 'Notified';             /* v29 · Notified — no reason */
   return 'Absent';
 }
 /* 月报 / Tracker 的格子：Holiday = Hol、Stay back = SB（H 已经是学校假期）、MC 🤒、其他缺席 ✕ */
@@ -306,14 +309,18 @@ function attMark(r,ICON){
   return ICON[r.status];
 }
 /* 按 Absent 之后的选单。回传 {status,note} 或 null（取消） */
-function absentPicker(dept,name){
+function absentPicker(dept,name,notice){   /* v29 · notice = MiscGo 家长请假（有就预选） */
   return new Promise(resolve=>{
     const ov=document.createElement('div'); ov.id='abs-ov';
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-    const opts=[['mc','MC'],['holiday','Holiday']].concat(dept==='ATC'?[['stay','Stay back']]:[]).concat([['other','Other']]);
+    /* v29 · 选单与 MiscGo 请假单一致：MC · Holiday · School event · Family matter ·（ATC）Stay back · Notified · no reason · Other */
+    const opts=[['mc','MC'],['holiday','Holiday'],['school','School event'],['family','Family matter']].concat(dept==='ATC'?[['stay','Stay back']]:[]).concat([['nonr','Notified · no reason'],['other','Other']]);
+    const _nt=notice&&NT_REASON[notice.reason_code]?NT_REASON[notice.reason_code]:null;
     const btn=(k,t,st)=>`<button data-k="${k}" style="flex:1 1 40%;min-height:46px;margin:4px;border-radius:10px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;${st||''}">${t}</button>`;
     const nm=String(name||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    const step1=()=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Absent — ${nm}</div><div style="display:flex;flex-wrap:wrap">${opts.map(([k,t])=>btn(k,t)).join('')}</div>${btn('cancel','Cancel','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
+    const step1=()=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Absent — ${nm}</div>`
+      +(_nt?`<div style="margin:0 4px 8px;padding:8px 10px;border-radius:10px;background:#E7F6EC;color:#1E6B3A;font-size:13px">Parent notified the office: <b>${_nt.label}</b></div>${btn('nt','Absent · '+_nt.label+' (as notified)','background:#1E6B3A;color:#fff;border-color:transparent;flex-basis:100%')}<div style="font-size:12px;color:var(--mut);margin:6px 4px 2px">Or choose another reason:</div>`:'')
+      +`<div style="display:flex;flex-wrap:wrap">${opts.map(([k,t])=>btn(k,t)).join('')}</div>${btn('cancel','Cancel','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
     const step2=k=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">${k==='stay'?'Stay back':'Other'} — ${nm}</div>
       <input id="abs-why" placeholder="${k==='stay'?'Reason (e.g. extra class at school)':'Reason'}" style="width:100%;box-sizing:border-box;min-height:44px;padding:8px 12px;border:1px solid var(--bdr);border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:6px">
       ${k==='other'?'<div id="abs-hint" style="font-size:12px;color:var(--mut);margin:0 4px 6px">Type the reason to Save. Don\'t know why? Tap Not informed.</div>':''}<div style="display:flex;flex-wrap:wrap">${btn('save','Save','background:var(--layer);color:#fff;border-color:transparent'+(k==='other'?';opacity:.4':''))}${btn('ni','Not informed')}</div>${btn('back','Back','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
@@ -330,6 +337,10 @@ function absentPicker(dept,name){
       if(k==='cancel') return done(null);
       if(k==='mc') return done({status:'mc',note:''});
       if(k==='holiday') return done({status:'absent',note:'Absent: Holiday'});
+      if(k==='school') return done({status:'absent',note:'Absent: School event'});      /* v29 */
+      if(k==='family') return done({status:'absent',note:'Absent: Family matter'});     /* v29 */
+      if(k==='nonr') return done({status:'absent',note:'Absent: Notified — no reason'}); /* v29 */
+      if(k==='nt'&&_nt) return done(Object.assign({},_nt.pick));                        /* v29 · 照家长通知 */
       if(k==='stay'||k==='other'){ cur=k; return draw(); }
       if(k==='back'){ cur=null; return draw(); }
       const label=cur==='stay'?'Stay back':'Other';
@@ -355,6 +366,57 @@ let markCategory='';   // selected category (SR/IN/JR/BB/A etc)
 let currentDept='SRK';
 let selectedDate=todayStr();
 let userEmail='';
+/* ═══ v29 · MiscGo 学生请假通知（只读）══════════════════════════════
+   资料库函式 notices_for_marking(日期, 部门) 只回这个帐号看得到的部门、只回点名需要的栏位。
+   通知不写点名：老师按 Absent 才写，原因预选成家长说的那个。读不到 → 黄条，点名照常（不当成「没有通知」）。
+   作废的通知下次读取就消失（切回分页、每 60 秒、换日期 / 部门）；已经点好的名不动。 */
+let noticeCache={};        // 'YYYY-MM-DD|DEPT' → {ok, rows, sig}
+let noticeInflight={};
+let noticeScope={};        // DEPT → false = 这个帐号看不到该部门的通知
+let noticeEditor=false;    // 行政 / 管理层：四个部门都看得到
+const NT_REASON={
+  mc:{label:'MC',pick:{status:'mc',note:''}},
+  holiday:{label:'Holiday',pick:{status:'absent',note:'Absent: Holiday'}},
+  school_event:{label:'School event',pick:{status:'absent',note:'Absent: School event'}},
+  family_matter:{label:'Family matter',pick:{status:'absent',note:'Absent: Family matter'}},
+  other:{label:'Other',pick:{status:'absent',note:'Absent: Other — Parent notified (MiscGo)'}},
+  notified_no_reason:{label:'No reason given',pick:{status:'absent',note:'Absent: Notified — no reason'}}
+};
+async function loadNotices(date,dept){
+  const key=date+'|'+dept;
+  if(noticeInflight[key]) return noticeInflight[key];
+  noticeInflight[key]=(async()=>{
+    try{
+      const{data,error}=await _sb.rpc('notices_for_marking',{p_date:date,p_dept:dept});
+      if(error) throw error;
+      const rows=(data||[]).filter(r=>r.kind==='absence');
+      noticeCache[key]={ok:true,rows,sig:JSON.stringify(rows.map(r=>[r.id,r.student_id,r.sessions,r.reason_code,r.date_from,r.date_to]))};
+    }catch(e){ console.warn('[v29] notices not loaded',e); noticeCache[key]={ok:false,rows:[],sig:'ERR'}; }
+    if(noticeScope[dept]===undefined&&!noticeEditor){
+      try{ const{data,error}=await _sb.rpc('user_has_dept',{check_dept:dept}); if(!error) noticeScope[dept]=(data===true); }catch(e){}
+    }
+    delete noticeInflight[key];
+    return noticeCache[key];
+  })();
+  return noticeInflight[key];
+}
+/* 这位孩子、这个部门、这一节（ATC 1 = H/W，2 = Lesson；其他部门 0）有没有有效的请假通知 */
+function noticeFor(studentId,dept,session){
+  const c=noticeCache[selectedDate+'|'+dept]; if(!c||!c.ok) return null;
+  const s=dept==='ATC'?(session??currentSession):0;
+  return c.rows.find(r=>r.student_id===studentId&&r.dept===dept&&r.date_from<=selectedDate&&r.date_to>=selectedDate&&(r.sessions||[]).includes(s))||null;
+}
+/* 重读通知；有变（新登记 / 作废）才重画，免得画面跳 */
+async function refreshNotices(){
+  const pg=document.getElementById('page-mark'); if(!pg||!pg.classList.contains('on')) return;
+  if(document.getElementById('abs-ov')) return;          // 老师正在选原因，不打断
+  const key=selectedDate+'|'+currentDept; const before=noticeCache[key]?noticeCache[key].sig:null;
+  const c=await loadNotices(selectedDate,currentDept);
+  if(c&&c.sig!==before&&!document.getElementById('abs-ov')){ const y=window.scrollY; renderMark(); window.scrollTo(0,y); }
+}
+function retryNotices(){ delete noticeCache[selectedDate+'|'+currentDept]; refreshNotices(); }
+setInterval(()=>{ if(!document.hidden) refreshNotices(); },60000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshNotices(); });
 
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
@@ -392,6 +454,8 @@ async function initApp(){
     document.getElementById('no-access').style.display='flex';
     return;
   }
+  /* v29 · 行政 / 管理层看得到四个部门的请假通知；老师只看自己部门 */
+  try{ const r=await _sb.rpc('can_access',{p_system:'OPR-AttendanceNotice'}); noticeEditor=!!(r&&r.data&&r.data[0]&&r.data[0].can_edit); }catch(e){ noticeEditor=false; }
   try{
     /* v28 · 名单也分批抓（学生 375、班籍 553，离 1000 不远） */
     const[stuData, memData, calData]=await Promise.all([
@@ -447,6 +511,7 @@ async function loadAttendance(date){
   try{ todayRecords=await _fetchAll(()=>_sb.from('attendance').select('*').eq('date',date).order('id'),'Attendance'); }   /* v28 */
   catch(e){ console.error(e); toast('✕ Could not load today\'s marks — refresh',5000); }
   await fuLoadRecords(date);           /* v14 · 本周的 Follow-Up 纪录 ＋ 未结待办 */
+  await loadNotices(date,currentDept);  /* v29 */
 }
 
 // ── Holiday check: returns matching holiday or null ──
@@ -1534,6 +1599,11 @@ function renderMark(){
     });
     h+=`</div>`;
 
+    /* v29 · 家长请假通知的状态 */
+    const _ntc=noticeCache[selectedDate+'|'+currentDept];
+    if(!_ntc){ loadNotices(selectedDate,currentDept).then(()=>{ if(document.getElementById('page-mark').classList.contains('on')&&!document.getElementById('abs-ov')){ const y=window.scrollY; renderMark(); window.scrollTo(0,y); } }); }
+    else if(!_ntc.ok) h+=`<div class="holiday-banner" style="display:flex;align-items:center;gap:8px">⚠ Parent absence notices could not be loaded — marking still works. <button onclick="retryNotices()" style="margin-left:auto;border:1px solid var(--bdr);background:#fff;border-radius:8px;padding:4px 10px;font-family:inherit;font-size:12px;cursor:pointer">Retry</button></div>`;
+    else if(!noticeEditor&&noticeScope[currentDept]===false) h+=`<div style="font-size:11px;color:var(--mut);margin:-6px 0 10px">Parent absence notices for ${currentDept} are not shown to your account.</div>`;
     // Show selected class only
     const code=markClass;
     const students=getClassStudents(currentDept,code);
@@ -1573,9 +1643,11 @@ function renderMark(){
       const _absDetail=(active==='absent'&&/^Absent: (Stay back|Other) — /.test(note)&&!/Not informed$/.test(note))?note.replace(/^Absent: (Stay back|Other) — /,''):'';
       const showNote=!isTransferDay&&((active==='early_leave'&&note)||(active==='absent'&&(_absDetail||(note&&!/^Absent: /.test(note)))));
       const _noteTx=active==='absent'?(_absDetail||note):note;
+      const _nt=noticeFor(s.id,currentDept,currentSession);   /* v29 */
+      const _ntTag=_nt?'<span style="font-size:10px;font-weight:700;color:#1E6B3A;background:#E7F6EC;border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">Notified · '+_escHtml((NT_REASON[_nt.reason_code]||{label:'Absent'}).label)+'</span>':'';
       h+=`<div class="stu-row" style="${ruleStyle}${(isTransferDay||away)?'opacity:.5':''}">
         <div class="stu-num">${s.num??''}</div>
-        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${ruleTag}${transferTag}${eRowTag(note)}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+_escHtml(_noteTx)+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
+        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${_ntTag}${ruleTag}${transferTag}${eRowTag(note)}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+_escHtml(_noteTx)+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
         ${away
           ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap;text-align:right">Temp slot<br>→ '+_escHtml(swCls(away.to_class))+(away.to_date!==selectedDate?' · '+_escHtml(away.to_date):'')+'</div>'
           :isTransferDay
@@ -1665,7 +1737,7 @@ async function markStudent(studentId,studentName,dept,classCode,status){
     if(status==='late'&&_atc&&!_prevT) _lateTip='Late '+input+' · tap Late again to change the time';
   }
   if(status==='absent'&&!_hwAbs){
-    const pick=await absentPicker(dept,studentName);
+    const pick=await absentPicker(dept,studentName,noticeFor(studentId,dept,currentSession));   /* v29 */
     if(!pick) return;
     status=pick.status; note=pick.note;
   }
@@ -1700,7 +1772,10 @@ async function markStudent(studentId,studentName,dept,classCode,status){
 async function markAll(dept,classCode,status){
   const scrollY=window.scrollY;
   const openIds=[...document.querySelectorAll('.class-body.open')].map(el=>el.id);
-  const students=getClassStudents(dept,classCode).filter(s=>!swAwayOn(s.id,classCode,selectedDate));   /* v19 · 换走的不点，免得盖掉他在来访班的纪录 */
+  const _all=getClassStudents(dept,classCode).filter(s=>!swAwayOn(s.id,classCode,selectedDate));   /* v19 · 换走的不点，免得盖掉他在来访班的纪录 */
+  /* v29 · 家长已请假的孩子不跟着 All ✓：老师自己按（来了按 Present，没来按 Absent 原因已预选） */
+  const _skip=_all.filter(s=>noticeFor(s.id,dept,currentSession));
+  const students=_all.filter(s=>!_skip.includes(s));
   for(const s of students){
     const existing=todayRecords.findIndex(r=>r.student_id===s.id&&r.dept===dept&&(r.session??0)===currentSession);
     if(existing>=0) todayRecords[existing].status=status;
@@ -1716,10 +1791,11 @@ async function markAll(dept,classCode,status){
     session:currentSession,
     updated_at:new Date().toISOString()
   }));
+  if(!rows.length){ toast('Everyone here has a parent absence notice — mark them one by one',4000); return; }   /* v29 */
   try{
     const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session'});
     if(error){ console.error('Batch save failed:',error); toast('✕ Save failed'); }
-    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ All marked'); }
+    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast(_skip.length?('✓ All marked · '+_skip.length+' with a parent absence notice left for you to mark'):'✓ All marked',_skip.length?4000:undefined); }
   }catch(e){console.error('Batch error:',e);toast('✕ Save error');}
 }
 
