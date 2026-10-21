@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MasterHub — Calendar v15</title>
+<title>MasterHub — Calendar v16</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -181,7 +181,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 
 <div class="nav">
   <button class="nav-home" onclick="location.href='/index.html'" title="Home" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;padding:11px 10px 11px 0;flex-shrink:0">←</button>
-  <div class="nav-logo">MasterHub — Calendar <span class="ver">v15</span></div>
+  <div class="nav-logo">MasterHub — Calendar <span class="ver">v16</span></div>
   <button class="ntab on" onclick="goPage('holidays')">Holidays</button>
   <button class="ntab" onclick="goPage('manage')">Manage</button>
   <div class="nav-r">
@@ -202,7 +202,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
     <div style="font-size:12px;line-height:2.2">
       <div>System: <b>MasterHub — Calendar</b></div>
       <div>Storage: <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:11px">masterhub_calendar_v6</code></div>
-      <div>Version: <span class="ver">v15</span></div>
+      <div>Version: <span class="ver">v16</span></div>
     </div>
   </div>
   <!-- v15 · 10/9 Centre Name 搬到 NoticeGo-Holiday（印在通知上的名字由通知系统管） -->
@@ -219,7 +219,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--layer)}
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════
 const STORAGE_KEY = 'masterhub_calendar_v6';
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 
 /* ══════════════════════════════════════════════════════════════════
    v13 · 2026-09-25 · 存档统一逻辑（claude/Academee_存档统一逻辑_提案_20260924.md 五条规则）
@@ -263,18 +263,18 @@ function _pendingDownload(){
 /* ③ 指示器：只看云端 */
 function _syncPaint(state){
   const el = document.getElementById('last-saved'); if(!el) return;
-  el.style.display = '';
+  /* v16 · 以前先设 display 再整组换 cssText，display 被洗掉 → 被 .saved{display:none} 藏住，永远看不到。现在 cssText 自带 display */
   const pending = UNSYNCED || !!_pendingGet();
   if(state === 'busy' && pending){
     el.textContent = '☁ 同步中…';
-    el.style.cssText = 'font-size:11px;white-space:nowrap;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff';
+    el.style.cssText = 'display:inline-block;font-size:11px;white-space:nowrap;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff';
   } else if(pending){
     el.textContent = '⚠ 未上云 — 只在这台电脑';
-    el.style.cssText = 'font-size:11px;font-weight:700;white-space:nowrap;padding:2px 8px;border-radius:10px;background:#c0392b;color:#fff';
+    el.style.cssText = 'display:inline-block;font-size:11px;font-weight:700;white-space:nowrap;padding:2px 8px;border-radius:10px;background:#c0392b;color:#fff';
   } else {
     const t = _syncLastOk ? _syncLastOk.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
     el.textContent = t ? ('☁ 已同步 · ' + t) : '☁ 已同步';
-    el.style.cssText = 'font-size:11px;white-space:nowrap;padding:2px 8px;border-radius:10px;background:rgba(159,225,203,.25);color:#9FE1CB;font-weight:600';
+    el.style.cssText = 'display:inline-block;font-size:11px;white-space:nowrap;padding:2px 8px;border-radius:10px;background:rgba(159,225,203,.25);color:#9FE1CB;font-weight:600';
   }
 }
 /* ③ 失败横幅：不会自己消失，直到下一次存成功 */
@@ -1159,7 +1159,7 @@ function _renderHolMain(){
       h+=`<div style="display:flex;align-items:center;padding:9px 16px;border-bottom:.5px solid var(--bdr);gap:10px;flex-wrap:wrap;background:#FFFDF5">
         <input type="text" value="${escapeHTML(e.name||'')}" placeholder="Extra Class name"
           style="width:150px;border:.5px solid var(--bdr);border-radius:5px;padding:4px 8px;font-size:12px;font-family:inherit"
-          onchange="_ecUpdate(${yr},${i},'name',this.value)">
+          oninput="_ecTyped(${yr},${i},'name',this.value)" onchange="_ecUpdate(${yr},${i},'name',this.value)">
         <div style="display:flex;align-items:center;gap:2px;background:var(--sur2);border:.5px solid var(--bdr);border-radius:6px;padding:3px 7px;flex-shrink:0">
           <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;font-weight:600;color:var(--mut);margin-right:5px;padding-right:5px;border-right:.5px solid var(--bdr)">
             <input type="checkbox" ${allChk?'checked':''} onchange="_ecAllDepts(${yr},${i},this.checked)" style="cursor:pointer">All
@@ -1182,13 +1182,13 @@ function _renderHolMain(){
           <label style="font-size:10px;color:var(--mut)">Time</label>
           <input type="text" value="${escapeHTML(e.time||'')}" placeholder="e.g. 9:00am – 12:00pm"
             style="width:150px;border:.5px solid var(--bdr);border-radius:5px;padding:4px 8px;font-size:11px;font-family:inherit"
-            onchange="_ecUpdate(${yr},${i},'time',this.value)">
+            oninput="_ecTyped(${yr},${i},'time',this.value)" onchange="_ecUpdate(${yr},${i},'time',this.value)">
         </div>
         <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
           <label style="font-size:10px;color:var(--mut)">MSG</label>
           <input type="text" value="${escapeHTML(e.msg||'')}" placeholder="e.g. Bring textbook"
             style="width:180px;border:.5px solid var(--bdr);border-radius:5px;padding:4px 8px;font-size:11px;font-family:inherit"
-            onchange="_ecUpdate(${yr},${i},'msg',this.value)">
+            oninput="_ecTyped(${yr},${i},'msg',this.value)" onchange="_ecUpdate(${yr},${i},'msg',this.value)">
         </div>
         <button onclick="_ecDelete(${yr},${i})" title="Delete"
           style="border:none;background:none;font-size:16px;cursor:pointer;color:var(--mut);padding:2px 4px;margin-left:auto;flex-shrink:0"
@@ -1375,6 +1375,14 @@ function _ecAdd(yr){
   S.extraClasses[yr].push({id:genId('ec'),name:'Extra Class',start:'',end:'',time:'',depts:['SRK','GAK','ATC']});   /* v15：预设全勾 */
   saveAll(); _renderHolMain();
 }
+/* v16 · 补课的名称 / 时间 / 家长讯息：边打字边存。先落本机（离开页面会拦），停手 0.7 秒推云 */
+let _ecTypeT = null;
+function _ecTyped(yr,idx,field,val){
+  if(!S.extraClasses[yr]||!S.extraClasses[yr][idx]) return;
+  S.extraClasses[yr][idx][field]=val;
+  _pendingSave(JSON.stringify(S), LOADED_IDS);
+  clearTimeout(_ecTypeT); _ecTypeT = setTimeout(()=>{ _ecTypeT=null; saveAll(); }, 700);
+}
 function _ecUpdate(yr,idx,field,val){
   if(!S.extraClasses[yr]||!S.extraClasses[yr][idx]) return;
   if((field==='start'||field==='end') && !_inYear(val,yr)){ _renderHolMain(); return; }   /* v15 */
@@ -1426,6 +1434,9 @@ function getECInfo(ds,dept){
    ③ List 分页：全年每个特别日子一行，可筛选
    ═══════════════════════════════════════════════════════════════════════════ */
 function _isOwner(){ return String(window._ROLE||'').toUpperCase()==='OWNER'; }
+/* v16 · 2026-10-21 Owner 定：ADMIN、TOP MGMT 跟 Owner 一样可以新增 / 修改 / 删除 Calendar 资料，含批准关门周、公布年份（云端 migration calendar_v15_e_guard_allow_admin_topmgmt）。
+   _canManage() 只剩：Import、改动纪录卡（Owner 看）。其余权限一律看 _canManage()。 */
+function _canManage(){ return ['OWNER','ADMIN','TOP_MGMT'].includes(String(window._ROLE||'').toUpperCase()); }
 function _coList(yr){ return ((S.centreOff||{})[yr]) || []; }
 /* 生效 = active；「待批准删除」在批准前仍然生效；「待批准新增」批准前不生效 */
 function _coEffective(c){ return !!(c && c.start && (c.status==='active' || (c.status==='pending' && c.req==='remove'))); }
@@ -1440,14 +1451,14 @@ function _coRemove(yr,id){ S.centreOff[yr] = _coList(yr).filter(c=>c.id!==id); }
 
 function _centreOffSection(yr){
   const list = _coList(yr).slice().sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999'));
-  const own  = _isOwner();
+  const own  = _canManage();
   const pend = list.filter(c=>c.status==='pending').length;
   const inp  = (c, locked) => `border:.5px solid ${c.start?'#0F6E56':'var(--bdr)'};border-radius:5px;font-size:11px;font-family:inherit;padding:4px 7px;background:${locked?'var(--sur2)':(c.start?'#F0FDF4':'var(--sur)')}`;
   let h = `<div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
     <div style="padding:9px 16px;background:#FFF9E6;border-bottom:.5px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="background:#FFF3CD;color:#854F0B;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">CENTRE CLOSED</span>
       <span style="font-size:11px;font-weight:600;color:#854F0B">Centre Closed · staff off (annual leave)</span>
-      <span style="font-size:10px;color:var(--mut);flex:1;min-width:200px">Whole centre, full day · no class for every department · ${own ? 'you are the Owner: your changes take effect at once' : 'adding or removing a closure needs Owner approval'}</span>
+      <span style="font-size:10px;color:var(--mut);flex:1;min-width:200px">Whole centre, full day · no class for every department · ${own ? 'you can approve: your changes take effect at once' : 'adding or removing a closure needs Owner approval'}</span>
       ${pend ? `<span style="background:#FFF3CD;color:#854F0B;border-radius:4px;padding:2px 9px;font-size:10px;font-weight:700">${pend} pending</span>` : ''}
       <button class="btn-plain" style="font-size:10px;padding:2px 10px" onclick="_coAdd(${yr})">+ Add</button>
     </div>`;
@@ -1494,14 +1505,14 @@ function _centreOffSection(yr){
 }
 function _coAdd(yr){
   if(!S.centreOff) S.centreOff = {};
-  const own = _isOwner();
+  const own = _canManage();
   (S.centreOff[yr] = S.centreOff[yr] || []).push({ id:genId('co'), name:'Centre closed', start:'', end:'',
     status: own ? 'active' : 'pending', req: own ? null : 'add', by: window._ME||'', at: new Date().toISOString() });
   saveAll(); _renderHolMain();
 }
 function _coUpdate(yr,id,field,val){
   const c = _coGet(yr,id); if(!c) return;
-  if((c.status==='active' || c.req==='remove') && !_isOwner()){ alert('Only the Owner can change this closure. Use "Request removal", then add a new one.'); _renderHolMain(); return; }
+  if((c.status==='active' || c.req==='remove') && !_canManage()){ alert('Only the Owner, Admin or Top Mgmt can change this closure. Use "Request removal", then add a new one.'); _renderHolMain(); return; }
   if((field==='start'||field==='end') && !_inYear(val,yr)){ _renderHolMain(); return; }
   c[field] = val;
   if(field==='start' && (!c.end || c.end < val)) c.end = val;
@@ -1511,7 +1522,7 @@ function _coUpdate(yr,id,field,val){
 function _coDelete(yr,id){
   const c = _coGet(yr,id); if(!c) return;
   if(c.status==='active'){
-    if(!_isOwner()) return;
+    if(!_canManage()) return;
     if(!confirm('Delete this centre closure?\nThese days will be open again.')) return;
   } else if(!confirm('Cancel this request?')) return;
   _coRemove(yr,id); saveAll(); _renderHolMain();
@@ -1523,7 +1534,7 @@ function _coRequestRemove(yr,id){
   saveAll(); _renderHolMain();
 }
 function _coApprove(yr,id){
-  if(!_isOwner()) return;
+  if(!_canManage()) return;
   const c = _coGet(yr,id); if(!c) return;
   if(c.req==='remove'){ _coRemove(yr,id); }
   else {
@@ -1533,7 +1544,7 @@ function _coApprove(yr,id){
   saveAll(); _renderHolMain();
 }
 function _coReject(yr,id){
-  if(!_isOwner()) return;
+  if(!_canManage()) return;
   const c = _coGet(yr,id); if(!c) return;
   if(c.req==='remove'){ c.status = 'active'; c.req = null; }
   else _coRemove(yr,id);
@@ -1665,7 +1676,7 @@ function _yrEmpty(yr){
 }
 /* 从去年复制：只复制结构（名称、部门、补课时间与提醒），日期全部留空 */
 function _copyStructure(yr){
-  const p = yr-1, own = _isOwner();
+  const p = yr-1, own = _canManage();
   const shP = Object.entries(S.schoolHolDates[p]||{}), ecP = ((S.extraClasses||{})[p]||[]), spP = (S.specialHolidays[p]||[]), coP = _coList(p);
   if(!confirm('Copy the structure of '+p+' into '+yr+'?\n\n'
     + '• School holiday rows: '+shP.length+'\n• Extra class rows: '+ecP.length+'\n• Special holiday names: '+spP.length+'\n• Centre closed rows: '+coP.length+'\n\n'
@@ -1707,7 +1718,7 @@ function _chgCheck(){
   try{
     if(!_CHG_SNAP) return;
     const now = _staffMap();
-    if(!_isOwner()){
+    if(!_canManage()){
       const days = [...new Set([...Object.keys(_CHG_SNAP), ...Object.keys(now)])].filter(ds=>(_CHG_SNAP[ds]||'')!==(now[ds]||'') && _yearStatus(ds.slice(0,4))==='published').sort();
       days.forEach(ds=>_CHG_QUEUE.push({ by_email: window._ME||'', day: ds, before: _CHG_LBL[_CHG_SNAP[ds]||''], after: _CHG_LBL[now[ds]||''],
         holiday: getPHNameFull(ds) || getOffName(ds) || getCentreClosedName(ds) || '' }));
@@ -1922,13 +1933,13 @@ function _dSuggest(yr,slot){
 }
 function _coNew(yr,slot,start,end,name){
   if(!S.centreOff) S.centreOff={};
-  const own=_isOwner();
+  const own=_canManage();
   (S.centreOff[yr]=S.centreOff[yr]||[]).push({ id:genId('co'), name, start:start||'', end:end||start||'', slot,
     status: own ? 'active' : 'pending', req: own ? null : 'add', by: window._ME||'', at: new Date().toISOString() });
   saveAll(); _renderCards();
 }
 function _coRowHTML(yr,c){
-  const own=_isOwner(), locked = (c.status==='active' || c.req==='remove') && !own;
+  const own=_canManage(), locked = (c.status==='active' || c.req==='remove') && !own;
   const n = c.start ? _scDayCount(c.start, c.end||c.start).al : 0;
   const chip = c.status==='active' ? '<span class="st st-done">active</span>' : `<span class="st st-wait">pending · ${c.req==='remove'?'remove':'add'}</span>`;
   let act='';
@@ -1960,13 +1971,13 @@ function _eNone(yr,p,on){ const fl=_yf(yr); fl.eNone=fl.eNone||{}; if(on) fl.eNo
 function _ecRowHTML(yr,e,i){
   const DL=['SRK','GAK','ATC'], set=e.start&&e.end;
   return `<div class="cp-row">
-    <input type="text" value="${escapeHTML(e.name||'')}" placeholder="Name" class="cp-date" style="width:130px" onchange="_ecUpdate(${yr},${i},'name',this.value)">
+    <input type="text" value="${escapeHTML(e.name||'')}" placeholder="Name" class="cp-date" style="width:130px" oninput="_ecTyped(${yr},${i},'name',this.value)" onchange="_ecUpdate(${yr},${i},'name',this.value)">
     <span style="display:flex;gap:2px;align-items:center;background:var(--sur2);border:.5px solid var(--bdr);border-radius:6px;padding:3px 7px">${DL.map(dep=>`<label style="display:flex;align-items:center;gap:3px;font-size:11px;margin:0 3px;cursor:pointer"><input type="checkbox" ${(e.depts||[]).includes(dep)?'checked':''} onchange="_ecToggleDept(${yr},${i},'${dep}',this.checked)">${dep}</label>`).join('')}</span>
     <input type="date" value="${e.start||''}" class="cp-date ${set?'ok':''}" onchange="_ecUpdate(${yr},${i},'start',this.value)">
     <span class="cp-note">to</span>
     <input type="date" value="${e.end||''}" class="cp-date ${set?'ok':''}" onchange="_ecUpdate(${yr},${i},'end',this.value)">
-    <input type="text" value="${escapeHTML(e.time||'')}" placeholder="Time, e.g. 1:30pm – 5:30pm" class="cp-date" style="width:170px" onchange="_ecUpdate(${yr},${i},'time',this.value)">
-    <input type="text" value="${escapeHTML(e.msg||'')}" placeholder="Message to parents" class="cp-date" style="width:170px" onchange="_ecUpdate(${yr},${i},'msg',this.value)">
+    <input type="text" value="${escapeHTML(e.time||'')}" placeholder="Time, e.g. 1:30pm – 5:30pm" class="cp-date" style="width:170px" oninput="_ecTyped(${yr},${i},'time',this.value)" onchange="_ecUpdate(${yr},${i},'time',this.value)">
+    <input type="text" value="${escapeHTML(e.msg||'')}" placeholder="Message to parents" class="cp-date" style="width:170px" oninput="_ecTyped(${yr},${i},'msg',this.value)" onchange="_ecUpdate(${yr},${i},'msg',this.value)">
     <button class="btn-plain" style="margin-left:auto;color:var(--red)" onclick="if(confirm('Delete this extra class?'))_ecDelete(${yr},${i})">Delete</button>
   </div>`;
 }
@@ -2121,12 +2132,12 @@ function _renderCardPage(yr,k,el){
   }
   else if(k==='D'){
     const co=_coList(yr);
-    h=_cardHead('D',`<span class="cp-note">${_isOwner()?'You are the Owner: changes take effect at once.':'Adding or removing a closure needs the Owner to approve.'}</span>`)+
+    h=_cardHead('D',`<span class="cp-note">${_canManage()?'You can approve: changes take effect at once.':'Adding or removing a closure needs the Owner to approve.'}</span>`)+
       [['mid','Mid-year closure','Last week of the KPM mid-year holiday'],['xmas','Christmas closure','The week of Christmas (25 Dec itself is PH2)']].map(([slot,title,hint])=>{
         const rs=co.filter(c=>_coSlot(c)===slot), sg=_dSuggest(yr,slot);
         const none=(_yf(yr).dNone||{})[slot];
         return `<div class="card" style="padding:0;overflow:hidden"><div class="cp-sec" style="display:flex;align-items:center;gap:8px"><span style="flex:1">${title} · <span style="font-weight:400">${hint}</span></span>${rs.length?'':`<label style="font-weight:400;display:flex;gap:4px;align-items:center;cursor:pointer"><input type="checkbox" ${none?'checked':''} onchange="_dNone(${yr},'${slot}',this.checked)">No closure this time</label>`}</div>
-          ${rs.map(c=>_coRowHTML(yr,c)+((!c.start && sg && !(c.status==='active' && !_isOwner()))?`<div class="cp-row" style="background:#FFFDF5"><span class="cp-note" style="flex:1">Suggested: <b>${_ddmmL(sg.start)} ${_DOW(sg.start)} – ${_ddmmL(sg.end)} ${_DOW(sg.end)}</b></span><button class="btn-plain" onclick="_dFill(${yr},'${c.id}','${sg.start}','${sg.end}')">Use these dates</button></div>`:'')).join('')}
+          ${rs.map(c=>_coRowHTML(yr,c)+((!c.start && sg && !(c.status==='active' && !_canManage()))?`<div class="cp-row" style="background:#FFFDF5"><span class="cp-note" style="flex:1">Suggested: <b>${_ddmmL(sg.start)} ${_DOW(sg.start)} – ${_ddmmL(sg.end)} ${_DOW(sg.end)}</b></span><button class="btn-plain" onclick="_dFill(${yr},'${c.id}','${sg.start}','${sg.end}')">Use these dates</button></div>`:'')).join('')}
           ${(rs.length||none)?'':(sg?`<div class="cp-row"><span class="cp-note" style="flex:1">Suggested: <b>${_ddmmL(sg.start)} ${_DOW(sg.start)} – ${_ddmmL(sg.end)} ${_DOW(sg.end)}</b></span><button class="btn-plain" onclick="_coNew(${yr},'${slot}','${sg.start}','${sg.end}','${title}')">Use these dates</button><button class="btn-plain" onclick="_coNew(${yr},'${slot}','','','${title}')">Enter other dates</button></div>`
                                 :`<div class="cp-row"><span class="yc-hint">Fill the mid-year school holiday in card C first.</span></div>`)}
         </div>`; }).join('') + (()=>{ const ot=co.filter(c=>_coSlot(c)==='other');
@@ -2163,20 +2174,20 @@ function _renderCardPage(yr,k,el){
   }
   else if(k==='G'){ h=_gPage(yr); }
   else if(k==='CHK'){
-    const C=_checks(yr), st=_yearStatus(yr), y=(S.years||{})[String(yr)]||{}, own=_isOwner();
+    const C=_checks(yr), st=_yearStatus(yr), y=(S.years||{})[String(yr)]||{}, own=_canManage();
     const ic={y:'✓',n:'✕',w:'!',i:'·'}, cl={y:'y',n:'n',w:'w',i:''};
     h=_cardHead('CHK')+`<div class="card" style="padding:0;overflow:hidden">${C.L.map(x=>`<div class="ck"><i class="${cl[x.s]}">${ic[x.s]}</i><span>${x.txt}</span></div>`).join('')}</div>
       <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         ${st==='published'
-          ? `<span class="st st-done">Published${y.published_at?' '+_locTime(y.published_at).slice(0,10):''}${y.published_by?' by '+escapeHTML(y.published_by):''}</span><span class="cp-note">Changes now take effect at once; Admin / Top Mgmt changes are reported to the Owner.</span>`
+          ? `<span class="st st-done">Published${y.published_at?' '+_locTime(y.published_at).slice(0,10):''}${y.published_by?' by '+escapeHTML(y.published_by):''}</span><span class="cp-note">Changes now take effect at once.</span>`
           : (own ? `<button class="btn-plain" style="min-height:40px;padding:0 18px;font-size:12px;${C.ready?'background:var(--grn);color:#fff;border-color:var(--grn)':'opacity:.5'}" ${C.ready?'':'disabled'} onclick="_publishYear(${yr})">Publish ${yr}</button><span class="cp-note">${C.ready?'ClassGo, HrLeave, parent notices and the other systems start using '+yr+' after you publish.':'Fix the ✕ items first.'}</span>`
-                 : `<span class="cp-note">${C.ready?'Ready — waiting for the Owner to publish.':'Fix the ✕ items first. Only the Owner can publish.'}</span>`)}
+                 : `<span class="cp-note">${C.ready?'Ready — waiting for the Owner to publish.':'Fix the ✕ items first. Only the Owner, Admin or Top Mgmt can publish.'}</span>`)}
       </div>`;
   }
   el.innerHTML = h;
 }
 function _publishYear(yr){
-  if(!_isOwner()) return;
+  if(!_canManage()) return;
   if(!_checks(yr).ready){ alert('Not ready yet.'); return; }
   if(!confirm('Publish '+yr+'?\nAll systems (ClassGo, HrLeave, parent notices …) will start using these dates.')) return;
   if(!S.years) S.years={};
@@ -2188,7 +2199,7 @@ _renderHolMain = function(){ _renderCards(); };
 
 /* 从去年复制（卡片版）：学校假期每段一列、补课全部、关门周 2 段，日期全部留空 */
 _copyStructure = function(yr){
-  const p=yr-1, own=_isOwner();
+  const p=yr-1, own=_canManage();
   const kp=[...new Set(_shRows(p).map(_shKpm).filter(Boolean))];
   const ecP=(S.extraClasses[p]||[]), coP=_coList(p).filter(c=>['mid','xmas'].includes(_coSlot(c)));
   if(!confirm('Copy the structure of '+p+' into '+yr+'?\n\n• KPM school holiday periods: '+kp.length+'\n• Extra classes: '+ecP.length+' (departments, time, message)\n• Centre closed weeks: '+coP.length+'\n\nALL DATES ARE LEFT BLANK — you fill them in.\nRows stay on this computer until they have a date; fill the dates before you close the page.')) return;
@@ -2201,7 +2212,7 @@ _copyStructure = function(yr){
   alert('Copied. Open the cards and fill in the '+yr+' dates.');
 };
 
-function _dFill(yr,id,a,b){ const c=_coGet(yr,id); if(!c) return; if((c.status==='active' || c.req==='remove') && !_isOwner()) return; c.start=a; c.end=b; saveAll(); _renderCards(); }
+function _dFill(yr,id,a,b){ const c=_coGet(yr,id); if(!c) return; if((c.status==='active' || c.req==='remove') && !_canManage()) return; c.start=a; c.end=b; saveAll(); _renderCards(); }
 /* 11 天：节日算 Day 1 / Day 2（落星期日也算那一天，补假另算），旧资料里「星期日的隔天」那种补假标记不重复算 */
 _paidDays = function(yr){
   const d=_hd(yr), m=new Map(); const add=(ds,name)=>{ if(ds && !m.has(ds+'|'+name)) m.set(ds+'|'+name,name); };   // 同一天两个不同假期 → 两天都算
