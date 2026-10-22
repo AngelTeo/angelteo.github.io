@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v30</title>
+<title>OPR-AttendanceGo v34</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -179,7 +179,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v30</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v34</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -1788,29 +1788,49 @@ async function markAll(dept,classCode,status){
      当天有固定例外（Exceptions）的孩子也不跟着点，老师自己按 */
   const _dowA=new Date(selectedDate+'T12:00:00').getDay();
   const _done=_all.filter(s=>!_skip.includes(s)&&getStatus(s.id,dept,currentSession)!=='unmarked');
-  const _rule=_all.filter(s=>!_skip.includes(s)&&!_done.includes(s)&&getRule(s.id,dept,_dowA,currentSession,selectedDate));
-  const students=_all.filter(s=>!_skip.includes(s)&&!_done.includes(s)&&!_rule.includes(s));
-  for(const s of students){
+  /* v34 · 固定例外照例外记（Owner 10-22 14:00「All ✓ 照例外记，不来记 Absent」）：
+       不来 = Absent（weekly exception）、晚到 = Late 几点（ATC 功课班 3:00 或以后 = Absent）、早走 = Early 几点；
+       例外写「Sometimes」的不一定 → 还是留给老师。记错了老师一颗一颗改。 */
+  const hm=t=>t?String(t).slice(0,5):'';
+  const _rest=_all.filter(s=>!_skip.includes(s)&&!_done.includes(s));
+  const _rule=_rest.filter(s=>{const r=getRule(s.id,dept,_dowA,currentSession,selectedDate);return r&&awIsSometimes(r);});
+  const plan=[]; let nRule=0;
+  for(const s of _rest){
+    if(_rule.includes(s)) continue;
+    const rule=getRule(s.id,dept,_dowA,currentSession,selectedDate);
+    if(!rule){ plan.push([s,status,null]); continue; }
+    const why=String(rule.reason||'').trim()||'Weekly exception', t=hm(rule.from_time);
+    if(rule.rule_type==='absent') plan.push([s,'absent','Absent: Other — '+why+' (weekly exception)']);
+    else if(rule.rule_type==='late'){
+      if(dept==='ATC'&&currentSession===1&&t&&t>='15:00') plan.push([s,'absent','Absent: Other — Arrives '+t+' (3:00 or later = H/W absent) (weekly exception)']);
+      else plan.push([s,'late',(t?'Late: '+t+' · ':'Late: ')+why+' (weekly exception)']);
+    }
+    else if(rule.rule_type==='early_leave') plan.push([s,'early_leave','Early: '+(t?t+' ':'')+why+' (weekly exception)']);
+    else plan.push([s,status,null]);
+    nRule++;
+  }
+  for(const [s,st,note] of plan){
     const existing=todayRecords.findIndex(r=>r.student_id===s.id&&r.dept===dept&&(r.session??0)===currentSession);
-    if(existing>=0) todayRecords[existing].status=status;
-    else todayRecords.push({date:selectedDate,student_id:s.id,student_name:s.name,dept,class_code:classCode,status,marked_by:userEmail,session:currentSession});
+    if(existing>=0){ todayRecords[existing].status=st; todayRecords[existing].note=note; }
+    else todayRecords.push({date:selectedDate,student_id:s.id,student_name:s.name,dept,class_code:classCode,status:st,note,marked_by:userEmail,session:currentSession});
   }
   renderMark();
   openIds.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('open');});
   window.scrollTo(0,scrollY);
   // Batch save
-  const rows=students.map(s=>({
+  const rows=plan.map(([s,st,note])=>({
     date:selectedDate,student_id:s.id,student_name:s.name,
-    dept,class_code:classCode,status,marked_by:userEmail,
+    dept,class_code:classCode,status:st,note,marked_by:userEmail,
     session:currentSession,
     updated_at:new Date().toISOString()
   }));
-  const _left=[_skip.length?_skip.length+' with a parent notice':'',_rule.length?_rule.length+' with a weekly exception':''].filter(Boolean).join(' · ');   /* v30 */
+  const _left=[_skip.length?_skip.length+' with a parent notice':'',_rule.length?_rule.length+' with a “sometimes” exception':''].filter(Boolean).join(' · ');   /* v30 · v34 */
+  const _info=nRule?nRule+' as the weekly exception says':'';
   if(!rows.length){ toast(_left?('Nothing to mark · '+_left+' — mark them one by one'):'Everyone is already marked',4500); return; }
   try{
-    const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session'});
+    const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session',ignoreDuplicates:true});   /* v34 · 别的手机刚点过的不盖 */
     if(error){ console.error('Batch save failed:',error); toast('✕ Save failed'); }
-    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast(_left?('✓ Marked '+rows.length+' · left for you: '+_left):('✓ Marked '+rows.length),_left?4000:undefined); }
+    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ Marked '+rows.length+(_info?' · '+_info:'')+(_left?' · left for you: '+_left:''),(_info||_left)?5000:undefined); }
   }catch(e){console.error('Batch error:',e);toast('✕ Save error');}
 }
 
