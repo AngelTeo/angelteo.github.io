@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v37</title>
+<title>OPR-AttendanceGo v38</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -26,7 +26,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans
 .ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
 .ntab{padding:11px 14px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;border:none;background:transparent;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0;font-family:inherit}
 .ntab:hover{color:#fff}
-body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 / 管理层 */
+body:not(.is-office) .adm-only{display:none!important}
+body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政＋试行期只有 OWNER */   /* v30 · 只给行政 / 管理层 */
 .ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
 .nav-r{margin-left:auto;display:flex;gap:5px;align-items:center;padding-left:10px;flex-shrink:0}
 .btn-nav{padding:5px 12px;border-radius:6px;border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -85,6 +86,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
 .sb-wrap{display:flex;gap:4px;flex-shrink:0}
 .status-btn.s-present{background:#E1F5EE;color:var(--ok);border-color:#9FE1CB}
 .status-btn.s-absent{background:#FCEBEB;color:var(--danger);border-color:#F09595}
+.status-btn.s-pend{border:1.5px dashed #E07070;color:var(--danger);background:#FFF7F7}   /* v33 · 家长已通知、还没点 */
 .status-btn.s-late{background:#FFF8E1;color:var(--warn);border-color:#F9CB42}
 .status-btn.s-early_leave{background:#FFF0E6;color:#C4622D;border-color:#F0B896}
 .status-btn.s-mc{background:#EEF2F7;color:var(--info);border-color:#AABDD4}
@@ -180,7 +182,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v37</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v38</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -188,6 +190,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
     <button class="ntab adm-only" onclick="goPage('rules')">Exceptions</button>
     <button class="ntab adm-only" onclick="goPage('atcweek')">ATC Week</button>
     <button class="ntab adm-only" onclick="goPage('manage')">Manage</button>
+    <button class="ntab adm-only nt-only" onclick="goPage('notices')">Notices</button>
     <div class="nav-r"><span class="saved" id="last-saved"></span><button class="btn-nav adm-only" onclick="exportData()">↑ Export</button><label class="btn-nav adm-only" style="cursor:pointer">↓ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none"/></label></div>
   </div>
 
@@ -255,6 +258,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
     </div>
   </div>
   <div class="page" id="page-manage"><div id="manage-content"></div></div>
+  <div class="page" id="page-notices"><div id="nt-content"></div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -266,7 +270,11 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=30;   /* v30 · Step A：老师 / 行政画面分流（老师只留 Dashboard、Mark、Monthly 只读）；All ✓ 只补还没点的、不碰固定例外的孩子；按 Absent 依固定例外预选；Calendar「中心关门」算不用上课 */
+const APP_VERSION=38;   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
+/* v33   /* v33 · 出席率各部门规则（Monthly 每位孩子一格）；家长请假通知直接显示在格子里、All ✓ 照通知记成缺席；固定例外 All ✓ 照例外记；Notices 页加「Messages to the groups」（今天名单、SRT 补课 / 换 slot、永久换班 → WhatsApp ＋ 已送出纪录）；作废的点名不再显示 */
+// v32 ·    /* v32 · 家长通知搬进来（Notices 分页，行政用）：请假、早走、晚到、晚接、换人接 → 点名页显示；All ✓ 跳过有晚到通知的孩子；ATC 晚到 3:00 后功课班预选；+ Add visitor 先查行政是否已安排 */
+// v31 ·   /* v31 · 每班「Clear all」：清掉这一班这一节已点的名，回到未点（老师只能清当天；行政 / 管理层任何日期）—— Owner 10-22 */
+// v30 ·   /* v30 · Step A：老师 / 行政画面分流（老师只留 Dashboard、Mark、Monthly 只读）；All ✓ 只补还没点的、不碰固定例外的孩子；按 Absent 依固定例外预选；Calendar「中心关门」算不用上课 */
 // v29 ·   /* v29 · Step 1 学生请假：点名页读 MiscGo 的家长请假通知 → 名字旁「Notified · MC」，按 Absent 原因预选；缺席选单补 School event / Family matter / Notified · no reason；All ✓ 不碰有请假通知的孩子。通知只读，点名一律老师按下才写入 */   /* v27 · 缺席选 Other 必须填原因才能 Save；不知道原因就按 Not informed（Owner 10-16 · 为 MiscGo 联络任务做准备） */
 /* v26 · E-Class 网课：Present / Late 的格子显示 E·AM / E·NN；双班学生在另一班显示灰色 E（不算出席率）（Owner 10-10） */
 /* v25 · 点名一行只剩 Present / Absent / Late / Early；按 Absent 再选 MC · Holiday · Stay back(ATC) · Other，可选 Not informed（Owner 10-07） */
@@ -312,7 +320,7 @@ function attMark(r,ICON){
   return ICON[r.status];
 }
 /* 按 Absent 之后的选单。回传 {status,note} 或 null（取消） */
-function absentPicker(dept,name,notice,rule){   /* v30 · rule = 当天的固定例外（缺席类）→ 预选 */   /* v29 · notice = MiscGo 家长请假（有就预选） */
+function absentPicker(dept,name,notice,rule,pre,canClear){   /* v33 · canClear = 这孩子已经是缺席 → 可以清掉 */   /* v32 · pre = 晚到通知（ATC 3:00 后到 → 功课班算有通知的缺席） */   /* v30 · rule = 当天的固定例外（缺席类）→ 预选 */   /* v29 · notice = MiscGo 家长请假（有就预选） */
   return new Promise(resolve=>{
     const ov=document.createElement('div'); ov.id='abs-ov';
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
@@ -321,12 +329,14 @@ function absentPicker(dept,name,notice,rule){   /* v30 · rule = 当天的固定
     const _nt=notice&&NT_REASON[notice.reason_code]?NT_REASON[notice.reason_code]:null;
     const btn=(k,t,st)=>`<button data-k="${k}" style="flex:1 1 40%;min-height:46px;margin:4px;border-radius:10px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;${st||''}">${t}</button>`;
     const nm=String(name||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    const _rl=(!_nt&&rule)?String(rule.reason||'').trim():null;   /* v30 · 家长通知优先；没有才用固定例外 */
+    const _pre=(!_nt&&pre)?pre:null;   /* v32 */
+    const _rl=(!_nt&&!_pre&&rule)?String(rule.reason||'').trim():null;   /* v30 · 家长通知优先；没有才用固定例外 */
     const _rlH=_rl===null?'':String(_rl||'Weekly exception').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const step1=()=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">Absent — ${nm}</div>`
       +(_nt?`<div style="margin:0 4px 8px;padding:8px 10px;border-radius:10px;background:#E7F6EC;color:#1E6B3A;font-size:13px">Parent notified the office: <b>${_nt.label}</b></div>${btn('nt','Absent · '+_nt.label+' (as notified)','background:#1E6B3A;color:#fff;border-color:transparent;flex-basis:100%')}<div style="font-size:12px;color:var(--mut);margin:6px 4px 2px">Or choose another reason:</div>`:'')
+      +(_pre?`<div style="margin:0 4px 8px;padding:8px 10px;border-radius:10px;background:#FFF1D6;color:#7A4A00;font-size:13px">Parent notified the office: <b>${_pre.label}</b></div>${btn('pre','Absent · '+_pre.label+' (as notified)','background:#7A4A00;color:#fff;border-color:transparent;flex-basis:100%')}`:'')
       +(_rl!==null?`<div style="margin:0 4px 8px;padding:8px 10px;border-radius:10px;background:#EEF0FB;color:#3D3A8C;font-size:13px">Weekly exception: <b>${_rlH}</b></div>${btn('rl','Absent · '+_rlH+' (weekly exception)','background:#3D3A8C;color:#fff;border-color:transparent;flex-basis:100%')}`:'')
-      +`<div style="display:flex;flex-wrap:wrap">${opts.map(([k,t])=>btn(k,t)).join('')}</div>${btn('cancel','Cancel','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
+      +`<div style="display:flex;flex-wrap:wrap">${opts.map(([k,t])=>btn(k,t)).join('')}</div>${canClear?btn('clr','Not marked (clear this mark)','color:var(--danger);border-color:var(--danger);flex-basis:100%'):''}${btn('cancel','Cancel','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
     const step2=k=>`<div style="font-size:13px;color:var(--mut);margin:0 4px 8px">${k==='stay'?'Stay back':'Other'} — ${nm}</div>
       <input id="abs-why" placeholder="${k==='stay'?'Reason (e.g. extra class at school)':'Reason'}" style="width:100%;box-sizing:border-box;min-height:44px;padding:8px 12px;border:1px solid var(--bdr);border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:6px">
       ${k==='other'?'<div id="abs-hint" style="font-size:12px;color:var(--mut);margin:0 4px 6px">Type the reason to Save. Don\'t know why? Tap Not informed.</div>':''}<div style="display:flex;flex-wrap:wrap">${btn('save','Save','background:var(--layer);color:#fff;border-color:transparent'+(k==='other'?';opacity:.4':''))}${btn('ni','Not informed')}</div>${btn('back','Back','background:transparent;border:none;color:var(--mut);font-weight:500;flex-basis:100%')}`;
@@ -341,12 +351,14 @@ function absentPicker(dept,name,notice,rule){   /* v30 · rule = 当天的固定
     box.addEventListener('click',e=>{
       const k=e.target.closest('button')&&e.target.closest('button').dataset.k; if(!k) return;
       if(k==='cancel') return done(null);
+      if(k==='clr') return done({clear:true});   /* v33 */
       if(k==='mc') return done({status:'mc',note:''});
       if(k==='holiday') return done({status:'absent',note:'Absent: Holiday'});
       if(k==='school') return done({status:'absent',note:'Absent: School event'});      /* v29 */
       if(k==='family') return done({status:'absent',note:'Absent: Family matter'});     /* v29 */
       if(k==='nonr') return done({status:'absent',note:'Absent: Notified — no reason'}); /* v29 */
       if(k==='nt'&&_nt) return done(Object.assign({},_nt.pick));                        /* v29 · 照家长通知 */
+      if(k==='pre'&&_pre) return done(Object.assign({},_pre.pick));   /* v32 */
       if(k==='rl'&&_rl!==null) return done({status:'absent',note:'Absent: Other — '+(_rl||'Weekly exception')+' (weekly exception)'});   /* v30 */
       if(k==='stay'||k==='other'){ cur=k; return draw(); }
       if(k==='back'){ cur=null; return draw(); }
@@ -396,7 +408,7 @@ async function loadNotices(date,dept){
     try{
       const{data,error}=await _sb.rpc('notices_for_marking',{p_date:date,p_dept:dept});
       if(error) throw error;
-      const rows=(data||[]).filter(r=>r.kind==='absence');
+      const rows=(data||[]);   /* v32 · 所有种类（请假、早走、晚到、晚接、换人接） */
       noticeCache[key]={ok:true,rows,sig:JSON.stringify(rows.map(r=>[r.id,r.student_id,r.sessions,r.reason_code,r.date_from,r.date_to]))};
     }catch(e){ console.warn('[v29] notices not loaded',e); noticeCache[key]={ok:false,rows:[],sig:'ERR'}; }
     if(noticeScope[dept]===undefined&&!noticeEditor){
@@ -411,7 +423,22 @@ async function loadNotices(date,dept){
 function noticeFor(studentId,dept,session){
   const c=noticeCache[selectedDate+'|'+dept]; if(!c||!c.ok) return null;
   const s=dept==='ATC'?(session??currentSession):0;
-  return c.rows.find(r=>r.student_id===studentId&&r.dept===dept&&r.date_from<=selectedDate&&r.date_to>=selectedDate&&(r.sessions||[]).includes(s))||null;
+  return c.rows.find(r=>r.kind==='absence'&&r.student_id===studentId&&r.dept===dept&&r.date_from<=selectedDate&&r.date_to>=selectedDate&&(r.sessions||[]).includes(s))||null;
+}
+/* v32 · 时间类通知（早走 / 晚到 / 晚接 / 换人接）：这位孩子、这个部门、这一节 */
+function timeNoticesFor(studentId,dept,session){
+  const c=noticeCache[selectedDate+'|'+dept]; if(!c||!c.ok) return [];
+  const s=dept==='ATC'?(session??currentSession):0;
+  return c.rows.filter(r=>r.kind!=='absence'&&r.student_id===studentId&&r.dept===dept&&r.date_from<=selectedDate&&r.date_to>=selectedDate&&(r.sessions||[]).includes(s));
+}
+function noticeOf(studentId,dept,session,kind){ return timeNoticesFor(studentId,dept,session).find(r=>r.kind===kind&&r.expected_time)||null; }
+function ntHmT(t){ return t?String(t).slice(0,5):''; }
+function ntTimeTag(studentId,dept,session){
+  return timeNoticesFor(studentId,dept,session).map(r=>{
+    const t=ntHmT(r.expected_time);
+    const tx=r.kind==='early_leave'?'Leaves '+t:r.kind==='late_arrival'?'Arrives '+t:r.kind==='late_pickup'?'Pick-up '+t:(t?'Leaves '+t+' · pick-up change':'');
+    return tx?'<span style="font-size:10px;font-weight:700;color:#7A4A00;background:#FFF1D6;border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">⏰ '+tx+'</span>':'';
+  }).join('');
 }
 /* 重读通知；有变（新登记 / 作废）才重画，免得画面跳 */
 async function refreshNotices(){
@@ -428,6 +455,623 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshN
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(ds){ return new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
 function fmtTime(){ return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v32 · Notices（家长通知）—— 从 MiscGo v12 的 Attendance 分页搬进 AttendanceGo（架构 v3 Step C / D / E）
+   五种：Absence（请假）· Leave early（早走）· Arrive late（晚到）· Late pick-up（晚接）· Pick-up change（换人接）
+   - 只有行政 / 管理层（OPR-AttendanceNotice 可编辑）；试行期（NT_TRIAL_OWNER_ONLY）只有 OWNER
+   - 存档 = 资料库函式 notice_submit（一批一个 submission_id，每位孩子每个部门一个 client_uid），id 先存本机再送 → 断网重送不重复
+   - 存好 → notice_record_write（每位孩子一份原文，文字由资料库产生）→ delivery_prepare（整批一则 WhatsApp，文字由资料库产生）
+     → 打开 WhatsApp / 复制（发到哪个群由行政自己选）→ 按「I've sent it」才算送出
+   - 作废 = notice_void（要原因）；点名页下次读取就不显示；已点的名不动
+   - 本机存不进去 → 不送、不清表单（沿用 MiscGo v12 R1 P0-1 的做法）
+   ══════════════════════════════════════════════════════════════════════════ */
+const NT_TRIAL_OWNER_ONLY=false;   /* A7 试行通过前只给 OWNER；改 false = 开放给全体行政 / 管理层（要 Owner 另批） */
+const NT_Q_KEY='ag_nt_queue_v1', NT_FORM_KEY='ag_nt_form_v1';
+const NT_KINDS=[['absence','Absence'],['early_leave','Leave early'],['late_arrival','Arrive late'],['late_pickup','Late pick-up'],['pickup_change','Pick-up change']];
+const NT_KIND_LABEL={absence:'Absence',early_leave:'Leave early',late_arrival:'Arrive late',late_pickup:'Late pick-up',pickup_change:'Pick-up change'};
+const NT_RTYPE={absence:'ATT_ABSENCE',early_leave:'CHANGE_TIME',late_arrival:'CHANGE_TIME',late_pickup:'CHANGE_TIME',pickup_change:'PICKUP'};
+const NT_REASONS=[['mc','MC (sick)'],['holiday','Holiday'],['school_event','School event'],['family_matter','Family matter'],['notified_no_reason','Notified, no reason'],['other','Other']];
+const NT_REASON_LABEL={mc:'MC',holiday:'Holiday',school_event:'School event',family_matter:'Family matter',notified_no_reason:'Notified, no reason',other:'Other'};
+const NT_SESS_LABEL={'0':'Full day','1':'H/W only','2':'Lesson only','1,2':'H/W + Lesson'};
+const NT_ERR={
+  OVERLAP:'This child already has an absence for these dates and class. Cancel the old one first, or change the dates.',
+  NOT_ENROLLED:'This child is not enrolled in that class any more. Untick it and try again.',
+  TOO_OLD:'You can only register up to 7 days back.',
+  CHECK_FAILED:'Some details are not allowed (dates, sessions, time or reason). Please check the form.',
+  DUPLICATE_IN_BATCH:'The same child and class appear twice in this form.',
+  DUPLICATE:'This child already has the same kind of notice on that day. Cancel the old one first.',
+  MIXED_KIND:'Please save one type of notice at a time.',
+  SUBMISSION_CONFLICT:'This form was already saved with different details. Please start a new form.',
+  BAD_INPUT:'Some details are missing. Please check the form.',
+  MISSING_DATE:'Please choose the date.',
+  NOT_AUTHORIZED:'Your account cannot register parent notices.',
+  REASON_REQUIRED:'Please write why it is cancelled.',
+  NOT_FOUND:'This notice could not be found. Refresh the list.'
+};
+const NT_STORE_MSG='This device could not keep a safe copy (storage is full or blocked), so nothing was sent. Free some space on this device or leave private browsing, then tap Save again.';
+const NT_STAGE_MSG='This device could not save its progress. Please finish sending now and do not close this page.';
+let NT={list:null,listErr:'',deliv:{},form:null,busy:false,qmem:{},unsaved:null,storageBad:false,closeWarn:false,err:'',on:false,role:''};
+
+function ntEsc(v){ return _escHtml(v); }
+function ntToast(m,err){ toast(m,err?6000:3500); }
+function ntUid(){
+  if(window.crypto&&crypto.randomUUID) return crypto.randomUUID();
+  const b=new Uint8Array(16); crypto.getRandomValues(b); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+  const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+}
+function ntToday(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur'}).format(new Date()); }
+function ntAddDays(iso,n){ const d=new Date(iso+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function ntDays(a,b){ return Math.round((new Date(b+'T12:00:00Z')-new Date(a+'T12:00:00Z'))/86400000); }
+function ntDmy(iso){ if(!iso) return ''; const p=iso.split('-'); return p[2]+'-'+p[1]+'-'+p[0]; }
+function ntDow(iso){ return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(iso+'T12:00:00').getDay()]; }
+function ntDates(f,t){ return f===t?(ntDmy(f)+' ('+ntDow(f)+')'):(ntDmy(f)+' to '+ntDmy(t)+' ('+(ntDays(f,t)+1)+' days)'); }
+function ntHm(t){ return t?String(t).slice(0,5):''; }
+function ntStu(sid){ return allStudents.find(s=>s.id===sid)||null; }
+function ntStuName(sid){ const s=ntStu(sid); return s?s.name:sid; }
+
+/* ── 本机待送清单：写进去、读回来一样才算存好 ──────────────────────────── */
+function ntStoreRead(){ try{ const v=JSON.parse(localStorage.getItem(NT_Q_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function ntLoadQ(){ const q=ntStoreRead(); Object.values(NT.qmem).forEach(m=>{ const i=q.findIndex(x=>x.submission_id===m.submission_id); if(i>=0) q[i]=m; else q.push(m); }); return q; }
+function ntSaveQ(q){
+  try{ const txt=JSON.stringify(q); localStorage.setItem(NT_Q_KEY,txt); if(localStorage.getItem(NT_Q_KEY)!==txt) throw new Error('read-back mismatch'); NT.storageBad=false; return true; }
+  catch(e){ console.warn('[nt] local queue not saved',e); NT.storageBad=true; return false; }
+}
+function ntQGet(id){ return NT.qmem[id]||ntStoreRead().find(x=>x.submission_id===id)||null; }
+function ntQPut(sub){
+  NT.qmem[sub.submission_id]=sub;
+  const q=ntStoreRead(); const i=q.findIndex(x=>x.submission_id===sub.submission_id); if(i>=0) q[i]=sub; else q.push(sub);
+  const ok=ntSaveQ(q); if(!ok) sub._notSaved=true; else delete sub._notSaved; return ok;
+}
+function ntQDel(id){ delete NT.qmem[id]; return ntSaveQ(ntStoreRead().filter(x=>x.submission_id!==id)); }
+
+/* 资料库函式：15 秒逾时；分清楚「连不上」与「系统说不行」 */
+async function ntRpc(fn,args){
+  try{
+    const r=await Promise.race([_sb.rpc(fn,args),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))]);
+    if(r.error){
+      const msg=String(r.error.message||''); const code=String(r.error.code||'');
+      if(code==='42501'||/NOT_AUTHORIZED/.test(msg)) return {kind:'denied',code:'NOT_AUTHORIZED'};
+      if(!code||/fetch|network|Failed|timeout/i.test(msg)) return {kind:'offline'};
+      return {kind:'error',code:code,message:msg};
+    }
+    const d=r.data;
+    if(d&&typeof d==='object'&&!Array.isArray(d)&&d.ok===false) return {kind:'rejected',code:d.code||'ERROR',data:d};
+    return {kind:'ok',data:d};
+  }catch(e){ return {kind:'offline'}; }
+}
+function ntErrText(res){
+  if(res.kind==='offline') return 'Could not reach the system (no internet?). Nothing is lost — tap Retry.';
+  if(res.kind==='denied') return NT_ERR.NOT_AUTHORIZED;
+  const c=res.code||''; return NT_ERR[c]||('The system did not accept this ('+c+').');
+}
+
+/* ── 小视窗 ─────────────────────────────────────────────────────────── */
+function ntModal(title,body,foot){
+  let ov=document.getElementById('nt-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='nt-ov'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 10px'; document.body.appendChild(ov); }
+  ov.innerHTML='<div style="background:var(--sur);width:100%;max-width:560px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    +'<div style="display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bdr)"><div style="font-size:15px;font-weight:700;flex:1">'+title+'</div><button onclick="ntClose()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--mut)">×</button></div>'
+    +'<div style="padding:14px 16px;max-height:70vh;overflow:auto">'+body+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--bdr)">'+foot+'</div></div>';
+}
+function ntClose(){ const ov=document.getElementById('nt-ov'); if(ov) ov.remove(); }
+const NT_BTN='min-height:38px;padding:6px 14px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit';
+const NT_PRI=NT_BTN+';background:var(--layer);color:#fff;border-color:transparent';
+const NT_RED=NT_BTN+';color:var(--danger);border-color:var(--danger)';
+const NT_IN='width:100%;box-sizing:border-box;border:1px solid var(--bdr);border-radius:8px;padding:9px 10px;font-size:14px;font-family:inherit';
+
+/* ── 页面 ─────────────────────────────────────────────────────────────── */
+async function ntRender(){
+  const el=document.getElementById('nt-content'); if(!el) return;
+  if(!NT.on){ el.innerHTML='<div class="card" style="margin:16px;color:var(--mut)">Only office and management staff can register parent notices.</div>'; return; }
+  let h='<div style="padding:16px;max-width:820px;margin:0 auto">';
+  h+='<div style="font-size:16px;font-weight:700;margin-bottom:4px">Parent notices</div>'
+    +'<div style="font-size:12px;color:var(--mut);margin-bottom:10px">What a parent told the office. It shows at once on the marking page and in Monthly; when the teacher taps All ✓, a notified absence is marked absent with the parent’s reason.</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">'+NT_KINDS.map(([k,t])=>'<button style="'+NT_PRI+'" onclick="ntOpenForm(\''+k+'\')">+ '+t+'</button>').join('')
+    +'<button style="'+NT_PRI+';background:#7870CC" onclick="ntSwap(\'replacement\')">+ SRT replacement class</button><button style="'+NT_PRI+';background:#7870CC" onclick="ntSwap(\'temp\')">+ SRT change of slot</button></div>';   /* v33 */
+  if(NT.storageBad) h+='<div class="card" style="border-color:#f59e0b;background:#fef3c7;color:#92400e;font-size:12.5px">⚠ This device could not save to its storage. Unsent notices may be lost if you close this page.</div>';
+  h+=ntQueueHtml();
+  h+='<div style="font-size:11px;font-weight:700;color:var(--info);text-transform:uppercase;letter-spacing:.06em;padding:8px 0;border-bottom:1px solid var(--bdr);margin-bottom:10px">Messages to the groups</div><div class="card" id="ms-box">'+msHtml()+'</div>';   /* v33 */
+  h+='<div style="font-size:11px;font-weight:700;color:var(--info);text-transform:uppercase;letter-spacing:.06em;padding:8px 0;border-bottom:1px solid var(--bdr);margin-bottom:10px">Last 7 days and coming</div><div id="nt-list"><div style="color:var(--mut);padding:8px 0">Loading…</div></div>';
+  el.innerHTML=h+'</div>';
+  ntLoadList(); msLoad();   /* v33 */
+}
+function ntQueueHtml(){
+  const q=ntLoadQ().filter(x=>x.stage!=='done'); if(!q.length) return '';
+  let h='<div class="card" style="border-color:#93c5fd;background:#eff6ff"><div style="font-weight:700;color:#1e40af;margin-bottom:6px">Not finished on this device</div>';
+  q.forEach(x=>{
+    const names=[...new Set(x.rows.map(r=>ntStuName(r.student_id)))].join(', ');
+    const what=x.stage==='submit'?'Not saved yet — teachers cannot see it':x.stage==='record'?'Saved. Message text not ready yet':x.stage==='message'?'Saved. Message not sent yet':'Saved';
+    h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #bfdbfe;font-size:12.5px"><div style="flex:1;min-width:160px"><b>'+ntEsc(names)+'</b> · '+NT_KIND_LABEL[x.rows[0].kind]+' · '+ntDates(x.rows[0].date_from,x.rows[0].date_to||x.rows[0].date_from)
+      +'<div style="color:'+(x.stage==='submit'?'var(--danger)':'#1e40af')+'">'+what+(x.err?' · '+ntEsc(x.err):'')+'</div></div>'
+      +'<button style="'+NT_PRI+'" onclick="ntResume(\''+x.submission_id+'\')">'+(x.stage==='submit'?'Retry':'Send message')+'</button>'
+      +(x.stage==='submit'?'<button style="'+NT_RED+'" onclick="ntDropQ(\''+x.submission_id+'\')">Discard</button>':'')+'</div>';
+  });
+  return h+'</div>';
+}
+function ntDropQ(id){ const x=ntQGet(id); if(!x||x.stage!=='submit') return; if(!confirm('Discard this unsaved notice? It never reached the system.')) return; ntQDel(id); ntRender(); }
+
+/* ── 已登记清单（资料库） ─────────────────────────────────────────────── */
+async function ntLoadList(){
+  const box=()=>document.getElementById('nt-list');
+  try{
+    const r=await Promise.race([
+      _sb.from('attendance_notice').select('id,submission_id,kind,student_id,dept,class_code,date_from,date_to,sessions,reason_code,reason_text,expected_time,bathe,lunch,pickup_name,pickup_relation,car_plate,remark,status,void_reason,record_id,created_at')
+        .gte('date_to',ntAddDays(ntToday(),-7)).order('date_from',{ascending:false}).order('created_at',{ascending:false}).limit(400),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),15000))]);
+    if(r.error) throw r.error;
+    NT.list=r.data||[]; NT.listErr=''; NT.deliv={};
+    const subs=[...new Set(NT.list.map(n=>n.submission_id))];
+    if(subs.length){ const d=await _sb.from('attendance_message_delivery').select('id,submission_id,state,stale_at,created_at').in('submission_id',subs).order('created_at',{ascending:true});
+      if(!d.error)(d.data||[]).forEach(x=>{ (NT.deliv[x.submission_id]=NT.deliv[x.submission_id]||[]).push(x); }); }
+    const rids=[...new Set(NT.list.map(n=>n.record_id).filter(Boolean))];
+    if(rids.length) NT.closeWarn=!(await ntCloseRecords(rids));
+  }catch(e){ NT.list=null; NT.listErr='Could not load the list (no internet?).'; }
+  if(box()) box().innerHTML=ntListHtml();
+}
+/* v33 · 一则通知有没有告诉群：自己那则、或合并的那则送出了都算（资料库 att_messages 算好的） */
+function ntMsgStateN(n){
+  const x=MS&&MS.data&&(MS.data.notices||[]).find(y=>y.id===n.id);
+  if(x){ if(n.status!=='active') return {sent:x.sent,cancel_sent:x.cancel_sent,txt:''}; if(x.sent) return {sent:true,txt:'Message sent ✓'}; }
+  return ntMsgState(n.submission_id);
+}
+function ntMsgState(subId){
+  const ds=NT.deliv[subId]||[];
+  if(ds.some(d=>d.state==='MANUALLY_CONFIRMED_SENT')) return {sent:true,txt:'Message sent ✓'};
+  if(ds.some(d=>d.state==='OPENED_WHATSAPP'&&!d.stale_at)) return {sent:false,txt:'WhatsApp opened — not confirmed as sent'};
+  return {sent:false,txt:'Message not sent'};
+}
+/* 原文只是通知（不是要处理的个案）→ 设成 closed；回传有没有真的做到 */
+async function ntCloseRecords(ids){
+  try{
+    const T=['ATT_ABSENCE','CHANGE_TIME','PICKUP'];
+    const r=await _sb.from('records').update({status:'closed'}).in('id',ids).in('report_type',T).neq('status','closed').select('id');
+    if(r.error) return false;
+    const left=await _sb.from('records').select('id').in('id',ids).in('report_type',T).neq('status','closed');
+    return !left.error&&!(left.data||[]).length;
+  }catch(e){ return false; }
+}
+function ntWhat(n){
+  const sess=n.dept==='ATC'?' · '+(NT_SESS_LABEL[(n.sessions||[]).join(',')]||''):'';
+  let w='';
+  if(n.kind==='absence') w=(NT_REASON_LABEL[n.reason_code]||n.reason_code)+(n.reason_code==='other'&&n.reason_text?': '+ntEsc(n.reason_text):'');
+  else if(n.kind==='pickup_change') w='Pick-up by '+ntEsc(n.pickup_name||'')+' ('+ntEsc(n.pickup_relation||'')+')'+(n.car_plate?' · '+ntEsc(n.car_plate):'')+(n.expected_time?' · going home '+ntHm(n.expected_time):'');
+  else w=NT_KIND_LABEL[n.kind]+' '+ntHm(n.expected_time)+(n.bathe!=null?' · Bathe: '+(n.bathe?'Yes':'No'):'')+(n.lunch!=null?' · Lunch: '+(n.lunch?'Yes':'No'):'');
+  return {sess,w};
+}
+function ntListHtml(){
+  const warn=NT.closeWarn?'<div style="font-size:11.5px;color:#92400e;background:#fef3c7;border-radius:8px;padding:6px 10px;margin-bottom:8px">Some message texts could not be tidied up yet. This list will try again next time.</div>':'';
+  if(NT.listErr) return '<div class="card" style="color:var(--danger)">'+NT.listErr+' <button style="'+NT_BTN+'" onclick="ntLoadList()">Retry</button></div>';
+  const L=NT.list||[]; if(!L.length) return warn+'<div style="color:var(--mut);padding:8px 0">No parent notices.</div>';
+  let h=warn;
+  L.forEach(n=>{
+    const act=n.status==='active', ms=ntMsgStateN(n), x=ntWhat(n);
+    h+='<div class="card" style="padding:10px 12px;'+(act?'':'opacity:.6')+'"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0">'
+      +'<div style="font-weight:700">'+ntEsc(ntStuName(n.student_id))+' <span style="font-weight:600;color:var(--info);font-size:11px">'+NT_KIND_LABEL[n.kind]+'</span></div>'
+      +'<div style="font-size:12.5px;color:var(--mut)">'+n.dept+' '+ntEsc(n.class_code||'')+x.sess+' · '+ntDates(n.date_from,n.date_to)+'</div>'
+      +'<div style="font-size:12.5px">'+x.w+(n.remark?' · <span style="color:var(--mut)">'+ntEsc(n.remark)+'</span>':'')+'</div>'
+      +(act?'<div style="font-size:11.5px;color:'+(ms.sent?'var(--ok)':'#b45309')+';margin-top:2px">'+ms.txt+'</div>'
+           :'<div style="font-size:11.5px;color:var(--danger);margin-top:2px">Cancelled'+(n.void_reason?': '+ntEsc(n.void_reason):'')+(ms.sent?(ms.cancel_sent?' · the group was told it is cancelled ✓':' · the group was told before — it is waiting in “Send to the group” as a cancellation'):'')+'</div>')
+      +'</div><div style="display:flex;flex-direction:column;gap:6px">'
+      +(act&&!ms.sent?'<button style="'+NT_PRI+'" onclick="ntSendFromList(\''+n.submission_id+'\')">Send message</button>':'')
+      +(act?'<button style="'+NT_RED+'" onclick="ntVoidAsk(\''+n.id+'\')">Cancel</button>':'')
+      +'</div></div></div>';
+  });
+  return h;
+}
+
+/* ── 作废 ─────────────────────────────────────────────────────────────── */
+function ntVoidAsk(id){
+  const n=(NT.list||[]).find(x=>x.id===id); if(!n) return;
+  ntModal('Cancel notice','<div style="margin-bottom:10px"><b>'+ntEsc(ntStuName(n.student_id))+'</b> · '+NT_KIND_LABEL[n.kind]+' · '+n.dept+' · '+ntDates(n.date_from,n.date_to)+'</div>'
+    +'<div style="font-size:12px;color:var(--mut);margin-bottom:8px">Teachers will no longer see this notice. Attendance already marked is not changed.</div>'
+    +'<label style="font-weight:600;display:block;margin-bottom:6px">Why is it cancelled? <span style="color:var(--danger)">*</span></label>'
+    +'<input id="nt-void-why" placeholder="e.g. Parent says the child is coming after all" style="'+NT_IN+'">',
+    '<button style="'+NT_BTN+'" onclick="ntClose()">Back</button><button style="'+NT_RED+'" id="nt-void-go" onclick="ntVoidGo(\''+id+'\')">Cancel notice</button>');
+}
+async function ntVoidGo(id){
+  const why=((document.getElementById('nt-void-why')||{}).value||'').trim();
+  if(!why){ ntToast('Please write why it is cancelled',true); return; }
+  const b=document.getElementById('nt-void-go'); if(b){ b.disabled=true; b.textContent='Cancelling…'; }
+  const n=(NT.list||[]).find(x=>x.id===id);
+  const res=await ntRpc('notice_void',{p_id:id,p_reason:why});
+  if(res.kind!=='ok'){ if(b){ b.disabled=false; b.textContent='Cancel notice'; } ntToast(ntErrText(res),true); return; }
+  ntClose();
+  ntToast(n&&ntMsgState(n.submission_id).sent?'Cancelled. The group was told before — please tell them it is cancelled.':'Cancelled. Teachers will no longer see it.');
+  ntLoadList(); for(const k in noticeCache) delete noticeCache[k];
+}
+
+/* ── 表单 ─────────────────────────────────────────────────────────────── */
+function ntBlankForm(kind){ const t=ntToday(); return {kind:kind||'absence',from:t,to:t,kids:[],reason:'',reason_text:'',time:'',bathe:null,lunch:null,pickup_name:'',pickup_relation:'',car_plate:'',remark:''}; }
+function ntSaveForm(){ try{ localStorage.setItem(NT_FORM_KEY,JSON.stringify(NT.form)); }catch(e){} }
+function ntOpenForm(kind){
+  let f=null; try{ f=JSON.parse(localStorage.getItem(NT_FORM_KEY)||'null'); }catch(e){}
+  NT.form=(f&&f.kind===kind)?f:ntBlankForm(kind);
+  NT.err=''; ntSaveForm(); ntDrawForm();
+}
+function ntDiscardForm(){ if(NT.form&&NT.form.kids.length&&!confirm('Clear this form?')) return; NT.form=ntBlankForm(NT.form&&NT.form.kind); try{ localStorage.removeItem(NT_FORM_KEY); }catch(e){} ntClose(); }
+/* 孩子在哪些部门、哪一班（那一天有效的班籍；资料库会再检查一次 Enrolled） */
+function ntMems(sid,iso){
+  const order=['SRK','GAK','ATC','SRT'], pick={};
+  allMemberships.filter(m=>m.student_id===sid&&m.start_date<=iso&&(m.end_date==null||m.end_date>iso)&&!String(m.class_code||'').includes('RSVP'))
+    .forEach(m=>{ if(!pick[m.dept]||(m.start_date||'')>(pick[m.dept].start_date||'')) pick[m.dept]=m; });
+  return Object.values(pick).map(m=>({dept:m.dept,cls:m.class_code})).sort((a,b)=>order.indexOf(a.dept)-order.indexOf(b.dept));
+}
+function ntHasClassOn(dept,cls,iso){
+  const dow=new Date(iso+'T12:00:00').getDay();
+  if(dept==='SRT'){ const D=['SUN','MON','TUE','WED','THU','FRI','SAT']; return String(cls||'').replace(/^SRT[-_]/,'').split(/[._]/).includes(D[dow]); }
+  return dow>=1&&dow<=5;
+}
+function ntDefaultDepts(k){
+  if(k._defaulted) return;
+  ntMems(k.sid,NT.form.from).forEach(m=>{ if(k.depts[m.dept]===undefined&&ntHasClassOn(m.dept,m.cls,NT.form.from)) k.depts[m.dept]=(m.dept==='ATC'?'1,2':'0'); });
+  k._defaulted=true;
+}
+function ntDrawForm(){
+  const f=NT.form, today=ntToday(), minD=ntAddDays(today,-7), abs=f.kind==='absence', timeK=['early_leave','late_arrival','late_pickup'].includes(f.kind), pk=f.kind==='pickup_change';
+  let b='';
+  if(NT.err) b+='<div style="background:#fee2e2;color:var(--danger);border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:10px">'+ntEsc(NT.err)+'</div>';
+  b+='<div style="font-weight:600;margin-bottom:6px">1 · '+(abs?'Which days?':'Which day?')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px">'
+    +(abs?'<span style="font-size:12px;color:var(--mut)">From</span>':'')+'<input type="date" id="nt-from" min="'+minD+'" value="'+f.from+'" onchange="ntSetDate(\'from\',this.value)" style="'+NT_IN+';width:auto">'
+    +(abs?'<span style="font-size:12px;color:var(--mut)">To</span><input type="date" id="nt-to" min="'+f.from+'" value="'+f.to+'" onchange="ntSetDate(\'to\',this.value)" style="'+NT_IN+';width:auto">':'')
+    +'</div><div style="font-size:11.5px;color:var(--mut);margin-bottom:12px">'+ntDates(f.from,abs?f.to:f.from)+' · up to 7 days back'+(abs?', at most 31 days. Longer leave: use the Student page (Pause).':', one day only. Every week the same? Use Exceptions.')+'</div>';
+  b+='<div style="font-weight:600;margin-bottom:6px">2 · Which child?</div>'
+    +'<input id="nt-find" list="nt-stu-list" placeholder="Type a name…" autocomplete="off" onchange="ntAddKid(this.value)" oninput="this.value=this.value.toUpperCase()" style="'+NT_IN+';text-transform:uppercase">'
+    +'<datalist id="nt-stu-list">'+allStudents.map(s=>'<option value="'+ntEsc(s.name)+'">').join('')+'</datalist>';
+  f.kids.forEach((k,ki)=>{
+    const mems=ntMems(k.sid,f.from);
+    b+='<div style="border:1px solid var(--bdr);border-radius:10px;padding:8px 10px;margin-top:8px"><div style="display:flex;align-items:center"><b style="flex:1">'+ntEsc(ntStuName(k.sid))+'</b><button style="'+NT_BTN+'" onclick="ntRemoveKid('+ki+')">Remove</button></div>';
+    if(!mems.length) b+='<div style="font-size:12px;color:var(--danger)">Not enrolled in any class on that day.</div>';
+    else{
+      b+='<div style="font-size:11.5px;color:var(--mut);margin:4px 0">Tick the class(es):</div>';
+      mems.forEach(m=>{
+        const on=k.depts[m.dept]!==undefined;
+        b+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:3px 0"><label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" '+(on?'checked':'')+' onchange="ntToggleDept('+ki+',\''+m.dept+'\',this.checked)"> '+m.dept+' · '+ntEsc(m.cls||'')+'</label>';
+        if(m.dept==='ATC'&&on) b+='<select onchange="ntSetSess('+ki+',this.value)" style="border:1px solid var(--bdr);border-radius:8px;padding:5px;font-family:inherit">'+['1,2','1','2'].map(v=>'<option value="'+v+'" '+(k.depts.ATC===v?'selected':'')+'>'+NT_SESS_LABEL[v]+'</option>').join('')+'</select>';
+        b+='</div>';
+      });
+    }
+    b+='</div>';
+  });
+  b+='<div style="height:12px"></div>';
+  if(abs){
+    b+='<div style="font-weight:600;margin-bottom:6px">3 · Reason the parent gave</div><div style="display:flex;flex-wrap:wrap;gap:6px">'
+      +NT_REASONS.map(([v,t])=>'<button type="button" style="'+(f.reason===v?NT_PRI:NT_BTN)+'" onclick="ntSet(\'reason\',\''+v+'\',true)">'+t+'</button>').join('')+'</div>'
+      +(f.reason==='other'?'<input id="nt-why" value="'+ntEsc(f.reason_text||'')+'" placeholder="Write the reason" oninput="ntSet(\'reason_text\',this.value)" style="'+NT_IN+';margin-top:8px">':'');
+  }else if(timeK){
+    b+='<div style="font-weight:600;margin-bottom:6px">3 · '+(f.kind==='early_leave'?'Leaving at':f.kind==='late_arrival'?'Arriving at':'Picked up at')+' <span style="color:var(--danger)">*</span></div>'
+      +'<input type="time" id="nt-time" value="'+(f.time||'')+'" onchange="ntSet(\'time\',this.value)" style="'+NT_IN+';width:auto">'
+      +'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">'
+      +['bathe','lunch'].map(x=>'<div><div style="font-size:12px;color:var(--mut);margin-bottom:4px">'+(x==='bathe'?'Bathe?':'Lunch?')+'</div>'
+        +[[true,'Yes'],[false,'No'],[null,'—']].map(([v,t])=>'<button type="button" style="'+(f[x]===v?NT_PRI:NT_BTN)+';min-height:32px;padding:4px 12px" onclick="ntSet(\''+x+'\','+v+',true)">'+t+'</button>').join(' ')+'</div>').join('')+'</div>';
+  }else if(pk){
+    b+='<div style="font-weight:600;margin-bottom:6px">3 · Who picks up? <span style="color:var(--danger)">*</span></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="nt-pname" value="'+ntEsc(f.pickup_name||'')+'" placeholder="Name" oninput="ntSet(\'pickup_name\',this.value)" style="'+NT_IN+';flex:2;min-width:140px">'
+      +'<input id="nt-prel" value="'+ntEsc(f.pickup_relation||'')+'" placeholder="Relation (e.g. Grandma)" oninput="ntSet(\'pickup_relation\',this.value)" style="'+NT_IN+';flex:1;min-width:120px"></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><input id="nt-car" value="'+ntEsc(f.car_plate||'')+'" placeholder="Car plate (optional)" oninput="ntSet(\'car_plate\',this.value)" style="'+NT_IN+';flex:1;min-width:120px">'
+      +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)">Going home at (optional) <input type="time" id="nt-time" value="'+(f.time||'')+'" onchange="ntSet(\'time\',this.value)" style="'+NT_IN+';width:auto"></label></div>';
+  }
+  b+='<div style="font-weight:600;margin:12px 0 6px">4 · Note (optional)</div><input id="nt-remark" value="'+ntEsc(f.remark||'')+'" placeholder="e.g. Will bring MC letter" oninput="ntSet(\'remark\',this.value)" style="'+NT_IN+'">';
+  ntModal(NT_KIND_LABEL[f.kind],b,'<button style="'+NT_BTN+'" onclick="ntDiscardForm()">Clear</button><button style="'+NT_BTN+'" onclick="ntClose()">Later</button><button style="'+NT_PRI+'" onclick="ntReview()">Review</button>');
+}
+function ntSetDate(which,v){
+  const f=NT.form; if(!v) return; f[which]=v; if(which==='from'&&(f.to<v||!f.to||f.kind!=='absence')) f.to=v;
+  f.kids.forEach(k=>{ k._defaulted=false; k.depts={}; ntDefaultDepts(k); }); ntSaveForm(); ntDrawForm();
+}
+function ntAddKid(name){
+  const n=(name||'').trim().toUpperCase(); if(!n) return;
+  const s=allStudents.find(x=>String(x.name||'').toUpperCase()===n);
+  if(!s){ ntToast('Pick a name from the list',true); return; }
+  if(NT.form.kids.some(k=>k.sid===s.id)){ ntToast('Already added'); return; }
+  const k={sid:s.id,depts:{}}; NT.form.kids.push(k); ntDefaultDepts(k); ntSaveForm(); ntDrawForm();
+}
+function ntRemoveKid(i){ NT.form.kids.splice(i,1); ntSaveForm(); ntDrawForm(); }
+function ntToggleDept(i,dept,on){ const k=NT.form.kids[i]; if(on) k.depts[dept]=(dept==='ATC'?'1,2':'0'); else delete k.depts[dept]; ntSaveForm(); ntDrawForm(); }
+function ntSetSess(i,v){ NT.form.kids[i].depts.ATC=v; ntSaveForm(); }
+function ntSet(k,v,redraw){ NT.form[k]=v; ntSaveForm(); if(redraw) ntDrawForm(); }
+
+/* 检查（与资料库同一套规则，资料库还会再检查一次） */
+function ntValidate(f){
+  const today=ntToday();
+  if(!f.from) return 'Please choose the date.';
+  if(f.kind==='absence'){ if(!f.to) return 'Please choose the dates.'; if(f.to<f.from) return 'The last day is before the first day.'; if(ntDays(f.from,f.to)>30) return 'At most 31 days. For longer leave use the Student page (Pause).'; }
+  if(f.from<ntAddDays(today,-7)) return NT_ERR.TOO_OLD;
+  if(!f.kids.length) return 'Please add at least one child.';
+  for(const k of f.kids){ if(!Object.keys(k.depts).length) return 'Tick at least one class for '+ntStuName(k.sid)+'.'; }
+  if(f.kind==='absence'){ if(!f.reason) return 'Please choose the reason.'; if(f.reason==='other'&&!(f.reason_text||'').trim()) return 'Please write the reason.'; }
+  if(['early_leave','late_arrival','late_pickup'].includes(f.kind)&&!/^\d{2}:\d{2}/.test(f.time||'')) return 'Please choose the time.';
+  if(f.kind==='pickup_change'&&(!(f.pickup_name||'').trim()||!(f.pickup_relation||'').trim())) return 'Please write who picks up and the relation.';
+  return '';
+}
+function ntRows(f){
+  const rows=[];
+  f.kids.forEach(k=>Object.keys(k.depts).sort().forEach(d=>{
+    const r={client_uid:ntUid(),kind:f.kind,student_id:k.sid,dept:d,date_from:f.from,date_to:f.kind==='absence'?f.to:f.from,
+      sessions:d==='ATC'?k.depts[d].split(',').map(Number):[0],remark:(f.remark||'').trim()||null};
+    if(f.kind==='absence'){ r.reason_code=f.reason; r.reason_text=f.reason==='other'?(f.reason_text||'').trim():null; }
+    else if(f.kind==='pickup_change'){ r.pickup_name=f.pickup_name.trim(); r.pickup_relation=f.pickup_relation.trim(); r.car_plate=(f.car_plate||'').trim()||null; r.expected_time=f.time||null; }
+    else { r.expected_time=f.time; r.bathe=f.bathe; r.lunch=f.lunch; }
+    rows.push(r);
+  }));
+  return rows;
+}
+function ntSummary(f){
+  if(f.kind==='absence') return '<b>Reason:</b> '+NT_REASON_LABEL[f.reason]+(f.reason==='other'?': '+ntEsc(f.reason_text):'');
+  if(f.kind==='pickup_change') return '<b>Pick-up:</b> '+ntEsc(f.pickup_name)+' ('+ntEsc(f.pickup_relation)+')'+(f.car_plate?' · '+ntEsc(f.car_plate):'')+(f.time?' · going home '+f.time:'');
+  return '<b>'+NT_KIND_LABEL[f.kind]+':</b> '+f.time+(f.bathe!=null?' · Bathe: '+(f.bathe?'Yes':'No'):'')+(f.lunch!=null?' · Lunch: '+(f.lunch?'Yes':'No'):'');
+}
+function ntReview(){
+  const f=NT.form, e=ntValidate(f); if(e){ NT.err=e; ntDrawForm(); return; }
+  NT.err='';
+  let b='<div id="nt-review-err" style="display:none;background:#fee2e2;color:var(--danger);border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:10px"></div>'
+    +'<div style="font-size:12.5px;color:var(--mut);margin-bottom:8px">Please check the classes before saving. Teachers will see this on the marking page.</div>';
+  f.kids.forEach(k=>{ const mems=ntMems(k.sid,f.from);
+    b+='<div class="card" style="padding:8px 10px"><b>'+ntEsc(ntStuName(k.sid))+'</b>'+Object.keys(k.depts).sort().map(d=>{ const m=mems.find(x=>x.dept===d)||{}; return '<div style="font-size:13px">'+d+' · '+ntEsc(m.cls||'')+' · '+NT_SESS_LABEL[k.depts[d]]+'</div>'; }).join('')+'</div>'; });
+  b+='<div style="font-size:13px;margin-top:6px"><b>'+(f.kind==='absence'?'Days':'Day')+':</b> '+ntDates(f.from,f.kind==='absence'?f.to:f.from)+'</div><div style="font-size:13px">'+ntSummary(f)+'</div>'
+    +(f.remark?'<div style="font-size:13px"><b>Note:</b> '+ntEsc(f.remark)+'</div>':'');
+  ntModal('Check before saving',b,'<button style="'+NT_BTN+'" onclick="ntDrawForm()">Back</button><button style="'+NT_PRI+'" id="nt-save" onclick="ntSubmit()">Save</button>');
+}
+
+/* ── 存档：先在本机记下 id，再送资料库 ────────────────────────────────── */
+async function ntSubmit(){
+  if(NT.busy) return;
+  const f=NT.form, e=ntValidate(f); if(e){ NT.err=e; ntDrawForm(); return; }
+  NT.busy=true; const btn=document.getElementById('nt-save'); if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  const sig=JSON.stringify(f); let sub;
+  if(NT.unsaved&&NT.unsaved.formSig===sig) sub=NT.unsaved;
+  else{ const rows=ntRows(f); const rec={}; [...new Set(rows.map(r=>r.student_id))].forEach(sid=>rec[sid]=ntUid());
+    sub={submission_id:ntUid(),created:Date.now(),rows,record_uids:rec,delivery_uid:ntUid(),stage:'submit',err:'',form:JSON.parse(sig),formSig:sig}; }
+  if(!ntQPut(sub)){
+    delete NT.qmem[sub.submission_id]; NT.unsaved=sub; NT.busy=false;
+    if(btn){ btn.disabled=false; btn.textContent='Save'; }
+    const box=document.getElementById('nt-review-err'); if(box){ box.textContent=NT_STORE_MSG; box.style.display='block'; } else ntToast(NT_STORE_MSG,true);
+    return;
+  }
+  NT.unsaved=null; NT.form=ntBlankForm(f.kind); try{ localStorage.removeItem(NT_FORM_KEY); }catch(e){}
+  await ntRun(sub.submission_id,true); NT.busy=false;
+}
+async function ntResume(id){ if(NT.busy) return; NT.busy=true; await ntRun(id,false); NT.busy=false; }
+async function ntRun(id,fromForm){
+  let sub=ntQGet(id); if(!sub) return;
+  if(sub.stage==='submit'){
+    const res=await ntRpc('notice_submit',{p_submission_id:sub.submission_id,p_rows:sub.rows});
+    if(res.kind==='offline'){ sub.err='No internet — tap Retry'; ntQPut(sub); if(fromForm) ntClose(); ntToast('Could not reach the system. It is kept on this device — tap Retry when online.',true); ntRender(); return; }
+    if(res.kind!=='ok'){
+      ntQDel(id);
+      const who=res.data&&res.data.student_id?(' ('+ntStuName(res.data.student_id)+(res.data.dept?' · '+res.data.dept:'')+')'):'';
+      NT.form=sub.form||ntBlankForm(); ntSaveForm(); NT.err=ntErrText(res)+who;
+      if(!fromForm) ntRender(); ntDrawForm(); return;
+    }
+    sub.notices=(res.data.rows||[]).map(r=>({id:r.id,student_id:r.student_id,dept:r.dept}));
+    sub.stage='record'; sub.err=''; if(!ntQPut(sub)) ntToast(NT_STAGE_MSG,true);
+    for(const k in noticeCache) delete noticeCache[k];   /* 点名页重新读通知 */
+  }
+  if(sub.stage==='record'){
+    const kind=sub.rows[0].kind;
+    const p=Object.keys(sub.record_uids||{}).map(sid=>({client_uid:sub.record_uids[sid],student_id:sid,report_type:NT_RTYPE[kind],report_date:sub.rows[0].date_from,
+      depts:[...new Set(sub.rows.filter(r=>r.student_id===sid).map(r=>r.dept))].sort()}));
+    const res=await ntRpc('notice_record_write',{p_submission_id:sub.submission_id,p_rows:p});
+    if(res.kind==='offline'){ sub.err='Saved. Message not ready — tap Send message when online'; const kept=ntQPut(sub); ntClose(); ntToast(kept?'Saved. Teachers can see it. The message will be ready when you are online.':'Saved. Teachers can see it. When online, tap Send message on the notice in the list.',!kept); ntRender(); return; }
+    if(res.kind!=='ok'){ sub.err='Saved, but the message could not be prepared ('+(res.code||'')+')'; sub.stage='done'; ntQPut(sub); ntClose(); ntToast('Saved. Teachers can see it. The WhatsApp message could not be prepared — please tell the group yourself.',true); ntRender(); return; }
+    const ids=(res.data.rows||[]).map(r=>r.record_id).filter(Boolean);
+    sub.record_ids=ids; sub.stage='message'; sub.err=''; if(!ntQPut(sub)) ntToast(NT_STAGE_MSG,true);
+    if(ids.length){ const ok=await ntCloseRecords(ids); if(!ok) NT.closeWarn=true; }
+  }
+  if(sub.stage==='message'){
+    const res=await ntRpc('delivery_prepare',{p_client_uid:sub.delivery_uid,p_source:'notice_submission',p_submission_id:sub.submission_id,p_list_date:null,p_depts:null,p_content:null});
+    if(res.kind==='offline'){ sub.err='Saved. Message not ready — tap Send message when online'; const kept=ntQPut(sub); ntClose(); ntToast(kept?'Saved. Teachers can see it. Tap Send message when you are online.':'Saved. Teachers can see it. When online, tap Send message on the notice in the list.',!kept); ntRender(); return; }
+    if(res.kind!=='ok'){ sub.err='Saved. Message not available ('+(res.code||'')+')'; sub.stage='done'; ntQPut(sub); ntClose(); ntToast('Saved. Teachers can see it. The message is no longer available (something was changed or cancelled).',true); ntRender(); return; }
+    sub.delivery={id:res.data.id,state:res.data.state,fingerprint:res.data.fingerprint,content:res.data.content}; sub.err=''; if(!ntQPut(sub)) ntToast(NT_STAGE_MSG,true);
+    if(res.data.state==='MANUALLY_CONFIRMED_SENT'||res.data.state==='CANCELLED'){ sub.stage='done'; ntQPut(sub); ntRender(); return; }
+    ntSendPanel(sub.submission_id);
+  }
+}
+
+/* ── 送 WhatsApp：打开 / 复制（群由行政自己选）→ 按 I've sent it 才算 ─── */
+function ntSendPanel(id){
+  const sub=ntQGet(id); if(!sub||!sub.delivery) return;
+  const opened=sub.delivery.state==='OPENED_WHATSAPP';
+  ntModal('Send the message',
+    (sub._notSaved?'<div style="background:#fef3c7;color:#92400e;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:8px">⚠ '+NT_STAGE_MSG+'</div>':'')
+    +'<div style="color:var(--ok);font-weight:600;margin-bottom:6px">✓ Saved. Teachers can already see it on the marking page.</div>'
+    +'<div style="font-size:12px;color:var(--mut);margin-bottom:6px">Send this to the right WhatsApp group (you choose the group):</div>'
+    +'<pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:10px;max-height:40vh;overflow:auto;margin:0 0 8px">'+ntEsc(sub.delivery.content||'')+'</pre>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button style="'+NT_PRI+'" onclick="ntOpenWA(\''+id+'\',\'whatsapp_link\')">Open WhatsApp</button><button style="'+NT_BTN+'" onclick="ntOpenWA(\''+id+'\',\'copied\')">Copy text</button></div>'
+    +'<div id="nt-sent-hint" style="font-size:11.5px;color:var(--mut);margin-top:8px">'+(opened?'After you have sent it in WhatsApp, tap “I\'ve sent it”.':'Open WhatsApp or copy the text first.')+'</div>',
+    '<button style="'+NT_RED+'" onclick="ntCancelMsg(\''+id+'\')">Don\'t send</button><button style="'+NT_BTN+'" onclick="ntClose();ntRender()">Send later (together)</button>'
+    +'<button style="'+NT_PRI+(opened?'':';opacity:.45')+'" id="nt-sent-btn" '+(opened?'':'disabled')+' onclick="ntConfirmSent(\''+id+'\')">I\'ve sent it</button>');
+}
+async function ntOpenWA(id,method){
+  const sub=ntQGet(id); if(!sub||!sub.delivery) return;
+  const res=await ntRpc('delivery_mark_opened',{p_id:sub.delivery.id,p_method:method});
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  sub.delivery.state='OPENED_WHATSAPP'; ntQPut(sub);
+  if(method==='copied'){ try{ await navigator.clipboard.writeText(sub.delivery.content); ntToast('Copied — paste it in the WhatsApp group'); }catch(e){ ntToast('Could not copy — select the text and copy it',true); } }
+  const b=document.getElementById('nt-sent-btn'); if(b){ b.disabled=false; b.style.opacity='1'; }
+  const hint=document.getElementById('nt-sent-hint'); if(hint) hint.textContent='After you have sent it in WhatsApp, tap “I\'ve sent it”.';
+  if(method==='whatsapp_link') window.open('https://wa.me/?text='+encodeURIComponent(sub.delivery.content),'_blank');
+}
+async function ntConfirmSent(id){
+  const sub=ntQGet(id); if(!sub||!sub.delivery) return;
+  const res=await ntRpc('delivery_confirm_sent',{p_id:sub.delivery.id,p_fingerprint:sub.delivery.fingerprint});
+  if(res.kind==='ok'){ sub.stage='done'; sub.delivery.state='MANUALLY_CONFIRMED_SENT'; ntQPut(sub); ntClose(); ntToast('✓ Marked as sent (confirmed by you)'); ntRender(); return; }
+  if(res.kind==='rejected'&&res.code==='STALE'){ sub.stage='done'; sub.err='Message out of date — something was cancelled after it was prepared'; ntQPut(sub); ntClose(); ntToast('This message is out of date (a notice was changed or cancelled). Please tell the group yourself.',true); ntRender(); return; }
+  ntToast(ntErrText(res),true);
+}
+async function ntCancelMsg(id){
+  const sub=ntQGet(id); if(!sub||!sub.delivery) return;
+  if(!confirm('Do not send this message?\n\nThe notice stays saved — teachers still see it on the marking page.')) return;
+  const res=await ntRpc('delivery_cancel',{p_id:sub.delivery.id});
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  sub.stage='done'; sub.delivery.state='CANCELLED'; ntQPut(sub); ntClose(); ntToast('Message not sent. The notice stays saved.'); ntRender();
+}
+async function ntSendFromList(subId){
+  if(NT.busy) return;
+  let sub=ntQGet(subId);
+  if(!sub){
+    const ns=(NT.list||[]).filter(n=>n.submission_id===subId&&n.status==='active'); if(!ns.length) return;
+    const rec={}; [...new Set(ns.map(n=>n.student_id))].forEach(sid=>{ if(!ns.some(m=>m.student_id===sid&&m.record_id)) rec[sid]=ntUid(); });
+    sub={submission_id:subId,created:Date.now(),rows:ns.map(n=>({kind:n.kind,student_id:n.student_id,dept:n.dept,date_from:n.date_from,date_to:n.date_to})),
+         record_uids:rec,delivery_uid:ntUid(),stage:Object.keys(rec).length?'record':'message',err:'',fromList:true};
+    ntQPut(sub);
+  }
+  if(sub.stage==='done'){ sub.stage='message'; sub.delivery_uid=ntUid(); ntQPut(sub); }
+  NT.busy=true; await ntRun(subId,false); NT.busy=false;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v33 · Messages to the groups（行政用，在 Notices 分页上方）—— 架构 v3 Step B / F / G
+   - Today's list：今天（或选的日子）的出缺席名单 → 资料库产生文字（delivery_prepare 'today_list'，Step 0 已上线）
+   - SRT replacement / temp slot：Manage 或老师 + Add visitor 存的安排 → 资料库产生文字（delivery_prepare_item 'swap'，Step B SQL）
+   - Change of class：学生页 Change Class 存的永久换班 → 资料库产生文字（delivery_prepare_item 'class_change'，Step B SQL）
+   一律：打开 WhatsApp / 复制（群由行政自己选）→ 按「I've sent it」才记为已送出；安排取消了、但之前已送出 → 提示送「取消」讯息。
+   Step B SQL 还没上线时：Today's list 照常，其他两段显示「database update needed」，不报错。
+   ══════════════════════════════════════════════════════════════════════════ */
+let MS={data:null,err:'',missing:false,cur:null,busy:false,mem:{}};
+/* 同一件事同一个 id：断网重按不会产生第二份。本机存不进去也照样有一份在记忆体里（不会卡住） */
+function msUidFor(key){
+  const k='ag_ms_uid_v1'; let m={}; try{ m=JSON.parse(localStorage.getItem(k)||'{}')||{}; }catch(e){}
+  if(MS.mem[key]===null){ delete m[key]; MS.mem[key]=undefined; }
+  if(!m[key]&&!MS.mem[key]){ MS.mem[key]=ntUid(); m[key]=MS.mem[key]; try{ localStorage.setItem(k,JSON.stringify(m)); }catch(e){} }
+  return MS.mem[key]||m[key];
+}
+function msForget(key){ MS.mem[key]=null; const k='ag_ms_uid_v1'; try{ const m=JSON.parse(localStorage.getItem(k)||'{}')||{}; delete m[key]; localStorage.setItem(k,JSON.stringify(m)); }catch(e){} }
+function msFresh(key){ msForget(key); MS.mem[key]=ntUid(); return MS.mem[key]; }
+const MS_KINDS=[['absence','Absence'],['early_leave','Leave early'],['late_arrival','Arrive late'],['late_pickup','Late pick-up'],['pickup_change','Pick-up change'],['replacement','SRT replacement'],['temp','SRT change of slot'],['class_change','Change of class']];
+const MS_KIND_LABEL=Object.fromEntries(MS_KINDS);
+MS.selD=['SRK','GAK','ATC','SRT']; MS.selK=MS_KINDS.map(k=>k[0]); MS.waiting=null;
+async function msLoad(){
+  const [res,wt]=await Promise.all([ntRpc('att_messages',{p_days:14}),ntRpc('att_waiting',{})]);
+  if(res.kind==='ok'){ MS.data=res.data; MS.err=''; MS.missing=false; }
+  else if(res.kind==='error'&&/PGRST202|att_messages|404|Could not find/i.test((res.code||'')+' '+(res.message||''))){ MS.data=null; MS.missing=true; MS.err=''; }
+  else { MS.data=null; MS.err=res.kind==='offline'?'Could not load (no internet?).':ntErrText(res); }
+  MS.waiting=wt.kind==='ok'?(wt.data||[]):null;
+  const b=document.getElementById('ms-box'); if(b) b.innerHTML=msHtml();
+  const l=document.getElementById('nt-list'); if(l&&NT.list) l.innerHTML=ntListHtml();   /* 「已送出」要算上合并送出的 */
+  /* 本机「还没送讯息」的那几笔，如果已经在合并的讯息里送出 → 收起来 */
+  if(MS.data&&MS.data.notices){ let ch=false;
+    ntLoadQ().forEach(x=>{ if(x.stage!=='message') return; const ids=(x.notices||[]).map(n=>n.id);
+      if(ids.length&&ids.every(id=>(MS.data.notices.find(y=>y.id===id)||{}).sent)){ x.stage='done'; ntQPut(x); ch=true; } });
+    if(ch&&document.getElementById('page-notices').classList.contains('on')) ntRender(); }
+}
+function msCls(c){ return typeof swCls==='function'?swCls(c):c; }
+function msTick(group,v,on){ const a=group==='d'?MS.selD:MS.selK; const i=a.indexOf(v); if(on&&i<0) a.push(v); if(!on&&i>=0) a.splice(i,1); const b=document.getElementById('ms-box'); if(b) b.innerHTML=msHtml(); }
+function msHtml(){
+  const T=ntToday();
+  let h='';
+  /* ── 1 · 合并成一则发群 ── */
+  h+='<div style="font-weight:700;margin-bottom:2px">Send to the group — one message</div>'
+    +'<div style="font-size:12px;color:var(--mut);margin-bottom:8px">Tick the departments and kinds. Everything not told to the group yet goes into one WhatsApp message.</div>';
+  if(MS.err) h+='<div style="color:var(--danger);font-size:12.5px;margin-bottom:8px">'+ntEsc(MS.err)+' <button style="'+NT_BTN+'" onclick="msLoad()">Retry</button></div>';
+  if(MS.missing||(MS.waiting===null&&MS.data===null&&!MS.err)){
+    h+='<div style="font-size:12px;color:var(--mut);margin-bottom:8px">'+(MS.missing?'One combined message needs the database update (Step B). Until then each notice is sent on its own.':'Loading…')+'</div>';
+  }else{
+    const W=MS.waiting||[]; const cnt=(d,k)=>W.filter(x=>(!d||x.dept===d)&&(!k||x.kind===k)).reduce((a,x)=>a+x.count,0);
+    const chip=(group,v,label,n,on)=>'<label style="display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border:1px solid var(--bdr);border-radius:16px;font-size:12.5px;cursor:pointer;background:'+(on?'var(--sur2)':'var(--sur)')+'"><input type="checkbox" '+(on?'checked':'')+' onchange="msTick(\''+group+'\',\''+v+'\',this.checked)">'+label+(n?' <b style="color:#b45309">'+n+'</b>':'')+'</label>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'+['SRK','GAK','ATC','SRT'].map(d=>chip('d',d,d,cnt(d,null),MS.selD.includes(d))).join('')+'</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+MS_KINDS.map(([k,t])=>chip('k',k,t,cnt(null,k),MS.selK.includes(k))).join('')+'</div>';
+    const n=W.filter(x=>MS.selD.includes(x.dept)&&MS.selK.includes(x.kind)).reduce((a,x)=>a+x.count,0);
+    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button style="'+NT_PRI+(n?'':';opacity:.45')+'" '+(n?'':'disabled')+' onclick="msBatch()">Make one message'+(n?' ('+n+')':'')+'</button>'
+      +'<span style="font-size:12px;color:var(--mut)">'+(W.length?'Waiting: '+W.map(x=>x.dept+' '+MS_KIND_LABEL[x.kind].replace(/^SRT /,'').toLowerCase()+' '+x.count).join(' · '):'Nothing waiting — everything has been told ✓')+'</span></div>';
+  }
+  /* ── 2 · 今天名单 ── */
+  h+='<div style="border-top:1px solid var(--bdr);padding-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px">'
+    +'<div style="flex:1;min-width:200px"><b>Today\'s list</b> <span style="font-size:12px;color:var(--mut)">— who is absent / notified on one day</span></div>'
+    +'<input type="date" id="ms-tl-date" value="'+T+'" class="date-input" style="min-height:36px">'
+    +['SRK','GAK','ATC','SRT'].map(d=>'<label style="font-size:12.5px;display:inline-flex;gap:3px;align-items:center"><input type="checkbox" class="ms-tl-d" value="'+d+'" checked>'+d+'</label>').join(' ')
+    +'<button style="'+NT_BTN+'" onclick="msTodayList()">Prepare</button></div>';
+  const tls=(MS.data&&MS.data.today_lists)||[];
+  if(tls.length) h+='<div style="font-size:11.5px;color:var(--mut)">'+tls.slice(0,4).map(x=>ntDmy(x.list_date)+' '+x.depts.join('+')+': '+(x.state==='MANUALLY_CONFIRMED_SENT'?'<span style="color:var(--ok)">sent ✓</span>':x.state==='CANCELLED'?'not sent':(x.stale?'out of date':'not sent yet'))).join(' · ')+'</div>';
+  return h;
+}
+async function msBatch(){
+  if(MS.busy) return;
+  if(!MS.selD.length||!MS.selK.length){ ntToast('Tick at least one department and one kind',true); return; }
+  const key='batch|'+Date.now();   /* 每按一次都是新的一则（只在同一次按、断网重送时沿用） */
+  const prep=uid=>ntRpc('delivery_prepare_batch',{p_client_uid:uid,p_depts:MS.selD.slice(),p_kinds:MS.selK.slice()});
+  MS.busy=true; const res=await prep(msUidFor(key)); MS.busy=false;
+  if(res.kind==='rejected'&&res.code==='NOTHING_TO_SEND'){ ntToast('Nothing waiting for those — everything has been told'); msLoad(); return; }
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  MS.cur={key,label:'one message for '+(res.data.count||'')+(res.data.count===1?' item':' items'),d:res.data,redo:prep}; msPanel();
+}
+async function msTodayList(retried){
+  if(MS.busy) return;
+  const d=(document.getElementById('ms-tl-date')||{}).value||ntToday();
+  const depts=[...document.querySelectorAll('.ms-tl-d:checked')].map(x=>x.value);
+  if(!depts.length){ ntToast('Tick at least one department',true); return; }
+  const key='tl|'+d+'|'+depts.join(',');
+  MS.busy=true;
+  const res=await ntRpc('delivery_prepare',{p_client_uid:msUidFor(key),p_source:'today_list',p_submission_id:null,p_list_date:d,p_depts:depts,p_content:null});
+  MS.busy=false;
+  if(res.kind==='rejected'&&res.code==='DELIVERY_CONTENT_CONFLICT'&&!retried){ msFresh(key); return msTodayList(true); }   /* 名单有变：用新 id 重做 */
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  if((res.data.state==='MANUALLY_CONFIRMED_SENT'||res.data.state==='CANCELLED')&&!retried){ msFresh(key); return msTodayList(true); }   /* 上一份已结束：这次是新的一份 */
+  MS.cur={key,label:'Today\'s list',d:res.data,redo:uid=>ntRpc('delivery_prepare',{p_client_uid:uid,p_source:'today_list',p_submission_id:null,p_list_date:d,p_depts:depts,p_content:null})}; msPanel();
+}
+async function msSend(source,ref,isCancel){
+  if(MS.busy) return;
+  const key=source+'|'+ref+'|'+(isCancel?'c':'a');
+  MS.busy=true;
+  const prep=uid=>ntRpc('delivery_prepare_item',{p_client_uid:uid,p_source:source,p_ref:String(ref)});
+  let res=await prep(msUidFor(key));
+  if(res.kind==='rejected'&&res.code==='DELIVERY_CONTENT_CONFLICT') res=await prep(msFresh(key));
+  else if(res.kind==='ok'&&(res.data.state==='CANCELLED'||res.data.state==='MANUALLY_CONFIRMED_SENT')) res=await prep(msFresh(key));
+  MS.busy=false;
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  MS.cur={key,label:source==='swap'?'SRT arrangement':'Change of class',d:res.data,redo:prep}; msPanel();
+}
+function msPanel(){
+  const c=MS.cur; if(!c) return;
+  const opened=c.d.state==='OPENED_WHATSAPP';
+  ntModal('Send the message — '+c.label,
+    (c.note?'<div style="background:#fef3c7;color:#92400e;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-bottom:8px">'+ntEsc(c.note)+'</div>':'')
+    +'<div style="font-size:12px;color:var(--mut);margin-bottom:6px">Send this to the right WhatsApp group (you choose the group):</div>'
+    +'<pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:10px;max-height:45vh;overflow:auto;margin:0 0 8px">'+ntEsc(c.d.content||'')+'</pre>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button style="'+NT_PRI+'" onclick="msOpen(\'whatsapp_link\')">Open WhatsApp</button><button style="'+NT_BTN+'" onclick="msOpen(\'copied\')">Copy text</button></div>'
+    +'<div id="ms-hint" style="font-size:11.5px;color:var(--mut);margin-top:8px">'+(opened?'After you have sent it in WhatsApp, tap “I\'ve sent it”.':'Open WhatsApp or copy the text first.')+'</div>',
+    '<button style="'+NT_RED+'" onclick="msDont()">Don\'t send</button><button style="'+NT_BTN+'" onclick="ntClose();msLoad()">Send later (together)</button>'
+    +'<button style="'+NT_PRI+(opened?'':';opacity:.45')+'" id="ms-sent" '+(opened?'':'disabled')+' onclick="msConfirm()">I\'ve sent it</button>');
+}
+async function msOpen(method){
+  const c=MS.cur; if(!c) return;
+  /* 手机浏览器只在「按下去的那一刻」允许开新分页 / 复制 → 先做，再记录（Safari 否则会挡） */
+  let w=null, copied=false;
+  if(method==='whatsapp_link') w=window.open('https://wa.me/?text='+encodeURIComponent(c.d.content),'_blank');
+  else { try{ await navigator.clipboard.writeText(c.d.content); copied=true; }catch(e){} }
+  const res=await ntRpc('delivery_mark_opened',{p_id:c.d.id,p_method:method});
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  c.d.state='OPENED_WHATSAPP';
+  if(method==='copied') ntToast(copied?'Copied — paste it in the WhatsApp group':'Could not copy — select the text and copy it',!copied);
+  const b=document.getElementById('ms-sent'); if(b){ b.disabled=false; b.style.opacity='1'; }
+  const hint=document.getElementById('ms-hint'); if(hint) hint.textContent='After you have sent it in WhatsApp, tap “I\'ve sent it”.';
+}
+async function msConfirm(){
+  const c=MS.cur; if(!c) return;
+  const res=await ntRpc('delivery_confirm_sent',{p_id:c.d.id,p_fingerprint:c.d.fingerprint});
+  if(res.kind==='ok'){ msForget(c.key); MS.cur=null; ntClose(); ntToast('✓ Marked as sent (confirmed by you)'); msLoad(); return; }
+  if(res.kind==='rejected'&&res.code==='STALE'&&c.redo){
+    const r2=await c.redo(msFresh(c.key));
+    if(r2.kind==='ok'&&r2.data.content===c.d.content){   /* 文字其实没变：你送出的就是对的，直接记已送出 */
+      const o=await ntRpc('delivery_mark_opened',{p_id:r2.data.id,p_method:'copied'});
+      const k=o.kind==='ok'?await ntRpc('delivery_confirm_sent',{p_id:r2.data.id,p_fingerprint:r2.data.fingerprint}):o;
+      if(k.kind==='ok'){ msForget(c.key); MS.cur=null; ntClose(); ntToast('✓ Marked as sent (confirmed by you)'); msLoad(); return; }
+    }
+    if(r2.kind==='ok'){ MS.cur={key:c.key,label:c.label,d:r2.data,redo:c.redo,note:'Something changed after the first message was made. If you already sent the first one, send this updated one too.'}; msPanel(); return; }
+    msForget(c.key); MS.cur=null; ntClose(); ntToast(ntErrText(r2),true); msLoad(); return;
+  }
+  if(res.kind==='rejected'&&res.code==='STALE'){ msForget(c.key); MS.cur=null; ntClose(); ntToast('Something changed after this message was prepared. Tap the button again for the up-to-date message.',true); msLoad(); return; }
+  ntToast(ntErrText(res),true);
+}
+async function msDont(){
+  const c=MS.cur; if(!c) return;
+  if(!confirm('Do not send this message?')) return;
+  const res=await ntRpc('delivery_cancel',{p_id:c.d.id});
+  if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
+  msForget(c.key); MS.cur=null; ntClose(); ntToast('Message not sent'); msLoad();
+}
+
 
 // ── Auth ──
 async function doLogin(){
@@ -463,7 +1107,9 @@ async function initApp(){
   }
   /* v29 · 行政 / 管理层看得到四个部门的请假通知；老师只看自己部门 */
   try{ const r=await _sb.rpc('can_access',{p_system:'OPR-AttendanceNotice'}); noticeEditor=!!(r&&r.data&&r.data[0]&&r.data[0].can_edit); }catch(e){ noticeEditor=false; }
-  document.body.classList.toggle('is-office',noticeEditor);   /* v30 · 行政 = OPR-AttendanceNotice 可编辑（ADMIN / MGMT / TOP_MGMT / OWNER）；读不到一律当老师 */
+  document.body.classList.toggle('is-office',noticeEditor);
+  try{ const r=await _sb.rpc('user_role'); NT.role=(r&&!r.error&&r.data)||''; }catch(e){ NT.role=''; }
+  NT.on=noticeEditor&&(!NT_TRIAL_OWNER_ONLY||NT.role==='OWNER'); document.body.classList.toggle('nt-on',NT.on);   /* v32 */   /* v30 · 行政 = OPR-AttendanceNotice 可编辑（ADMIN / MGMT / TOP_MGMT / OWNER）；读不到一律当老师 */
   try{
     /* v28 · 名单也分批抓（学生 375、班籍 553，离 1000 不远） */
     const[stuData, memData, calData]=await Promise.all([
@@ -496,7 +1142,7 @@ async function initApp(){
   }catch(e){console.error('Init failed:',e); setTimeout(()=>toast('✕ Could not load all data — refresh the page',8000),300);}   /* v28 · 以前只记在主控台，老师看不到 */
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').style.display='block';
-  goPage('dashboard');
+  { const _h=(location.hash||'').slice(1); goPage(['notices','manage'].includes(_h)?_h:'dashboard'); }   /* v33 · MiscGo v13 连过来（#notices / #manage；没权限的照样回 Dashboard） */
 }
 
 /* v28 · 分批抓到完：每批照 id 排好、从上一批的尾巴接着抓，抓到空为止（不管云端上限是 1000 还是别的数字都对）。
@@ -625,6 +1271,80 @@ function attClassOf(r){
   return live.length===1?live[0].class_code:r.class_code;
 }
 function memPausedOn(m,d){ return !!(m&&m.pause_from&&m.pause_from<=d&&(!m.pause_to||m.pause_to>d)); }
+/* ═══ v33 · 出席率：每个部门照自己的规则算（Owner 10-22）══════════════════════
+   共同：只算那个班真的有上课的日子（周末、Calendar 该部门假期不算；补课日 extra class 算）；
+         Present / Late / Early = 有到；Absent / MC = 没到（家长有通知也算没到）；
+         请假中（学生页 Paused）不算；固定例外（Exceptions）说不来的那天不算；
+         还没点名不算（另外显示 not marked），但家长通知说不来 → 算没到。
+   ATC：功课班（S1）、上课班（S2）分开算；功课班 3:00 或以后才到 = 缺席（点名时已经照这条记）。
+   SRT：只算那班自己的上课日；E-Class 算有到；缺的那堂补课补了、补课那天有来 = 算有到；
+        临时换 slot 那天在原班不算，算在他去的那班那一格。 */
+const RATE_RULES={
+  ALL:['Only real class days count (weekends and this department’s holidays in Calendar are left out).','Present, Late and Early leave = attended. Absent and MC = not attended, even when the parent told the office.','On leave (Paused in the Student page) and weekly exceptions (child not expected that day) are left out.','Not marked yet is left out (shown as “not marked”) — unless the parent told the office, then it counts as absent.'],
+  SRK:[], GAK:[],
+  ATC:['H/W and Lesson are counted separately.','H/W: arriving at 3:00 or later = absent. Lesson: late or leaving early still = attended.'],
+  SRT:['Only the class’s own day counts (e.g. every Saturday AM).','E-Class = attended.','A missed class that was made up (and the child came to the replacement) = attended.','Temp slot: left out in the own class; counted in the class he went to that day.']
+};
+function isClassDay(dept,cls,ds){
+  const dow=new Date(ds+'T12:00:00').getDay();
+  if(dept==='SRT'){
+    const p=String(cls||'').replace(/^SRT[-_]/,'').split(/[._]/);
+    const dp=p.find(x=>['MON','TUE','WED','THU','FRI','SAT','SUN'].includes(x));
+    if(!dp||dp!==DAY_MAP[dow]) return false;
+  }else if(dow===0||dow===6) return false;
+  if(getHoliday(ds,dept)&&!hasExtraClass(ds,dept)) return false;
+  return true;
+}
+/* 某一天、某个部门、某一节的家长请假通知（要先 loadNotices 那一天） */
+function noticeOn(studentId,dept,session,ds){
+  const c=noticeCache[ds+'|'+dept]; if(!c||!c.ok) return null;
+  const s=dept==='ATC'?session:0;
+  return c.rows.find(r=>r.kind==='absence'&&r.student_id===studentId&&r.dept===dept&&r.date_from<=ds&&r.date_to>=ds&&(r.sessions||[]).includes(s))||null;
+}
+const RATE_ATT={present:1,late:1,early_leave:1}, RATE_ABS={absent:1,mc:1};
+/* 一位孩子、一个月、一节 → {att,abs,unm,pct}
+   rm = {day: record}（attClassOf 已经算回本班）；vis = {'stu|date': status} 补课那天的纪录 */
+function rateFor(s,mem,dept,cls,session,rm,ym,days,eEls,vis){
+  let att=0,abs=0,unm=0; const today=todayStr();
+  for(let d=1;d<=days;d++){
+    const ds=ym+'-'+String(d).padStart(2,'0');
+    if(ds<mem.start_date||(mem.end_date&&ds>mem.end_date)) continue;
+    const r=rm[d];
+    if(r&&r.other){   /* 在别班点的（补课 / 临时换 slot） */
+      const sw=allSwaps.find(w=>w.student_id===s.id&&w.to_date===ds&&w.from_class===cls&&w.status==='active');
+      if(sw&&sw.kind==='replacement') continue;   /* 补课：功劳算在缺的那一天 */
+      if(RATE_ATT[r.status]) att++; else if(RATE_ABS[r.status]) abs++;
+      continue;
+    }
+    if(!isClassDay(dept,cls,ds)) continue;
+    if(swAwayOn(s.id,cls,ds)) continue;                      /* SRT 临时换走：原班不算 */
+    if(!r&&memPausedOn(mem,ds)) continue;                     /* 请假中 */
+    if(!r&&eEls&&eEls[d]) continue;                           /* E-Class 算在另一班 */
+    const dow=new Date(ds+'T12:00:00').getDay();
+    const rule=getRule(s.id,dept,dow,session,ds);
+    if(rule&&rule.rule_type==='absent'&&(!r||RATE_ABS[r.status])) continue;   /* 固定例外：本来就不来 */
+    if(r&&RATE_ATT[r.status]){ att++; continue; }
+    if(r&&RATE_ABS[r.status]){
+      const mu=swMadeUp(s.id,cls,ds);
+      if(mu){ const v=vis&&vis[s.id+'|'+mu.to_date];
+        if(v&&RATE_ATT[v]){ att++; continue; }
+        if(!v&&mu.to_date>=today) continue;                   /* 补课还没到：先不算 */
+      }
+      abs++; continue;
+    }
+    if(ds>today) continue;                                   /* 还没到的日子不算（家长先请假也一样，等那天过了才算） */
+    if(noticeOn(s.id,dept,session,ds)){ abs++; continue; }   /* 没点、家长说不来 */
+    unm++;
+  }
+  const n=att+abs;
+  return {att,abs,unm,pct:n?Math.round(att/n*100):null};
+}
+function rateCell(x){
+  if(!x||x.pct===null) return `<td style="padding:2px 6px;text-align:center;border-bottom:.5px solid var(--bdr);border-left:.5px solid var(--bdr);color:var(--hint);font-size:10px" title="${x&&x.unm?x.unm+' not marked':'No class days yet'}">–</td>`;
+  const c=x.pct>=90?'var(--ok)':x.pct>=70?'var(--warn)':'var(--danger)';
+  return `<td style="padding:2px 6px;text-align:center;border-bottom:.5px solid var(--bdr);border-left:.5px solid var(--bdr);font-size:10px;font-weight:700;color:${c};white-space:nowrap" title="${x.att} of ${x.att+x.abs} class days attended${x.unm?' · '+x.unm+' not marked':''}">${x.pct}%${x.unm?'<div style="font-size:7px;color:var(--mut);font-weight:500">'+x.unm+' unmarked</div>':''}</td>`;
+}
+
 function isPausedStu(s){
   if(!s) return false;
   if('_paused' in s) return !!s._paused;   /* 点名名册：看这一班、这一天 */
@@ -869,7 +1589,7 @@ function fuOpen(stuId, classCode){
         + '</div>';
     });
     if (!due.length && !olds.length) h += '<div style="color:var(--mut);padding:10px 0">Nothing to follow up today.</div>';
-    /* v35 · 必填（Owner 10-23）：今天该做的每一项都按了 Done 或 Issue 才能关。旧待办（From …）不挡，书带来那天再按 Resolved */
+    /* v35 · 必填（Owner 10-23）：今天该做的每一项都按了 Done 或 Issue 才能关。旧待办（From …）不挡 */
     const left = saveFailed ? 0 : due.filter(t => !fuRecOf(stuId, classCode, t.cycle_key, t.task_id ?? t.id)).length;
     h += '<div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:14px">'
       + (left ? '<span id="fu-left" style="font-size:12px;color:#C4622D;font-weight:600">Tap Done or Issue for every item (' + left + ' left)</span>' : '')
@@ -963,13 +1683,14 @@ function shortClassName(code){
   return parts.length>=4?parts.slice(2).join('_'):parts.pop();
 }
 
-const OFFICE_PAGES=['tracker','rules','atcweek','manage'];   /* v30 */
+const OFFICE_PAGES=['tracker','rules','atcweek','manage','notices'];   /* v30 */
 function goPage(p){
-  if(!noticeEditor&&OFFICE_PAGES.includes(p)) p='dashboard';   /* v30 · 老师进不了行政页 */
+  if(!noticeEditor&&OFFICE_PAGES.includes(p)) p='dashboard';
+  if(p==='notices'&&!NT.on) p='dashboard';   /* v32 */   /* v30 · 老师进不了行政页 */
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(el=>el.classList.remove('on'));
   document.getElementById('page-'+p).classList.add('on');
-  const map={dashboard:0,mark:1,monthly:2,tracker:3,rules:4,atcweek:5,manage:6};   /* v17 · 加 ATC Week */
+  const map={dashboard:0,mark:1,monthly:2,tracker:3,rules:4,atcweek:5,manage:6,notices:7};   /* v17 · 加 ATC Week */
   document.querySelectorAll('.ntab')[map[p]]?.classList.add('on');
   if(p==='dashboard') renderDashboard();
   if(p==='mark') renderMark();
@@ -978,6 +1699,7 @@ function goPage(p){
   if(p==='rules') renderRulesPage();
   if(p==='atcweek') renderAtcWeek();   /* v17 */
   if(p==='manage'){ renderManage(); fuRenderAdmin(); swRenderAdmin(); }   /* v19 */
+  if(p==='notices') ntRender();   /* v32 */
 }
 
 
@@ -1283,51 +2005,24 @@ function swSrtClassesOn(date){
 function swStuClasses(stuId,date){
   return allMemberships.filter(m=>m.student_id===stuId&&m.dept==='SRT'&&m.start_date<=date&&(m.end_date==null||m.end_date>date)&&!String(m.class_code).includes('RSVP')).map(m=>m.class_code);
 }
-/* v36 · SRT 补课（Owner 10-23，行政回报）：
-   ① 补课要先选「补哪一次缺席」：最近 60 天缺席一天一张卡，已补的变灰，家长已请假还没点的也列，一定要选一张
-   ② 去哪一班补：先选日子（星期五 / 星期六）→ 再选时段（AM / NN / PM）→ 再选班；同级的排前面 */
+/* v36 · SRT 补课：日子 → 时段 → 班（Owner 10-23）；卡片沿用 v33 的 swMissedCards */
 const SW_DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
 function swAddDays(d,n){ const x=new Date(d+'T12:00:00Z'); x.setUTCDate(x.getUTCDate()+n); return x.toISOString().slice(0,10); }
 function swParts(c){ const p=String(c||'').replace(/^SRT-SRT_/,'').replace(/^SRT_/,'').replace(/^SRT-/,'').split(/[._]/); return {lv:p.find(x=>/^LV\d+/i.test(x))||'', day:p.find(x=>SW_DAYS.includes(x))||'', slot:p.find(x=>/^(AM|NN|PM)$/.test(x))||''}; }
 function swDayOf(d){ return SW_DAYS[new Date(d+'T12:00:00').getDay()]; }
 function swNextDay(dayIdx){ let d=todayStr(); for(let i=0;i<7;i++){ if(new Date(d+'T12:00:00').getDay()===dayIdx) return d; d=swAddDays(d,1); } return d; }
 function swPickDate(d){ SW.to_date=d; if(SW.to_class&&swParts(SW.to_class).day!==swDayOf(d)) SW.to_class=''; SW.slot=''; swRenderBody(); }
-function swMissedCards(stuId){
-  if(!SW._miss||SW._miss.id!==stuId){
-    SW._miss={id:stuId,list:null};
-    const from=swAddDays(todayStr(),-60), to=swAddDays(todayStr(),60);
-    Promise.all([
-      _sb.from('attendance').select('date,status,class_code,note').eq('student_id',stuId).eq('dept','SRT').gte('date',from).in('status',['absent','mc']),
-      noticeEditor?_sb.from('attendance_notice').select('date_from,date_to,reason_code,status,kind,dept').eq('student_id',stuId).eq('dept','SRT').eq('kind','absence').eq('status','active').gte('date_to',from):Promise.resolve({data:[]})
-    ]).then(([a,n])=>{
-      if(!SW._miss||SW._miss.id!==stuId) return;
-      const L=[];
-      (a.data||[]).forEach(r=>{
-        const why=r.status==='mc'?'MC':(absKind('absent',r.note)||String(r.note||'').replace(/^Absent:\s*/,'')||'Absent');
-        L.push({date:r.date,cls:r.class_code,why:'Absent · '+why});
-      });
-      const own=[...new Set(allMemberships.filter(m=>m.student_id===stuId&&m.dept==='SRT'&&!String(m.class_code).includes('RSVP')).map(m=>m.class_code))];
-      (n.data||[]).forEach(x=>{
-        for(let d=x.date_from<from?from:x.date_from; d<=x.date_to&&d<=to; d=swAddDays(d,1)){
-          own.forEach(c=>{ const m=allMemberships.find(mm=>mm.student_id===stuId&&mm.class_code===c&&mm.start_date<=d&&(mm.end_date==null||mm.end_date>=d));
-            if(m&&swParts(c).day===swDayOf(d)&&!L.some(y=>y.date===d&&y.cls===c)) L.push({date:d,cls:c,why:'Parent told the office · '+((NT_REASON[x.reason_code]||{label:'Absent'}).label),notice:true}); });
-        }
-      });
-      L.forEach(c=>{ c.made=allSwaps.find(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===stuId&&w.from_class===c.cls&&w.from_date===c.date)||null; });
-      L.sort((p,q)=>q.date.localeCompare(p.date));
-      SW._miss.list=L;
-      if(document.getElementById('sw-modal').style.display==='flex') swRenderBody();
-    }).catch(e=>{ console.warn('[v36] missed classes',e); if(SW._miss&&SW._miss.id===stuId){ SW._miss.list=[]; if(document.getElementById('sw-modal').style.display==='flex') swRenderBody(); } });
-  }
-  return SW._miss.list;
-}
-function swPickMissed(i){ const c=(SW._miss&&SW._miss.list||[])[i]; if(!c||c.made) return; SW.from_date=c.date; SW.from_class=c.cls; swRenderBody(); }
 function swOpen(mode,toClass){
   SW={mode,to_class:toClass||'',to_date:mode==='mark'?selectedDate:todayStr(),stu:'',kind:'replacement',q:'',from_class:'',from_date:'',note:''};
   if(toClass) SW.slot=swParts(toClass).slot;   /* v37 */
   document.getElementById('sw-title').textContent=mode==='mark'?'Add visitor':'Arrange replacement / temp slot';
   document.getElementById('sw-sub').textContent=mode==='mark'?('To '+swCls(toClass)+' · '+selectedDate):'SRT only. The student will appear in that class roster on that day.';
   document.getElementById('sw-modal').style.display='flex';
+  swRenderBody();
+}
+function ntSwap(kind){   /* v33 · Notices 分页登记 SRT 补课 / 换 slot（跟 Manage 同一张表单） */
+  swOpen('manage',''); SW.kind=kind; SW.src='notices';
+  document.getElementById('sw-title').textContent=kind==='replacement'?'SRT replacement class':'SRT change of slot (this one time)';
   swRenderBody();
 }
 function swClose(){ document.getElementById('sw-modal').style.display='none'; }
@@ -1347,7 +2042,7 @@ function swRenderBody(){
   // 2 类型
   h+=lab('Type');
   h+=`<div style="display:flex;gap:6px">${['replacement','temp'].map(k=>`<button onclick="SW.kind='${k}';SW.from_class='';SW.from_date='';swRenderBody()" style="flex:1;min-height:40px;border-radius:8px;border:1px solid ${SW.kind===k?'transparent':'var(--bdr)'};background:${SW.kind===k?'#7870CC':'#fff'};color:${SW.kind===k?'#fff':'var(--txt)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${SW_LABEL[k]}</button>`).join('')}</div>`;
-  h+=`<div style="font-size:10px;color:var(--hint);margin-top:4px">${SW.kind==='replacement'?'Missed own class on another day and makes it up here.':'This day only: attends this slot instead of own slot.'}</div>`;
+  h+=`<div style="font-size:10px;color:var(--hint);margin-top:4px">${SW.kind==='replacement'?'Missed own class on another day and makes it up here.':'This day only: attends this slot instead of own slot. For good (every week)? Use the Student page → Change Class — it comes to Notices for the message by itself.'}</div>`;
   // 3 去哪 —— v36：日子 → 时段 → 班；v37：老师 + Add visitor 也能改（预设当下这班），补课时放在卡片后面（LL 10-23）
   const _h0=h; h='';
   {
@@ -1376,8 +2071,8 @@ function swRenderBody(){
   }
   const _attends=h; h=_h0;
   if(SW.kind==='temp') h+=_attends;
-  // 4 原本的班 + 日子 —— v36：补课由卡片带出原班与缺席日；只有临时换 slot 才选原班
-  if(SW.stu&&SW.kind==='temp'){
+  // 4 原本的班 + 日子
+  if(SW.stu&&SW.kind==='temp'){   /* v33 · 补课的原班由卡片带出来 */
     const own=swStuClasses(SW.stu,SW.from_date||SW.to_date);
     if(!SW.from_class) SW.from_class=own[0]||'';
     h+=lab('Own class');
@@ -1388,13 +2083,14 @@ function swRenderBody(){
     h+=lab('Own class date (the day he skips)');
     h+=`<input type="date" style="${inp}" value="${SW.from_date||''}" onchange="SW.from_date=this.value">`;
   }else{
+    /* v33 · 补课：选「补哪一次缺席」—— 最近 60 天的缺席一天一张卡；已补的变灰不能选；家长已请假、还没点的也列（Owner 22-10） */
     h+=lab('Which missed class is this for?');
     if(!SW.stu) h+=`<div style="font-size:12px;color:var(--hint)">Choose the student first.</div>`;
     else{
       const L=swMissedCards(SW.stu);
       if(L===null) h+=`<div style="font-size:12px;color:var(--mut)">Loading…</div>`;
       else if(!L.length) h+=`<div style="font-size:12px;color:var(--danger)">No missed classes in the last 60 days — nothing to make up.</div>`;
-      else h+=`<div style="display:grid;gap:6px;max-height:240px;overflow:auto">${L.map((c,i)=>{ const on=SW.from_date===c.date&&SW.from_class===c.cls, dis=!!c.made;
+      else h+=`<div style="display:grid;gap:6px">${L.map((c,i)=>{ const on=SW.from_date===c.date&&SW.from_class===c.cls, dis=!!c.made;
         return `<button ${dis?'disabled':''} onclick="swPickMissed(${i})" style="text-align:left;padding:8px 10px;border-radius:10px;border:${on?'2px solid #7870CC':'1px solid var(--bdr)'};background:${dis?'var(--sur2)':on?'#F3F1FB':'#fff'};opacity:${dis?.55:1};cursor:${dis?'default':'pointer'};font-family:inherit">
           <div style="font-size:13px;font-weight:700;color:var(--txt)">${_escHtml(fmtDate(c.date))} · ${_escHtml(swCls(c.cls))}</div>
           <div style="font-size:11.5px;color:var(--mut)">${_escHtml(c.why)}</div>
@@ -1408,6 +2104,36 @@ function swRenderBody(){
   if(SW.mode==='mark') document.getElementById('sw-sub').textContent=SW.to_class?('To '+swCls(SW.to_class)+' · '+SW.to_date):'Choose the day, time and class';   /* v37 */
   if(!SW.stu) swRenderList();
 }
+function swMissedCards(stuId){
+  if(!SW._miss||SW._miss.id!==stuId){
+    SW._miss={id:stuId,list:null};
+    const from=ntAddDays(ntToday(),-60), to=ntAddDays(ntToday(),60);
+    Promise.all([
+      _sb.from('attendance').select('date,status,class_code,note,voided_at').eq('student_id',stuId).eq('dept','SRT').gte('date',from).in('status',['absent','mc']),
+      noticeEditor?_sb.from('attendance_notice').select('date_from,date_to,reason_code,reason_text,status,kind,dept').eq('student_id',stuId).eq('dept','SRT').eq('kind','absence').eq('status','active').gte('date_to',from):Promise.resolve({data:[]})
+    ]).then(([a,n])=>{
+      if(!SW._miss||SW._miss.id!==stuId) return;
+      const L=[];
+      (a.data||[]).filter(r=>!r.voided_at).forEach(r=>{
+        const why=r.status==='mc'?'MC':(absKind('absent',r.note)||String(r.note||'').replace(/^Absent:\s*/,'')||'Absent');
+        L.push({date:r.date,cls:r.class_code,why:'Absent · '+why});
+      });
+      const own=[...new Set(allMemberships.filter(m=>m.student_id===stuId&&m.dept==='SRT'&&!String(m.class_code).includes('RSVP')).map(m=>m.class_code))];
+      (n.data||[]).forEach(x=>{
+        for(let d=x.date_from<from?from:x.date_from; d<=x.date_to&&d<=to; d=ntAddDays(d,1)){
+          own.forEach(c=>{ const m=allMemberships.find(mm=>mm.student_id===stuId&&mm.class_code===c&&mm.start_date<=d&&(mm.end_date==null||mm.end_date>=d));
+            if(m&&isClassDay('SRT',c,d)&&!L.some(y=>y.date===d&&y.cls===c)) L.push({date:d,cls:c,why:'Parent told the office · '+((NT_REASON[x.reason_code]||{label:'Absent'}).label),notice:true}); });
+        }
+      });
+      L.forEach(c=>{ c.made=allSwaps.find(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===stuId&&w.from_class===c.cls&&w.from_date===c.date)||null; });
+      L.sort((p,q)=>q.date.localeCompare(p.date));
+      SW._miss.list=L;
+      if(document.getElementById('sw-modal').style.display==='flex') swRenderBody();
+    }).catch(e=>{ console.warn('[v33] missed classes',e); if(SW._miss&&SW._miss.id===stuId){ SW._miss.list=[]; if(document.getElementById('sw-modal').style.display==='flex') swRenderBody(); } });
+  }
+  return SW._miss.list;
+}
+function swPickMissed(i){ const c=(SW._miss&&SW._miss.list||[])[i]; if(!c||c.made) return; SW.from_date=c.date; SW.from_class=c.cls; swRenderBody(); }
 function swRecentAbsences(stuId){
   /* 只看已载入的：今天这页的纪录不够，所以向资料库要最近 60 天的缺席（非同步，补进来再画一次） */
   if(!SW._abs||SW._abs.id!==stuId){
@@ -1430,20 +2156,28 @@ function swRenderList(){
 }
 async function swSave(){
   if(!SW.stu){ toast('Choose a student'); return; }
-  if(SW.kind==='replacement'&&!SW.from_date){ toast('Choose which missed class this is for',4000); return; }   /* v36 · 一定要选 */
+  if(SW.kind==='replacement'&&!SW.from_date){ toast('Choose which missed class this is for',4000); return; }   /* v33 · 一定要选 */
   if(!SW.to_class||!SW.to_date){ toast('Choose the day, time and class he attends'); return; }
+  if(SW.kind==='replacement'&&allSwaps.some(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===SW.stu&&w.from_class===SW.from_class&&w.from_date===SW.from_date)){ toast('That missed class is already made up'); return; }   /* v36 */
   if(!SW.from_class){ toast('Own class is missing'); return; }
-  if(SW.kind==='replacement'&&allSwaps.some(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===SW.stu&&w.from_class===SW.from_class&&w.from_date===SW.from_date)){ toast('That missed class is already made up'); return; }
   if(SW.kind==='temp'&&!SW.from_date){ toast('Temp slot needs the own class date'); return; }
   if(SW.from_class===SW.to_class&&(SW.from_date||'')===SW.to_date){ toast('That is his own class on that day'); return; }
-  if(allSwaps.some(w=>w.student_id===SW.stu&&w.to_date===SW.to_date&&w.status==='active')){ toast('Already arranged for that day'); return; }
+  /* v32 · 先向资料库重查（行政可能刚安排过）。同一孩子、同一目标班、同一天 = 已安排，不再写第二笔；
+     同一天别的班（可能是另一节合法的课）→ 问一句再写 */
+  try{ const{data:fresh,error:fe}=await _sb.from('attendance_swap').select('*').eq('status','active').eq('student_id',SW.stu).eq('to_date',SW.to_date);
+       if(!fe&&fresh){ allSwaps=allSwaps.filter(w=>!(w.student_id===SW.stu&&w.to_date===SW.to_date)).concat(fresh); } }catch(e){}
+  const _same=allSwaps.find(w=>w.student_id===SW.stu&&w.to_date===SW.to_date&&w.to_class===SW.to_class&&w.status==='active');
+  if(_same){ toast((_same.created_by&&_same.created_by!==userEmail?'Already arranged by '+(markerNames[_same.created_by]||'the office'):'Already arranged')+' for this class that day',4500); return; }
+  const _other=allSwaps.find(w=>w.student_id===SW.stu&&w.to_date===SW.to_date&&w.status==='active');
+  if(_other&&!confirm('This child already has another arrangement that day ('+_other.to_class+').\n\nAdd this one too?')) return;
   const row={kind:SW.kind,student_id:SW.stu,dept:'SRT',from_class:SW.from_class,from_date:SW.from_date||null,to_class:SW.to_class,to_date:SW.to_date,note:(SW.note||'').trim()||null,client_uid:(crypto.randomUUID?crypto.randomUUID():undefined)};
   const btn=document.getElementById('sw-save'); btn.disabled=true;
   const{data,error}=await _sb.from('attendance_swap').insert(row).select();
   btn.disabled=false;
-  if(error){ console.error(error); toast('✕ Save failed'); return; }
+  if(error){ console.error(error); toast(String(error.code)==='23505'?'Already arranged for this child (same class and day, or the same missed class) — refresh to see it':'✕ Save failed',5000); return; }   /* v33 · Step B 资料库防重复 */
   allSwaps.push({status:'active',created_by:userEmail,...row,...((data&&data[0])||{})});
   swClose(); toast('✓ Saved');
+  if(SW.src==='notices'){ const _nid=((data&&data[0])||{}).id; if(_nid&&typeof msSend==='function') msSend('swap',_nid); else if(typeof msLoad==='function') msLoad(); }   /* v33 · 从 Notices 登记 → 问要不要现在发 */
   if(document.getElementById('page-mark').classList.contains('on')) renderMark();
   if(document.getElementById('page-manage').classList.contains('on')) swRenderAdmin();
 }
@@ -1711,6 +2445,7 @@ function renderMark(){
       </div>
       <div style="padding:0 0 8px">
         <div class="mark-all-bar"><span>Quick:</span>
+          ${(canClearDay()&&todayRecords.some(r=>r.class_code===code&&r.dept===currentDept&&(r.session??0)===currentSession))?`<button class="status-btn" style="color:var(--danger);border-color:var(--danger)" onclick="clearAll('${currentDept}','${code}')">Clear all</button>`:''}
           <button class="status-btn s-present" onclick="markAll('${currentDept}','${code}','present')">All \u2713</button>
         </div>`;
     students.forEach(s=>{
@@ -1736,10 +2471,12 @@ function renderMark(){
       const showNote=!isTransferDay&&((active==='early_leave'&&note)||(active==='absent'&&(_absDetail||(note&&!/^Absent: /.test(note)))));
       const _noteTx=active==='absent'?(_absDetail||note):note;
       const _nt=noticeFor(s.id,currentDept,currentSession);   /* v29 */
+      const _laR=noticeOf(s.id,currentDept,currentSession,'late_arrival');   /* v33 */
+      const _pend=active===''&&!!(_nt||(currentDept==='ATC'&&currentSession===1&&_laR&&ntHmT(_laR.expected_time)>='15:00'));
       const _ntTag=_nt?'<span style="font-size:10px;font-weight:700;color:#1E6B3A;background:#E7F6EC;border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">Notified · '+_escHtml((NT_REASON[_nt.reason_code]||{label:'Absent'}).label)+'</span>':'';
       h+=`<div class="stu-row" style="${ruleStyle}${(isTransferDay||away)?'opacity:.5':''}">
         <div class="stu-num">${s.num??''}</div>
-        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${_ntTag}${ruleTag}${transferTag}${eRowTag(note)}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+_escHtml(_noteTx)+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
+        <div class="stu-name">${s.name}${s.name_cn?' <span class="stu-cn">'+s.name_cn+'</span>':''}${pausedTag(s)}${fuTag(s,code)}${_ntTag}${ntTimeTag(s.id,currentDept,currentSession)}${ruleTag}${transferTag}${eRowTag(note)}${showNote?'<div style="font-size:9px;color:var(--danger);margin-top:2px">'+_escHtml(_noteTx)+'</div>':''}${madeUp?'<div style="font-size:9px;color:#7870CC;margin-top:2px">Made up → '+_escHtml(madeUp.to_date+' '+swCls(madeUp.to_class))+'</div>':''}${pausedNote(s)}</div>
         ${away
           ?'<div style="font-size:10px;color:#7870CC;font-weight:600;white-space:nowrap;text-align:right">Temp slot<br>→ '+_escHtml(swCls(away.to_class))+(away.to_date!==selectedDate?' · '+_escHtml(away.to_date):'')+'</div>'
           :isTransferDay
@@ -1747,8 +2484,8 @@ function renderMark(){
           :`<div class="sb-wrap">${ROW_STATUSES.map(status=>{
             const on=active===status||(status==='absent'&&active==='mc');
             const ic=status==='absent'&&active==='mc'?LABELS_ROW.mc:LABELS_ROW[status];
-            const tx=status==='late'&&lateTx?lateTx:(status==='absent'&&_ak?_ak:STATUS_TX[status]);
-            return `<button class="status-btn${on?' s-'+active:''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${ic}</span><span class="sb-tx">${tx}</span></button>`;
+            const tx=status==='late'&&lateTx?lateTx:(status==='absent'&&_ak?_ak:(status==='absent'&&_pend?'Notified':STATUS_TX[status]));
+            return `<button class="status-btn${on?' s-'+active:''}${(!on&&status==='absent'&&_pend)?' s-pend':''}" onclick="markStudent('${s.id}','${s.name}','${currentDept}','${code}','${status}')"><span class="sb-ic">${ic}</span><span class="sb-tx">${tx}</span></button>`;
           }).join('')}</div>`}
       </div>`;
     });
@@ -1792,7 +2529,22 @@ async function changeDate(d){
   renderMark();
 }
 
+/* v33 · 点错了要回到「没点」：再按一次 Present；缺席的在 Absent 选单按 Not marked。老师只能改当天（跟 Clear all 一样） */
+async function unmarkStudent(studentId,dept){
+  if(!canClearDay()){ toast('Only today\'s marks can be changed back to not marked'); return; }
+  const scrollY=window.scrollY;
+  try{
+    const{data,error}=await _sb.from('attendance').delete().eq('date',selectedDate).eq('student_id',studentId).eq('dept',dept).eq('session',currentSession).select('student_id');
+    if(error) throw error;
+    if(!(data||[]).length){ toast('⚠ Not changed — refresh the page and check',5000); return; }
+    todayRecords=todayRecords.filter(r=>!(r.student_id===studentId&&r.dept===dept&&(r.session??0)===currentSession));
+    renderMark(); window.scrollTo(0,scrollY);
+    document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('↺ Not marked');
+  }catch(e){ console.error('Unmark failed:',e); toast('✕ Could not change — nothing changed',5000); }
+}
 async function markStudent(studentId,studentName,dept,classCode,status){
+  const _was=getStatus(studentId,dept,currentSession);   /* v33 */
+  if(status==='present'&&_was==='present') return unmarkStudent(studentId,dept);
   let note='';
   const _dow=new Date(selectedDate+'T12:00:00').getDay();
   const rule=getRule(studentId,dept,_dow,currentSession,selectedDate);
@@ -1829,12 +2581,16 @@ async function markStudent(studentId,studentName,dept,classCode,status){
     if(status==='late'&&_atc&&!_prevT) _lateTip='Late '+input+' · tap Late again to change the time';
   }
   if(status==='absent'&&!_hwAbs){
-    const pick=await absentPicker(dept,studentName,noticeFor(studentId,dept,currentSession),(rule&&rule.rule_type==='absent')?rule:null);   /* v29 · v30 加固定例外 */
+    const _la=noticeOf(studentId,dept,currentSession,'late_arrival'), _laT=_la?ntHmT(_la.expected_time):'';   /* v32 · ATC 晚到 3:00 或以后 → 功课班算有通知的缺席 */
+    const _pre=(dept==='ATC'&&currentSession===1&&_la&&_laT>='15:00')?{label:'Arriving '+_laT,pick:{status:'absent',note:'Absent: Other — Late arrival '+_laT+' (notified)'}}:null;
+    const pick=await absentPicker(dept,studentName,noticeFor(studentId,dept,currentSession),(rule&&rule.rule_type==='absent')?rule:null,_pre,_was==='absent'||_was==='mc');   /* v29 · v30 加固定例外 · v33 可清掉 */
     if(!pick) return;
+    if(pick.clear) return unmarkStudent(studentId,dept);
     status=pick.status; note=pick.note;
   }
   if(status==='early_leave'){
-    const reason=prompt('Left early — what time and why? (e.g. 3:30 piano — you can leave this blank):',(rule&&rule.rule_type==='early_leave')?String(rule.reason||''):'');   /* v30 · 固定例外预填 */
+    const _el=noticeOf(studentId,dept,currentSession,'early_leave')||noticeOf(studentId,dept,currentSession,'pickup_change');   /* v32 · 家长通知优先 */
+    const reason=prompt('Left early — what time and why? (e.g. 3:30 piano — you can leave this blank):',_el?(ntHmT(_el.expected_time)+' (parent notified)'):(rule&&rule.rule_type==='early_leave')?String(rule.reason||''):'');   /* v30 · 固定例外预填 */
     if(reason===null) return;
     note=reason?'Early: '+reason:'Early leave';
   }
@@ -1861,36 +2617,77 @@ async function markStudent(studentId,studentName,dept,classCode,status){
   }catch(e){console.error('Save error:',e);toast('✕ Save error');}
 }
 
+/* v31 · Clear all：这一班、这一天、这一节，本班学生在本班点的名全部清掉（回到未点）。
+   老师只能清当天（Owner 10-22）；行政 / 管理层任何日期。换去别班的、来访的不动；Follow-Up 纪录不动。 */
+function askOk(title,msg,okLabel){   /* v33 · 页面上的「确定吗」 */
+  return new Promise(resolve=>{
+    const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    ov.innerHTML='<div style="background:var(--sur);border-radius:14px;max-width:400px;width:100%;padding:16px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">'+esc(title)+'</div><div style="font-size:13px;color:var(--mut);margin-bottom:14px">'+esc(msg)+'</div>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end"><button data-v="0" style="min-height:40px;padding:6px 14px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-family:inherit;font-weight:600;cursor:pointer">Cancel</button>'
+      +'<button data-v="1" id="ask-ok" style="min-height:40px;padding:6px 14px;border-radius:8px;border:none;background:var(--danger);color:#fff;font-family:inherit;font-weight:700;cursor:pointer">'+esc(okLabel||'OK')+'</button></div></div>';
+    ov.addEventListener('click',e=>{ const b=e.target.closest('button'); if(b){ ov.remove(); resolve(b.dataset.v==='1'); } else if(e.target===ov){ ov.remove(); resolve(false); } });
+    document.body.appendChild(ov);
+  });
+}
+function canClearDay(){ return noticeEditor||selectedDate===todayStr(); }
+async function clearAll(dept,classCode){
+  if(!canClearDay()){ toast('Only today\'s marks can be cleared'); return; }
+  const ids=getClassStudents(dept,classCode).filter(s=>!swAwayOn(s.id,classCode,selectedDate)).map(s=>s.id);
+  const recs=todayRecords.filter(r=>ids.includes(r.student_id)&&r.dept===dept&&(r.session??0)===currentSession&&r.class_code===classCode);
+  if(!recs.length){ toast('Nothing to clear'); return; }
+  const sess=dept==='ATC'?(currentSession===2?' · Lesson':' · H/W'):'';
+  if(!(await askOk('Clear all '+recs.length+' marks?',classCode+sess+' · '+fmtDate(selectedDate)+'. Everyone goes back to not marked. This cannot be undone.','Clear all'))) return;   /* v33 · 页面上的确认框（有些手机 / 视窗会挡浏览器的确认框） */
+  const scrollY=window.scrollY;
+  try{
+    const{data,error}=await _sb.from('attendance').delete()
+      .eq('date',selectedDate).eq('dept',dept).eq('session',currentSession).eq('class_code',classCode)
+      .in('student_id',recs.map(r=>r.student_id)).select('student_id');
+    if(error) throw error;
+    const gone=new Set((data||[]).map(r=>r.student_id));
+    todayRecords=todayRecords.filter(r=>!(gone.has(r.student_id)&&r.dept===dept&&(r.session??0)===currentSession&&r.class_code===classCode));
+    renderMark(); window.scrollTo(0,scrollY);
+    if(gone.size===recs.length){ document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ Cleared '+gone.size); }
+    else toast('⚠ Cleared '+gone.size+' of '+recs.length+' — refresh the page and check',6000);
+  }catch(e){ console.error('Clear failed:',e); toast('✕ Clear failed — nothing changed',5000); }
+}
+
 async function markAll(dept,classCode,status){
   const scrollY=window.scrollY;
   const openIds=[...document.querySelectorAll('.class-body.open')].map(el=>el.id);
   const _all=getClassStudents(dept,classCode).filter(s=>!swAwayOn(s.id,classCode,selectedDate));   /* v19 · 换走的不点，免得盖掉他在来访班的纪录 */
-  /* v29 · 家长已请假的孩子不跟着 All ✓：老师自己按（来了按 Present，没来按 Absent 原因已预选） */
-  const _skip=_all.filter(s=>noticeFor(s.id,dept,currentSession));
-  /* v30 · All ✓ 只补「还没点」的孩子 —— 以前会把老师已经点好的 Absent / MC / Late 盖成 Present（Owner 10-21 回报）；
-     当天有固定例外（Exceptions）的孩子也不跟着点，老师自己按 */
+  /* v30 · All ✓ 只补「还没点」的孩子，老师已经点好的不动。
+     v33 · 还没点的孩子照这个顺序决定记什么（Owner 10-22「在对应的格子里标记上」）：
+       1 家长请假通知 → 照通知的原因记缺席（MC → MC）
+       2 ATC 功课班、家长说 3:00 或以后才到 → 缺席（Late arrival HH:MM (notified)）
+       3 家长说晚到（其他）→ 不点，等孩子到了老师按 Late
+       4 固定例外 → 照例外记：不来 = 缺席、晚到 = Late（时间照例外；功课班 3:00 后 = 缺席）、早走 = Early
+       5 其他 → Present
+     记错了老师照样一颗一颗改（孩子其实来了就按 ✓）。 */
   const _dowA=new Date(selectedDate+'T12:00:00').getDay();
-  const _done=_all.filter(s=>!_skip.includes(s)&&getStatus(s.id,dept,currentSession)!=='unmarked');
-  /* v34 · 固定例外照例外记（Owner 10-22 14:00「All ✓ 照例外记，不来记 Absent」）：
-       不来 = Absent（weekly exception）、晚到 = Late 几点（ATC 功课班 3:00 或以后 = Absent）、早走 = Early 几点；
-       例外写「Sometimes」的不一定 → 还是留给老师。记错了老师一颗一颗改。 */
   const hm=t=>t?String(t).slice(0,5):'';
-  const _rest=_all.filter(s=>!_skip.includes(s)&&!_done.includes(s));
-  const _rule=_rest.filter(s=>{const r=getRule(s.id,dept,_dowA,currentSession,selectedDate);return r&&awIsSometimes(r);});
-  const plan=[]; let nRule=0;
-  for(const s of _rest){
-    if(_rule.includes(s)) continue;
+  const plan=[]; let nNt=0,nPre=0,nLate=0,nRule=0,nSome=0;
+  for(const s of _all){
+    if(getStatus(s.id,dept,currentSession)!=='unmarked') continue;
+    const nt=noticeFor(s.id,dept,currentSession);
+    if(nt){ const p=(NT_REASON[nt.reason_code]||NT_REASON.notified_no_reason).pick; plan.push([s,p.status,p.note]); nNt++; continue; }
+    const la=noticeOf(s.id,dept,currentSession,'late_arrival');
+    if(la){ const t=ntHmT(la.expected_time);
+      if(dept==='ATC'&&currentSession===1&&t>='15:00'){ plan.push([s,'absent','Absent: Other — Late arrival '+t+' (notified)']); nPre++; }
+      else nLate++;
+      continue; }
     const rule=getRule(s.id,dept,_dowA,currentSession,selectedDate);
-    if(!rule){ plan.push([s,status,null]); continue; }
-    const why=String(rule.reason||'').trim()||'Weekly exception', t=hm(rule.from_time);
-    if(rule.rule_type==='absent') plan.push([s,'absent','Absent: Other — '+why+' (weekly exception)']);
-    else if(rule.rule_type==='late'){
-      if(dept==='ATC'&&currentSession===1&&t&&t>='15:00') plan.push([s,'absent','Absent: Other — Arrives '+t+' (3:00 or later = H/W absent) (weekly exception)']);
-      else plan.push([s,'late',(t?'Late: '+t+' · ':'Late: ')+why+' (weekly exception)']);
-    }
-    else if(rule.rule_type==='early_leave') plan.push([s,'early_leave','Early: '+(t?t+' ':'')+why+' (weekly exception)']);
-    else plan.push([s,status,null]);
-    nRule++;
+    if(rule&&awIsSometimes(rule)){ nSome++; continue; }   /* 「Sometimes」不一定：留给老师 */
+    if(rule){ const why=String(rule.reason||'').trim()||'Weekly exception', t=hm(rule.from_time);
+      if(rule.rule_type==='absent') plan.push([s,'absent','Absent: Other — '+why+' (weekly exception)']);
+      else if(rule.rule_type==='late'){
+        if(dept==='ATC'&&currentSession===1&&t&&t>='15:00') plan.push([s,'absent','Arrived '+t+' (3:00 or later = H/W absent) (weekly exception)']);
+        else plan.push([s,'late',(t?'Late: '+t+' · ':'Late: ')+why+' (weekly exception)']);
+      }
+      else if(rule.rule_type==='early_leave') plan.push([s,'early_leave','Early: '+(t?t+' ':'')+why+' (weekly exception)']);
+      else plan.push([s,status,null]);
+      nRule++; continue; }
+    plan.push([s,status,null]);
   }
   for(const [s,st,note] of plan){
     const existing=todayRecords.findIndex(r=>r.student_id===s.id&&r.dept===dept&&(r.session??0)===currentSession);
@@ -1900,20 +2697,19 @@ async function markAll(dept,classCode,status){
   renderMark();
   openIds.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('open');});
   window.scrollTo(0,scrollY);
-  // Batch save
   const rows=plan.map(([s,st,note])=>({
     date:selectedDate,student_id:s.id,student_name:s.name,
     dept,class_code:classCode,status:st,note,marked_by:userEmail,
     session:currentSession,
     updated_at:new Date().toISOString()
   }));
-  const _left=[_skip.length?_skip.length+' with a parent notice':'',_rule.length?_rule.length+' with a “sometimes” exception':''].filter(Boolean).join(' · ');   /* v30 · v34 */
-  const _info=nRule?nRule+' as the weekly exception says':'';
-  if(!rows.length){ toast(_left?('Nothing to mark · '+_left+' — mark them one by one'):'Everyone is already marked',4500); return; }
+  const _info=[nNt+nPre?(nNt+nPre)+' absent as the parent told the office':'',nRule?nRule+' as the weekly exception says':''].filter(Boolean).join(' · ');
+  const _left=[nLate?nLate+' arriving late — tap Late when they come':'',nSome?nSome+' with a “sometimes” exception — mark them yourself':''].filter(Boolean).join(' · ');
+  if(!rows.length){ toast(_left?('Nothing to mark · '+_left):'Everyone is already marked',4500); return; }
   try{
-    const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session',ignoreDuplicates:true});   /* v34 · 别的手机刚点过的不盖 */
+    const{error}=await _sb.from('attendance').upsert(rows,{onConflict:'date,student_id,dept,session',ignoreDuplicates:true});   /* v33 · 别的手机刚点过的不盖 */
     if(error){ console.error('Batch save failed:',error); toast('✕ Save failed'); }
-    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ Marked '+rows.length+(_info?' · '+_info:'')+(_left?' · left for you: '+_left:''),(_info||_left)?5000:undefined); }
+    else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ Marked '+rows.length+(_info?' · '+_info:'')+(_left?' · '+_left:''),(_info||_left)?5000:undefined); }
   }catch(e){console.error('Batch error:',e);toast('✕ Save error');}
 }
 
@@ -2003,6 +2799,7 @@ async function renderMonthly(){
   if(_tok!==_monthlyTok) return;   /* v28 · 分批要多等几下：老师已经换了班 / 月份，这一份就不画，免得旧的盖掉新的 */
   // D-A35: ATC 一天两条 (session 1/2)。不按 session 过滤 = recMap 后条覆盖前条,
   // Rate 分母翻倍, 显示哪一节不可预测。一刀切好 recMap/Rate/Marked by 三处。
+  monthRecs=(monthRecs||[]).filter(r=>!r.voided_at);   /* v33 */
   const recs=(monthRecs||[]).filter(r=>(r.session??0)===monthlySession&&attClassOf(r)===monthlyClass);
   /* v26 · 双班学生（例：一个人同时在 LV7.SAT.NN 与 LV6.FRI.PM）：E-Class 一天只记一条、算在一班。
      在另一班的月报照样显示灰色 E，让两班老师都看得到；不进本班出席率。 */
@@ -2011,6 +2808,20 @@ async function renderMonthly(){
     (eElse[r.student_id]=eElse[r.student_id]||{})[parseInt(r.date.split('-')[2])]=r;
   });
 
+  /* v33 · 这个月每个上课日的家长请假通知（点名页用的同一个函式；读不到就不显示，不影响点名纪录） */
+  try{
+    const _days=[]; for(let d=1;d<=daysInMonth;d++){ const ds=monthlyMonth+'-'+String(d).padStart(2,'0'); if(isClassDay(monthlyDept,monthlyClass,ds)&&!(noticeCache[ds+'|'+monthlyDept]&&noticeCache[ds+'|'+monthlyDept].ok)) _days.push(ds); }
+    if(noticeEditor||noticeScope[monthlyDept]!==false) await Promise.all(_days.map(ds=>loadNotices(ds,monthlyDept)));
+  }catch(e){ console.warn('[v33] month notices',e); }
+  if(_tok!==_monthlyTok) return;
+  /* v33 · SRT 补课那天的纪录（可能在别的月份）→ 缺的那天算不算补回来 */
+  const _vis={};
+  if(monthlyDept==='SRT'){
+    const mus=allSwaps.filter(w=>w.status==='active'&&w.kind==='replacement'&&w.from_class===monthlyClass&&w.from_date&&w.from_date.slice(0,7)===monthlyMonth);
+    if(mus.length){ try{ const{data:vr}=await _sb.from('attendance').select('student_id,date,status,voided_at').in('student_id',[...new Set(mus.map(w=>w.student_id))]).in('date',[...new Set(mus.map(w=>w.to_date))]).eq('dept','SRT');
+      (vr||[]).filter(r=>!r.voided_at).forEach(r=>{ _vis[r.student_id+'|'+r.date]=r.status; }); }catch(e){} }
+    if(_tok!==_monthlyTok) return;
+  }
   // Build lookup: recMap[studentId][day] = {status, note, marked_by}
   const recMap={};
   recs.forEach(r=>{
@@ -2030,6 +2841,12 @@ async function renderMonthly(){
     const isWknd=dow===0||dow===6;
     h+=`<th style="padding:4px 2px;text-align:center;min-width:28px;font-size:9px;${isWknd?'color:var(--danger);':''}"><div>${d}</div><div style="font-size:8px">${dayNames[dow]}</div></th>`;
   }
+  /* v33 · 出席率：ATC 两节各一格，其他部门一格 */
+  const _rCols=monthlyDept==='ATC'?[[1,'H/W'],[2,'Lesson']]:[[0,'Rate']];
+  const _recMapS={};
+  _rCols.forEach(([ss])=>{ const m={}; (monthRecs||[]).filter(r=>(r.session??0)===ss&&attClassOf(r)===monthlyClass).forEach(r=>{ (m[r.student_id]=m[r.student_id]||{})[parseInt(r.date.split('-')[2])]={status:r.status,note:r.note||'',other:r.class_code!==monthlyClass?r.class_code:''}; }); _recMapS[ss]=m; });
+  const _rTot={}; _rCols.forEach(([ss])=>_rTot[ss]={att:0,abs:0,unm:0});
+  _rCols.forEach(([ss,lb])=>{ h+=`<th style="padding:4px 6px;text-align:center;font-size:9px;border-left:.5px solid var(--bdr);white-space:nowrap${ss&&ss===monthlySession?';text-decoration:underline':''}">${lb}<div style="font-size:8px;font-weight:400">rate</div></th>`; });
   h+=`</tr></thead><tbody>`;
 
   // Student rows
@@ -2083,11 +2900,16 @@ async function renderMonthly(){
           if(_sw){ r.other=r.other||''; }
           const oth=(r.other?' · marked in '+r.other:'')+(_sw?' · '+_sw.t:'');   /* v18 / v19 */
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth)}">${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}</td>`;
+        }else if(noticeOn(s.id,monthlyDept,monthlySession,dayStr)&&isClassDay(monthlyDept,monthlyClass,dayStr)){   /* v33 · 家长说不来、还没点 */
+          const _n=noticeOn(s.id,monthlyDept,monthlySession,dayStr);
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#FFF4F4;color:var(--danger);font-size:9px;font-weight:700;outline:1px dashed #E07070;outline-offset:-3px" title="${_escHtml('Parent told the office: '+((NT_REASON[_n.reason_code]||{label:'Absent'}).label)+' · not marked yet · counted as absent')}">N</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)">·</td>`;
         }
       }
     }
+    _rCols.forEach(([ss])=>{ const x=rateFor(s,mem,monthlyDept,monthlyClass,ss,(_recMapS[ss][s.id]||{}),monthlyMonth,daysInMonth,ss===monthlySession?eElse[s.id]:null,_vis);
+      _rTot[ss].att+=x.att; _rTot[ss].abs+=x.abs; _rTot[ss].unm+=x.unm; h+=rateCell(x); });   /* v33 */
     h+=`</tr>`;
   });
 
@@ -2117,6 +2939,7 @@ async function renderMonthly(){
       }
     }
   }
+  _rCols.forEach(([ss])=>{ const t=_rTot[ss], n=t.att+t.abs; h+=rateCell({att:t.att,abs:t.abs,unm:t.unm,pct:n?Math.round(t.att/n*100):null}); });   /* v33 · 全班 */
   h+=`</tr>`;
 
   // Marked by row
@@ -2127,9 +2950,12 @@ async function renderMonthly(){
     const short=markers.map(e=>markerNames[e]||e.split('@')[0].slice(0,3).toUpperCase()).join(',');
     h+=`<td style="padding:2px;text-align:center;font-size:7px;color:var(--mut)" title="${markers.join(', ')}">${short||'–'}</td>`;
   }
+  _rCols.forEach(()=>{ h+=`<td style="border-left:.5px solid var(--bdr)"></td>`; });
   h+=`</tr>`;
 
   h+=`</tbody></table></div>`;
+  /* v33 · 这个部门的出席率怎么算 */
+  h+=`<details style="margin-top:10px;font-size:12px;color:var(--mut)"><summary style="cursor:pointer;font-weight:600;color:var(--txt)">How the ${monthlyDept} rate is counted</summary><ul style="margin:6px 0 0 18px;line-height:1.5">${RATE_RULES[monthlyDept].concat(RATE_RULES.ALL).map(t=>'<li>'+t+'</li>').join('')}<li>N in a box = the parent told the office the child is absent, and the teacher has not marked it yet.</li></ul></details>`;
 
   el.innerHTML=h;
 }
@@ -2241,6 +3067,7 @@ async function loadTrackerMatrix(){
   let recs;
   try{ recs=await _fetchAll(()=>_sb.from('attendance').select('*').in('student_id',ids).gte('date',trackerFrom).lte('date',trackerTo).order('id'),'Tracker'); }   /* v28 */
   catch(e){ console.error(e); el.innerHTML=_loadFailHTML(e); return; }
+  recs=(recs||[]).filter(r=>!r.voided_at);   /* v33 */
 
   const ICON={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
   const BG={present:'#E1F5EE',absent:'#FCEBEB',late:'#FFF8E1',early_leave:'#FFF0E6',mc:'#EEF2F7'};
@@ -2248,7 +3075,7 @@ async function loadTrackerMatrix(){
 
   // Stats
   const total=recs.length;
-  const present=recs.filter(r=>r.status==='present').length;
+  const present=recs.filter(r=>r.status==='present'||r.status==='early_leave').length;   /* v33 · 早走算有到（跟出席率规则一致） */
   const late=recs.filter(r=>r.status==='late').length;
   const absent=recs.filter(r=>r.status==='absent').length;
   const mc=recs.filter(r=>r.status==='mc').length;

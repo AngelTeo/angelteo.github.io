@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DutyQ v2</title>
+<title>DutyQ v3</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
@@ -242,7 +242,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══════ NAV (TOPBAR) ══════ -->
 <div class="nav" id="nav">
   <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
-  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v2</span></div>
+  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v3</span></div>
   <button class="ntab on" data-p="arrange" onclick="goPage('arrange')">Arrange</button>
   <button class="ntab" data-p="print" onclick="goPage('print')">Print</button>
   <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')">Manage</button>
@@ -265,6 +265,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
     <span class="tip" id="sess-time" style="margin:0"></span>
   </div>
   <div id="arr-swap"></div>
+  <div id="arr-notice"></div>
   <div class="arr">
     <div class="side">
       <div class="card fold" id="fold-stu" style="margin:0">
@@ -347,7 +348,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=2;
+const APP_VERSION=3;   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
 const SYSTEM_CODE='OPR-DutyQ';
 const UI_KEY='dutyq_ui_v1';           // 只存画面偏好（部门、时段、楼层、缩放）；资料一律在云端
 const PLAN_W=2000, PLAN_H=2600;       // 平面图画布（Room SSOT 的位置是百分比）
@@ -460,6 +461,8 @@ async function loadAll(){
     try{ const fr=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
       const {data:sw,error:se}=await _sb.from('attendance_swap').select('student_id,kind,from_class,from_date,to_class,to_date,note').eq('status','active').gte('to_date',fr);
       S.swaps=se?[]:(sw||[]); }catch(e){ S.swaps=[]; }
+    /* v3 · 今天的家长通知（换人接 / 晚接 / 早走）。读不到 → 显示「读不到」，不挡画面 */
+    await dqLoadNotices();
   }catch(e){
     S.ok=false; S.loadError=String(e.message||e);
   }
@@ -546,7 +549,31 @@ function swapBoxHTML(forPrint){
   if(ch.inn.length) h+='<div style="font-size:12px;margin-top:6px"><b>Joining this session</b> <span style="color:var(--mut)">— not in any line; release with the class they attend</span>'+ch.inn.map(x=>'<div style="padding:2px 0">• '+esc(stuName(x.w.student_id))+' <span style="background:#F3F1FB;color:#7870CC;border-radius:8px;padding:0 6px;font-size:10px;font-weight:600">'+(x.w.kind==='replacement'?'Replacement':'Temp slot')+'</span> with <b>'+esc(x.t.name)+'</b> <span style="color:var(--mut)">(own class '+esc(x.f.name)+')</span></div>').join('')+'</div>';
   return h+'</div>';
 }
-function renderSwapBox(){ const el=document.getElementById('arr-swap'); if(el) el.innerHTML=swapBoxHTML(false); }
+function renderSwapBox(){ const el=document.getElementById('arr-swap'); if(el) el.innerHTML=swapBoxHTML(false); const n=document.getElementById('arr-notice'); if(n) n.innerHTML=dqNoticeHTML(false); }
+/* ══ v3 · 今天的家长通知（AttendanceGo → Notices 登记；资料库函式 notices_for_dutyq，只读）══
+   只是家长告知；实际放人仍由值班老师照学校现行接送程序确认，系统不代表已核实身分。 */
+S.dqNotices=[]; S.dqNoticeErr=false; S.dqNoticeDate='';
+async function dqLoadNotices(){
+  S.dqNoticeDate=today();
+  try{ const {data,error}=await _sb.rpc('notices_for_dutyq',{p_date:S.dqNoticeDate}); if(error) throw error; S.dqNotices=data||[]; S.dqNoticeErr=false; }
+  catch(e){ console.warn('[DutyQ] notices',e); S.dqNotices=[]; S.dqNoticeErr=true; }
+}
+function dqHm(t){ return t?String(t).slice(0,5):''; }
+function dqNoticeHTML(forPrint){
+  const s=sess(); if(!s) return '';
+  const list=(S.dqNotices||[]).filter(n=>n.dept===s.dept).sort((a,b)=>String(a.expected_time||'99').localeCompare(String(b.expected_time||'99'))||stuName(a.student_id).localeCompare(stuName(b.student_id)));
+  if(forPrint&&!list.length) return '';
+  let h='<div class="card" style="margin:0 0 10px;border-left:3px solid #B45309;padding:10px 14px">'
+    +'<div style="margin-bottom:4px"><b style="font-size:13px;color:#B45309">Parent notices today ('+esc(s.dept)+')</b> <span class="tip" style="margin:0">Parent-reported; release children by the usual pick-up check.</span></div>';
+  if(S.dqNoticeErr) h+='<div class="tip" style="margin:0;color:var(--danger,#A32D2D)">Parent notices could not be loaded — check WhatsApp. <a href="#" onclick="dqLoadNotices().then(renderSwapBox);return false">Retry</a></div>';
+  else if(!list.length) h+='<div class="tip" style="margin:0">No pick-up changes, late pick-ups or early leavers today.</div>';
+  else h+=list.map(n=>{
+    const what=n.kind==='pickup_change'?'<b>Pick-up change</b>: '+esc(n.pickup_name||'')+' ('+esc(n.pickup_relation||'')+')'+(n.car_plate?' · car '+esc(n.car_plate):'')+(n.expected_time?' · going home '+esc(dqHm(n.expected_time)):'')
+      :n.kind==='late_pickup'?'<b>Late pick-up</b> '+esc(dqHm(n.expected_time)):'<b>Leaving early</b> '+esc(dqHm(n.expected_time));
+    return '<div style="font-size:12px;padding:2px 0">• '+esc(stuName(n.student_id))+' <span style="color:var(--mut)">('+esc(n.class_code||'')+')</span> · '+what+'</div>';
+  }).join('');
+  return h+'</div>';
+}
 
 /* ══ pages ══ */
 function goPage(p){
@@ -939,6 +966,7 @@ function renderPrint(){
     '<div class="meta">'+['Classes: '+(sessClasses().filter(c=>floorOf(c.id)===S.ui.floor).map(c=>esc(c.class_name)).join(', ')||'—'),s.dismiss_time?'Class dismissal '+esc(s.dismiss_time):'',s.down_time?'Duty go down '+esc(s.down_time):''].filter(Boolean).join(' · ')+'</div>'+
     (ls.length?'<div class="pord">'+ls.map((l,i)=>'<div><span class="no" style="width:22px;height:22px;border-radius:50%;background:#1E1E1C;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+(i+1)+'</span><span><b>'+esc(l.label||'Line')+'</b><br><small>'+esc(l.room_id)+((l.teacher_ids||[]).length?' · '+esc(l.teacher_ids.join(' · ')):'')+'</small></span></div>').join('')+'</div>':'<div class="empty">No lines yet</div>')+
     swapBoxHTML(true)+   /* v2 · 那一天的补课 / 换时段 */
+    dqNoticeHTML(true)+   /* v3 · 今天的家长通知 */
     '<div class="plan-print" style="position:relative;--sh:'+(vb.h*scale)+'px;--sw:auto;--ss:'+scale+';--ph:'+(vb.h*pscale)+'px;--pw:'+(vb.w*pscale)+'px;--ps:'+pscale+'"><div style="width:'+vb.w+'px;height:'+vb.h+'px;position:relative"><div class="plan" style="left:'+(-vb.x)+'px;top:'+(-vb.y)+'px">'+html+'</div></div></div></div>'+
     '<h2 class="print-only" style="margin:0 0 10px">'+title+' · Lines</h2>'+
     '<div class="pgrid">'+ls.map((l,i)=>'<div class="pc"><b><span>'+(i+1)+' · '+esc(l.label||'Line')+' '+ARROW[l.direction]+'</span><span>'+esc((l.teacher_ids||[]).join(' · '))+'</span></b>'+
@@ -950,7 +978,7 @@ function renderPrint(){
 function renderManage(){
   document.getElementById('mg-me').innerHTML='<div>Signed in: <strong>'+esc(S.me.email)+'</strong></div><div>Access: <strong>'+(S.perm.edit?'Can edit':'View only')+'</strong></div>';
   const n=sessLines().length;
-  document.getElementById('mg-sys').innerHTML='<div>System: <strong>DutyQ</strong></div><div>Version: <strong>v'+APP_VERSION+'</strong></div><div>Layer: <strong>OPR</strong></div><div>Reads: Room SSOT · Student SSOT · Teacher SSOT · ClassGo duty · AttendanceGo replacement / temp slot</div><div>Lines in this session: <strong>'+n+'</strong></div>';
+  document.getElementById('mg-sys').innerHTML='<div>System: <strong>DutyQ</strong></div><div>Version: <strong>v'+APP_VERSION+'</strong></div><div>Layer: <strong>OPR</strong></div><div>Reads: Room SSOT · Student SSOT · Teacher SSOT · ClassGo duty · AttendanceGo replacement / temp slot · parent notices (today)</div><div>Lines in this session: <strong>'+n+'</strong></div>';
   document.getElementById('mg-cloud').innerHTML=S.loadError?'<div class="alert alert-danger">✕ '+esc(S.loadError)+'. Nothing was changed.</div><button class="btn" onclick="location.reload()">Retry</button>':
     '<div>Status: <strong>'+(S.syncErr?'Last save failed':'Connected')+'</strong></div><div>Last saved: <strong>'+(S.lastSaved?hhmm(S.lastSaved):'—')+'</strong></div>'+(S.syncErr?'<button class="btn" onclick="location.reload()">Reload from cloud</button>':'');
   const rows=S.sessions.map(s=>'<tr><td style="padding:6px 8px"><b>'+esc(s.dept)+'</b> '+esc(s.label)+'</td><td style="padding:6px 8px"><input type="text" value="'+esc(s.dismiss_time||'')+'" data-code="'+esc(s.code)+'" data-f="dismiss_time" onchange="saveSessionField(this)" style="width:110px" '+(canEdit()?'':'disabled')+'></td><td style="padding:6px 8px"><input type="text" value="'+esc(s.down_time||'')+'" data-code="'+esc(s.code)+'" data-f="down_time" onchange="saveSessionField(this)" style="width:110px" '+(canEdit()?'':'disabled')+'></td></tr>').join('');
