@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v41</title>
+<title>OPR-AttendanceGo v42</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v41</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v42</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=41;   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=42;   /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -314,11 +314,12 @@ function eMark(r){
   return m?('E·'+m[1]+(r.status==='late'?'⏰':'')):'';
 }
 function eRowTag(note){
+  return '';   /* v42 · 不再显示 E-Class 标签 */
   const m=String(note||'').match(/(^|· )E ([A-Z]{3})\.(AM|NN|PM)( ·|$)/);
   return m?'<span style="font-size:9px;font-weight:700;color:#6B6B3A;background:rgba(107,107,58,.12);border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">E-Class '+m[3]+'</span>':'';
 }
 function attMark(r,ICON){
-  const _e=eMark(r); if(_e) return _e;
+  /* v42 · E-Class 纪录照一般 ✓ 显示 */
   if(r&&r.status==='absent'){ const k=absKind('absent',r.note); if(k==='Holiday') return 'Hol'; if(k==='Stay back') return 'SB'; }
   return ICON[r.status];
 }
@@ -2930,7 +2931,7 @@ async function renderMonthly(){
         const r=(recMap[s.id]||{})[d];
         const extra=hasExtraClass(dayStr,monthlyDept);
         if(extra&&r){
-          const icon=r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON);
+          const icon=r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON);
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${String(icon).startsWith('E·')?'8px':'10px'}" title="${hol.name} (${extra.name})">${icon}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#FFF8E1;color:var(--warn);font-size:9px;font-weight:600" title="${hol.name}">H</td>`;
@@ -2939,7 +2940,7 @@ async function renderMonthly(){
         // Transfer day: show attendance record + transfer marker below
         const r=(recMap[s.id]||{})[d];
         const targetName=transferTarget?transferTarget.class_code.replace(/^[A-Z]+_/,''):'Moved';
-        const attIcon=r?(r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)):'·';
+        const attIcon=r?(r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)):'·';
         const attBg=r?BG[r.status]||'':'';
         h+=`<td style="padding:1px;text-align:center;border-bottom:.5px solid var(--bdr);background:${attBg};line-height:1.1" title="Class change → ${transferTarget?transferTarget.class_code:'—'}">
           <div style="font-size:10px">${attIcon}</div>
@@ -2953,12 +2954,12 @@ async function renderMonthly(){
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:9px" title="On leave">L</td>`;
         }else if(!r&&(eElse[s.id]||{})[d]){   /* v26 */
           const er=eElse[s.id][d];
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:8px;font-weight:600" title="${_escHtml('E-Class · counted in '+swCls(attClassOf(er))+' · '+(er.note||''))}">${eMark(er)}</td>`;
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:8px;font-weight:600" title="${_escHtml('Counted in '+swCls(attClassOf(er)))}">${er.status==='late'?'⏰':'✓'}</td>`;
         }else if(!r&&swAwayOn(s.id,monthlyClass,dayStr)){   /* v19 · 换到别的日子上，这天没纪录 */
           const aw=swAwayOn(s.id,monthlyClass,dayStr);
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">Temp</td>`;
         }else if(r){
-          const display=r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)||'·';
+          const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)||'·';
           const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status);   /* v19 · 补 / 换 / 已补 */
           if(_sw){ r.other=r.other||''; }
           const oth=(r.other?' · marked in '+r.other:'')+(_sw?' · '+_sw.t:'');   /* v18 / v19 */
@@ -3191,7 +3192,7 @@ async function loadTrackerMatrix(){
       days.forEach(d=>{
         const r=recByDate[d.date];
         if(r){
-          const display=r.status==='late'&&!eMark(r)&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON);
+          const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON);
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'}" title="${r.note||r.status}">${display}</td>`;
         }else{
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)">·</td>`;
