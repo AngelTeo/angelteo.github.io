@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v38</title>
+<title>OPR-AttendanceGo v39</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v38</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v39</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,8 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=38;   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
+const APP_VERSION=39;   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
+/* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
 /* v33   /* v33 · 出席率各部门规则（Monthly 每位孩子一格）；家长请假通知直接显示在格子里、All ✓ 照通知记成缺席；固定例外 All ✓ 照例外记；Notices 页加「Messages to the groups」（今天名单、SRT 补课 / 换 slot、永久换班 → WhatsApp ＋ 已送出纪录）；作废的点名不再显示 */
 // v32 ·    /* v32 · 家长通知搬进来（Notices 分页，行政用）：请假、早走、晚到、晚接、换人接 → 点名页显示；All ✓ 跳过有晚到通知的孩子；ATC 晚到 3:00 后功课班预选；+ Add visitor 先查行政是否已安排 */
 // v31 ·   /* v31 · 每班「Clear all」：清掉这一班这一节已点的名，回到未点（老师只能清当天；行政 / 管理层任何日期）—— Owner 10-22 */
@@ -883,15 +884,32 @@ function ntSendPanel(id){
     '<button style="'+NT_RED+'" onclick="ntCancelMsg(\''+id+'\')">Don\'t send</button><button style="'+NT_BTN+'" onclick="ntClose();ntRender()">Send later (together)</button>'
     +'<button style="'+NT_PRI+(opened?'':';opacity:.45')+'" id="nt-sent-btn" '+(opened?'':'disabled')+' onclick="ntConfirmSent(\''+id+'\')">I\'ve sent it</button>');
 }
+/* v39 · 照 MiscGo 的开法：先直接叫 WhatsApp app；2 秒后页面还在前景（电脑没装 app）才开网页版。
+   以前直接开 wa.me 网页 → 多一页「Share on WhatsApp」不会自己关，讯息在那页也看不出分行 */
+function ntWhatsApp(text){
+  if(!text) return;
+  const e=encodeURIComponent(text);
+  let left=false;
+  const mark=()=>{left=true;};
+  const onVis=()=>{if(document.hidden)left=true;};
+  document.addEventListener('visibilitychange',onVis);
+  window.addEventListener('blur',mark); window.addEventListener('pagehide',mark);
+  window.location.href='whatsapp://send?text='+e;
+  setTimeout(()=>{
+    document.removeEventListener('visibilitychange',onVis);
+    window.removeEventListener('blur',mark); window.removeEventListener('pagehide',mark);
+    if(!left&&!document.hidden) window.open('https://wa.me/?text='+e,'_blank');
+  },2000);
+}
 async function ntOpenWA(id,method){
   const sub=ntQGet(id); if(!sub||!sub.delivery) return;
+  if(method==='whatsapp_link') ntWhatsApp(sub.delivery.content);   /* v39 · 按下去当下就开 */
   const res=await ntRpc('delivery_mark_opened',{p_id:sub.delivery.id,p_method:method});
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
   sub.delivery.state='OPENED_WHATSAPP'; ntQPut(sub);
   if(method==='copied'){ try{ await navigator.clipboard.writeText(sub.delivery.content); ntToast('Copied — paste it in the WhatsApp group'); }catch(e){ ntToast('Could not copy — select the text and copy it',true); } }
   const b=document.getElementById('nt-sent-btn'); if(b){ b.disabled=false; b.style.opacity='1'; }
   const hint=document.getElementById('nt-sent-hint'); if(hint) hint.textContent='After you have sent it in WhatsApp, tap “I\'ve sent it”.';
-  if(method==='whatsapp_link') window.open('https://wa.me/?text='+encodeURIComponent(sub.delivery.content),'_blank');
 }
 async function ntConfirmSent(id){
   const sub=ntQGet(id); if(!sub||!sub.delivery) return;
@@ -957,6 +975,7 @@ async function msLoad(){
     if(ch&&document.getElementById('page-notices').classList.contains('on')) ntRender(); }
 }
 function msCls(c){ return typeof swCls==='function'?swCls(c):c; }
+function msDepts(){ return MS.selD.length?MS.selD.slice():['SRK','GAK','ATC','SRT']; }   /* v39 · 部门一个都不勾 = 全部部门 */
 function msTick(group,v,on){ const a=group==='d'?MS.selD:MS.selK; const i=a.indexOf(v); if(on&&i<0) a.push(v); if(!on&&i>=0) a.splice(i,1); const b=document.getElementById('ms-box'); if(b) b.innerHTML=msHtml(); }
 function msHtml(){
   const T=ntToday();
@@ -972,8 +991,8 @@ function msHtml(){
     const chip=(group,v,label,n,on)=>'<label style="display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border:1px solid var(--bdr);border-radius:16px;font-size:12.5px;cursor:pointer;background:'+(on?'var(--sur2)':'var(--sur)')+'"><input type="checkbox" '+(on?'checked':'')+' onchange="msTick(\''+group+'\',\''+v+'\',this.checked)">'+label+(n?' <b style="color:#b45309">'+n+'</b>':'')+'</label>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'+['SRK','GAK','ATC','SRT'].map(d=>chip('d',d,d,cnt(d,null),MS.selD.includes(d))).join('')+'</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+MS_KINDS.map(([k,t])=>chip('k',k,t,cnt(null,k),MS.selK.includes(k))).join('')+'</div>';
-    const n=W.filter(x=>MS.selD.includes(x.dept)&&MS.selK.includes(x.kind)).reduce((a,x)=>a+x.count,0);
-    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button style="'+NT_PRI+(n?'':';opacity:.45')+'" '+(n?'':'disabled')+' onclick="msBatch()">Make one message'+(n?' ('+n+')':'')+'</button>'
+    const _D=msDepts(); const n=W.filter(x=>_D.includes(x.dept)&&MS.selK.includes(x.kind)).reduce((a,x)=>a+x.count,0);
+    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button style="'+NT_PRI+(n?'':';opacity:.45')+'" '+(n?'':'disabled')+' onclick="msBatch()">Make one message'+(n?' ('+n+')':'')+'</button>'+(!n&&W.length?'<span style="font-size:12px;color:#B42318">'+(!MS.selK.length?'Tick at least one kind.':'Nothing waiting for what you ticked.')+'</span>':'')+(!MS.selD.length&&n?'<span style="font-size:12px;color:var(--mut)">(all departments)</span>':'')
       +'<span style="font-size:12px;color:var(--mut)">'+(W.length?'Waiting: '+W.map(x=>x.dept+' '+MS_KIND_LABEL[x.kind].replace(/^SRT /,'').toLowerCase()+' '+x.count).join(' · '):'Nothing waiting — everything has been told ✓')+'</span></div>';
   }
   /* ── 2 · 今天名单 ── */
@@ -988,9 +1007,9 @@ function msHtml(){
 }
 async function msBatch(){
   if(MS.busy) return;
-  if(!MS.selD.length||!MS.selK.length){ ntToast('Tick at least one department and one kind',true); return; }
+  if(!MS.selK.length){ ntToast('Tick at least one kind',true); return; }
   const key='batch|'+Date.now();   /* 每按一次都是新的一则（只在同一次按、断网重送时沿用） */
-  const prep=uid=>ntRpc('delivery_prepare_batch',{p_client_uid:uid,p_depts:MS.selD.slice(),p_kinds:MS.selK.slice()});
+  const prep=uid=>ntRpc('delivery_prepare_batch',{p_client_uid:uid,p_depts:msDepts(),p_kinds:MS.selK.slice()});
   MS.busy=true; const res=await prep(msUidFor(key)); MS.busy=false;
   if(res.kind==='rejected'&&res.code==='NOTHING_TO_SEND'){ ntToast('Nothing waiting for those — everything has been told'); msLoad(); return; }
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
@@ -1038,7 +1057,7 @@ async function msOpen(method){
   const c=MS.cur; if(!c) return;
   /* 手机浏览器只在「按下去的那一刻」允许开新分页 / 复制 → 先做，再记录（Safari 否则会挡） */
   let w=null, copied=false;
-  if(method==='whatsapp_link') w=window.open('https://wa.me/?text='+encodeURIComponent(c.d.content),'_blank');
+  if(method==='whatsapp_link') ntWhatsApp(c.d.content);   /* v39 */
   else { try{ await navigator.clipboard.writeText(c.d.content); copied=true; }catch(e){} }
   const res=await ntRpc('delivery_mark_opened',{p_id:c.d.id,p_method:method});
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
