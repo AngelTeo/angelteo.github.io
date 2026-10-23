@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v39</title>
+<title>OPR-AttendanceGo v40</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v39</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v40</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,8 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=39;   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
+const APP_VERSION=40;   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
+/* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
 /* v33   /* v33 · 出席率各部门规则（Monthly 每位孩子一格）；家长请假通知直接显示在格子里、All ✓ 照通知记成缺席；固定例外 All ✓ 照例外记；Notices 页加「Messages to the groups」（今天名单、SRT 补课 / 换 slot、永久换班 → WhatsApp ＋ 已送出纪录）；作废的点名不再显示 */
 // v32 ·    /* v32 · 家长通知搬进来（Notices 分页，行政用）：请假、早走、晚到、晚接、换人接 → 点名页显示；All ✓ 跳过有晚到通知的孩子；ATC 晚到 3:00 后功课班预选；+ Add visitor 先查行政是否已安排 */
@@ -437,7 +438,8 @@ function ntHmT(t){ return t?String(t).slice(0,5):''; }
 function ntTimeTag(studentId,dept,session){
   return timeNoticesFor(studentId,dept,session).map(r=>{
     const t=ntHmT(r.expected_time);
-    const tx=r.kind==='early_leave'?'Leaves '+t:r.kind==='late_arrival'?'Arrives '+t:r.kind==='late_pickup'?'Pick-up '+t:(t?'Leaves '+t+' · pick-up change':'');
+    const tx=r.kind==='early_leave'?'Leaves '+t:r.kind==='late_arrival'?'Arrives '+t:r.kind==='late_pickup'?'Pick-up '+t:'';
+    if(r.kind==='pickup_change') return '<span style="font-size:10px;font-weight:700;color:#1E4E8C;background:#E3EEFB;border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">🚗 Pick-up change'+(t?' · '+t:'')+'</span>';   /* v40 · 换人接一律显示 */
     return tx?'<span style="font-size:10px;font-weight:700;color:#7A4A00;background:#FFF1D6;border-radius:8px;padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap">⏰ '+tx+'</span>':'';
   }).join('');
 }
@@ -605,7 +607,7 @@ async function ntLoadList(){
     if(r.error) throw r.error;
     NT.list=r.data||[]; NT.listErr=''; NT.deliv={};
     const subs=[...new Set(NT.list.map(n=>n.submission_id))];
-    if(subs.length){ const d=await _sb.from('attendance_message_delivery').select('id,submission_id,state,stale_at,created_at').in('submission_id',subs).order('created_at',{ascending:true});
+    if(subs.length){ const d=await _sb.from('attendance_message_delivery').select('id,submission_id,state,stale_at,created_at,content_fingerprint').in('submission_id',subs).order('created_at',{ascending:true});
       if(!d.error)(d.data||[]).forEach(x=>{ (NT.deliv[x.submission_id]=NT.deliv[x.submission_id]||[]).push(x); }); }
     const rids=[...new Set(NT.list.map(n=>n.record_id).filter(Boolean))];
     if(rids.length) NT.closeWarn=!(await ntCloseRecords(rids));
@@ -656,7 +658,8 @@ function ntListHtml(){
       +(act?'<div style="font-size:11.5px;color:'+(ms.sent?'var(--ok)':'#b45309')+';margin-top:2px">'+ms.txt+'</div>'
            :'<div style="font-size:11.5px;color:var(--danger);margin-top:2px">Cancelled'+(n.void_reason?': '+ntEsc(n.void_reason):'')+(ms.sent?(ms.cancel_sent?' · the group was told it is cancelled ✓':' · the group was told before — it is waiting in “Send to the group” as a cancellation'):'')+'</div>')
       +'</div><div style="display:flex;flex-direction:column;gap:6px">'
-      +(act&&!ms.sent?'<button style="'+NT_PRI+'" onclick="ntSendFromList(\''+n.submission_id+'\')">Send message</button>':'')
+      +(act&&!ms.sent&&ntOpenedDeliv(n.submission_id)?'<button style="'+NT_PRI+';background:#1E7A46" onclick="ntSentFromList(\''+n.submission_id+'\')">I\'ve sent it ✓</button>':'')   /* v40 */
+      +(act&&!ms.sent?'<button style="'+(ntOpenedDeliv(n.submission_id)?NT_BTN:NT_PRI)+'" onclick="ntSendFromList(\''+n.submission_id+'\')">'+(ntOpenedDeliv(n.submission_id)?'Open again':'Send message')+'</button>':'')
       +(act?'<button style="'+NT_RED+'" onclick="ntVoidAsk(\''+n.id+'\')">Cancel</button>':'')
       +'</div></div></div>';
   });
@@ -904,6 +907,7 @@ function ntWhatsApp(text){
 async function ntOpenWA(id,method){
   const sub=ntQGet(id); if(!sub||!sub.delivery) return;
   if(method==='whatsapp_link') ntWhatsApp(sub.delivery.content);   /* v39 · 按下去当下就开 */
+  ntArmAskBack('The message for '+((sub.rows||[]).length)+' notice(s).',()=>ntConfirmSent(id));   /* v40 */
   const res=await ntRpc('delivery_mark_opened',{p_id:sub.delivery.id,p_method:method});
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
   sub.delivery.state='OPENED_WHATSAPP'; ntQPut(sub);
@@ -925,6 +929,30 @@ async function ntCancelMsg(id){
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
   sub.stage='done'; sub.delivery.state='CANCELLED'; ntQPut(sub); ntClose(); ntToast('Message not sent. The notice stays saved.'); ntRender();
 }
+/* v40 · 卡片上直接按「I've sent it」—— 不用再打开送出视窗找按钮 */
+function ntOpenedDeliv(subId){ const ds=(NT.deliv[subId]||[]).filter(d=>d.state==='OPENED_WHATSAPP'&&!d.stale_at); return ds.length?ds[ds.length-1]:null; }
+async function ntSentFromList(subId){
+  const d=ntOpenedDeliv(subId); if(!d) return;
+  const res=await ntRpc('delivery_confirm_sent',{p_id:d.id,p_fingerprint:d.content_fingerprint});
+  if(res.kind==='ok'){ const q=ntQGet(subId); if(q){ q.stage='done'; if(q.delivery) q.delivery.state='MANUALLY_CONFIRMED_SENT'; ntQPut(q); } ntToast('✓ Marked as sent (confirmed by you)'); ntLoadList(); if(typeof msLoad==='function') msLoad(); return; }
+  if(res.kind==='rejected'&&res.code==='STALE'){ ntToast('This message is out of date (the notice was changed or the wording was updated). Tap “Open again” and send the new one.',true); ntLoadList(); return; }
+  ntToast(ntErrText(res),true);
+}
+/* v40 · 从 WhatsApp 回到这页 → 问一句「送出了吗」（行政常常送完就忘了回来按） */
+let ntAskBack=null;
+function ntArmAskBack(label,yes){ ntAskBack={label,yes,at:Date.now()}; }
+function ntAskBackNow(){
+  const a=ntAskBack; if(!a||Date.now()-a.at<1500||document.hidden) return; ntAskBack=null;
+  if(document.getElementById('nt-askback')) return;
+  const ov=document.createElement('div'); ov.id='nt-askback'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div style="background:var(--sur);border-radius:14px;max-width:400px;width:100%;padding:16px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Did you send it in WhatsApp?</div>'
+    +'<div style="font-size:13px;color:var(--mut);margin-bottom:14px">'+ntEsc(a.label)+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end"><button data-v="0" style="'+NT_BTN+'">Not yet</button><button data-v="1" style="'+NT_PRI+';background:#1E7A46">Yes, I\'ve sent it ✓</button></div></div>';
+  ov.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; ov.remove(); if(b.dataset.v==='1') a.yes(); });
+  document.body.appendChild(ov);
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) setTimeout(ntAskBackNow,300); });
+window.addEventListener('focus',()=>setTimeout(ntAskBackNow,300));
 async function ntSendFromList(subId){
   if(NT.busy) return;
   let sub=ntQGet(subId);
@@ -1059,6 +1087,7 @@ async function msOpen(method){
   let w=null, copied=false;
   if(method==='whatsapp_link') ntWhatsApp(c.d.content);   /* v39 */
   else { try{ await navigator.clipboard.writeText(c.d.content); copied=true; }catch(e){} }
+  ntArmAskBack(c.label?('The '+c.label+'.'):'The message.',()=>msConfirm());   /* v40 */
   const res=await ntRpc('delivery_mark_opened',{p_id:c.d.id,p_method:method});
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
   c.d.state='OPENED_WHATSAPP';
