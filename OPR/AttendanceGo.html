@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v36</title>
+<title>OPR-AttendanceGo v37</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -180,7 +180,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v36</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v37</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -1324,6 +1324,7 @@ function swMissedCards(stuId){
 function swPickMissed(i){ const c=(SW._miss&&SW._miss.list||[])[i]; if(!c||c.made) return; SW.from_date=c.date; SW.from_class=c.cls; swRenderBody(); }
 function swOpen(mode,toClass){
   SW={mode,to_class:toClass||'',to_date:mode==='mark'?selectedDate:todayStr(),stu:'',kind:'replacement',q:'',from_class:'',from_date:'',note:''};
+  if(toClass) SW.slot=swParts(toClass).slot;   /* v37 */
   document.getElementById('sw-title').textContent=mode==='mark'?'Add visitor':'Arrange replacement / temp slot';
   document.getElementById('sw-sub').textContent=mode==='mark'?('To '+swCls(toClass)+' · '+selectedDate):'SRT only. The student will appear in that class roster on that day.';
   document.getElementById('sw-modal').style.display='flex';
@@ -1347,8 +1348,9 @@ function swRenderBody(){
   h+=lab('Type');
   h+=`<div style="display:flex;gap:6px">${['replacement','temp'].map(k=>`<button onclick="SW.kind='${k}';SW.from_class='';SW.from_date='';swRenderBody()" style="flex:1;min-height:40px;border-radius:8px;border:1px solid ${SW.kind===k?'transparent':'var(--bdr)'};background:${SW.kind===k?'#7870CC':'#fff'};color:${SW.kind===k?'#fff':'var(--txt)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${SW_LABEL[k]}</button>`).join('')}</div>`;
   h+=`<div style="font-size:10px;color:var(--hint);margin-top:4px">${SW.kind==='replacement'?'Missed own class on another day and makes it up here.':'This day only: attends this slot instead of own slot.'}</div>`;
-  // 3 去哪（manage 才可改）—— v36：日子 → 时段 → 班
-  if(SW.mode==='manage'){
+  // 3 去哪 —— v36：日子 → 时段 → 班；v37：老师 + Add visitor 也能改（预设当下这班），补课时放在卡片后面（LL 10-23）
+  const _h0=h; h='';
+  {
     const btn=(on,txt,js,dis)=>`<button ${dis?'disabled':''} onclick="${js}" style="flex:1;min-height:38px;border-radius:8px;border:1px solid ${on?'transparent':'var(--bdr)'};background:${on?'#7870CC':dis?'var(--sur2)':'#fff'};color:${on?'#fff':'var(--txt)'};opacity:${dis?.5:1};font-size:12px;font-weight:600;cursor:${dis?'default':'pointer'};font-family:inherit">${txt}</button>`;
     h+=lab('Attends — day');
     const fri=swNextDay(5), sat=swNextDay(6);
@@ -1372,6 +1374,8 @@ function swRenderBody(){
       }
     }
   }
+  const _attends=h; h=_h0;
+  if(SW.kind==='temp') h+=_attends;
   // 4 原本的班 + 日子 —— v36：补课由卡片带出原班与缺席日；只有临时换 slot 才选原班
   if(SW.stu&&SW.kind==='temp'){
     const own=swStuClasses(SW.stu,SW.from_date||SW.to_date);
@@ -1397,9 +1401,11 @@ function swRenderBody(){
           <div style="font-size:11px;font-weight:600;color:${dis?'var(--mut)':c.notice?'#7A4A00':'#B42318'}">${dis?_escHtml('Made up on '+fmtDate(c.made.to_date)+' · '+swCls(c.made.to_class)):c.notice?'Notified, not marked yet':'Not made up yet'}</div></button>`; }).join('')}</div>`;
     }
   }
+  if(SW.kind!=='temp'&&SW.stu&&SW.from_date) h+=_attends;   /* v37 · 先选补哪一次缺席，选了卡片才出现去哪补 */
   h+=lab('Note (optional)');
   h+=`<input style="${inp}" value="${_escHtml(SW.note||'')}" oninput="SW.note=this.value" placeholder="e.g. parent asked">`;
   document.getElementById('sw-body').innerHTML=h;
+  if(SW.mode==='mark') document.getElementById('sw-sub').textContent=SW.to_class?('To '+swCls(SW.to_class)+' · '+SW.to_date):'Choose the day, time and class';   /* v37 */
   if(!SW.stu) swRenderList();
 }
 function swRecentAbsences(stuId){
@@ -1424,8 +1430,8 @@ function swRenderList(){
 }
 async function swSave(){
   if(!SW.stu){ toast('Choose a student'); return; }
-  if(!SW.to_class||!SW.to_date){ toast('Choose the day, time and class he attends'); return; }
   if(SW.kind==='replacement'&&!SW.from_date){ toast('Choose which missed class this is for',4000); return; }   /* v36 · 一定要选 */
+  if(!SW.to_class||!SW.to_date){ toast('Choose the day, time and class he attends'); return; }
   if(!SW.from_class){ toast('Own class is missing'); return; }
   if(SW.kind==='replacement'&&allSwaps.some(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===SW.stu&&w.from_class===SW.from_class&&w.from_date===SW.from_date)){ toast('That missed class is already made up'); return; }
   if(SW.kind==='temp'&&!SW.from_date){ toast('Temp slot needs the own class date'); return; }
