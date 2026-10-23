@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v34</title>
+<title>OPR-AttendanceGo v35</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -75,6 +75,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
 .fu-btn{padding:5px 14px;border-radius:7px;border:1px solid var(--bdr);background:var(--sur);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
 .fu-btn.on-done{background:#2D6A4F;color:#fff;border-color:transparent}
 .fu-btn.on-issue{background:#C4622D;color:#fff;border-color:transparent}
+.fu-btn:disabled{opacity:.4;cursor:not-allowed}   /* v35 */
 .stu-paused{display:inline-block;font-size:9px;color:#5A6270;background:#E8EAEE;border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:middle;flex-shrink:0}
 
 /* STATUS TOGGLE */
@@ -179,7 +180,7 @@ body:not(.is-office) .adm-only{display:none!important}   /* v30 · 只给行政 
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v34</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v35</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -840,6 +841,7 @@ function fuOpen(stuId, classCode){
   const olds = fuOpenIssues(stuId, classCode, cyc);
 
   const ov = document.createElement('div'); ov.className = 'fu-ov'; ov.id = 'fu-ov';
+  let saveFailed = false;   /* v35 · 云端存不进去时不能把老师关在视窗里 */
   function paint(){
     let h = '<div class="fu-box"><div style="font-weight:700;font-size:15px;margin-bottom:2px">' + _escHtml(stu.name) + '</div>'
       + '<div style="font-size:11px;color:var(--mut);margin-bottom:14px">Follow-Up &middot; ' + _escHtml(classCode) + '</div>';
@@ -867,13 +869,19 @@ function fuOpen(stuId, classCode){
         + '</div>';
     });
     if (!due.length && !olds.length) h += '<div style="color:var(--mut);padding:10px 0">Nothing to follow up today.</div>';
-    h += '<div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="fu-btn" id="fu-close">Close</button></div></div>';
+    /* v35 · 必填（Owner 10-23）：今天该做的每一项都按了 Done 或 Issue 才能关。旧待办（From …）不挡，书带来那天再按 Resolved */
+    const left = saveFailed ? 0 : due.filter(t => !fuRecOf(stuId, classCode, t.cycle_key, t.task_id ?? t.id)).length;
+    h += '<div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:14px">'
+      + (left ? '<span id="fu-left" style="font-size:12px;color:#C4622D;font-weight:600">Tap Done or Issue for every item (' + left + ' left)</span>' : '')
+      + '<button class="fu-btn" id="fu-close"' + (left ? ' disabled' : '') + '>Close</button></div></div>';
     ov.innerHTML = h;
   }
   paint();
   ov.addEventListener('click', async ev => {
     const b = ev.target.closest('button'); if (!b) return;
-    if (b.id === 'fu-close'){ ov.remove(); renderMark(); return; }
+    if (b.id === 'fu-close'){
+      if (!saveFailed && due.some(t => !fuRecOf(stuId, classCode, t.cycle_key, t.task_id ?? t.id))) return;   /* v35 · 还有没按的，不准关 */
+      ov.remove(); renderMark(); return; }
     const act = b.getAttribute('data-a');
     if (act === 'resolve'){
       const rec = fuRecords.find(x => String(x.id) === b.getAttribute('data-r'));
@@ -883,7 +891,7 @@ function fuOpen(stuId, classCode){
     const tid = b.getAttribute('data-t');
     const t = due.find(x => (x.task_id ?? x.id) === tid); if (!t) return;
     const noteEl = ov.querySelector('.fu-note[data-t="' + tid + '"]');
-    await fuMark(stu, dept, classCode, sess, t, act, noteEl ? noteEl.value.trim() : '');
+    if (!(await fuMark(stu, dept, classCode, sess, t, act, noteEl ? noteEl.value.trim() : ''))) saveFailed = true;
     paint();
   });
   /* 备注：打字就存，不必按任何按钮（§00A3 规则一） */
