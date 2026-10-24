@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v42</title>
+<title>OPR-AttendanceGo v43</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v42</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v43</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -247,7 +247,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
   <div class="page" id="page-atcweek"><div id="atcweek-content"></div></div>
   <!-- v19 · 补课 / 换时段 modal -->
   <div id="sw-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:210;justify-content:center;align-items:center" onclick="if(event.target===this)swClose()">
-    <div style="background:#fff;border-radius:12px;padding:20px;width:400px;max-width:92vw;max-height:90vh;overflow:auto">
+    <div style="background:#fff;border-radius:12px;padding:20px;width:540px;max-width:94vw;max-height:90vh;overflow:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:14px;font-weight:700" id="sw-title">Add visitor</div><button onclick="swClose()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--mut)">✕</button></div>
       <div style="font-size:11px;color:var(--mut);margin-bottom:12px" id="sw-sub"></div>
       <div id="sw-body"></div>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=42;   /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=43;   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -1106,7 +1106,11 @@ async function msOpen(method){
 }
 async function msMarkBatchRecords(deliveryId){   /* v41 · 合并发里的通知 → MiscGo 纪录标已送 */
   try{ const d=await _sb.from('attendance_message_delivery').select('items').eq('id',deliveryId).single();
-       const ids=((d.data&&d.data.items&&d.data.items.notices)||[]); if(!ids.length) return;
+       const it=(d.data&&d.data.items)||{}, ids=it.notices||[], sws=it.swaps||[];
+       if(sws.length){ const w=await _sb.from('attendance_swap').select('client_uid').in('id',sws);   /* v43 · 补课 / 换 slot 的 MiscGo 纪录 */
+         const u=(w.data||[]).map(x=>x.client_uid).filter(Boolean);
+         if(u.length) await _sb.from('records').update({wa_sent:true,wa_sent_at:new Date().toISOString()}).in('client_uid',u).eq('wa_sent',false); }
+       if(!ids.length) return;
        const n=await _sb.from('attendance_notice').select('submission_id').in('id',ids);
        const subs=[...new Set((n.data||[]).map(x=>x.submission_id))];
        if(subs.length) await _sb.from('records').update({wa_sent:true,wa_sent_at:new Date().toISOString()}).in('submission_id',subs).eq('wa_sent',false); }catch(e){}
@@ -2050,7 +2054,7 @@ function swVisitorsHtml(code){
     const s=swStudent(w.student_id);
     const st=getStatus(s.id,'SRT',0); const active=st==='unmarked'?'':st;
     const LABELS_ROW={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
-    const from=w.kind==='replacement'?('from '+swCls(w.from_class)+(w.from_date?' · missed '+w.from_date:'')):('from '+swCls(w.from_class)+(w.from_date!==selectedDate?' · '+w.from_date:''));
+    const from=(w.kind==='replacement'?('from '+swDot(w.from_class)+(w.from_date?' · missed '+w.from_date:'')):('from '+swDot(w.from_class)+(w.from_date!==selectedDate?' · '+w.from_date:'')))+(swLv(w.from_class)!==swLv(w.to_class)?' · LV'+swLv(w.from_class)+' → LV'+swLv(w.to_class):'');   /* v43 · 跨级 */
     h+=`<div class="stu-row">
       <div class="stu-num" style="color:#7870CC">+</div>
       <div class="stu-name">${_escHtml(s.name)}${s.name_cn?' <span class="stu-cn">'+_escHtml(s.name_cn)+'</span>':''}
@@ -2076,98 +2080,167 @@ function swParts(c){ const p=String(c||'').replace(/^SRT-SRT_/,'').replace(/^SRT
 function swDayOf(d){ return SW_DAYS[new Date(d+'T12:00:00').getDay()]; }
 function swNextDay(dayIdx){ let d=todayStr(); for(let i=0;i<7;i++){ if(new Date(d+'T12:00:00').getDay()===dayIdx) return d; d=swAddDays(d,1); } return d; }
 function swPickDate(d){ SW.to_date=d; if(SW.to_class&&swParts(SW.to_class).day!==swDayOf(d)) SW.to_class=''; SW.slot=''; swRenderBody(); }
+/* ══ v43 · SRT 补课 / 换 slot：一个画面、一行一个孩子（照 MiscGo，Owner 10-23 18:4x）══
+   补课：孩子 → Absent 日期（过去 / 未来都可以）→ 补的日期 + AM/NN/PM → 班自动（同级优先，没有就最接近的 level，跨级标黄）
+   换 slot：孩子 → 去的日期 + AM/NN/PM → 班自动；「跳过哪天」= 同一个星期他自己那班上课的那天（系统算，不用填）
+   Save：写安排 → 写 MiscGo 纪录（Dashboard 看得到）→ 行政马上出一则讯息（按 Open WhatsApp / Copy = 已送出） */
+function swNewRow(){ return {q:'',stu:'',own:'',abs:'',to:'',slot:'',cls:''}; }
 function swOpen(mode,toClass){
-  SW={mode,to_class:toClass||'',to_date:mode==='mark'?selectedDate:todayStr(),stu:'',kind:'replacement',q:'',from_class:'',from_date:'',note:''};
-  if(toClass) SW.slot=swParts(toClass).slot;   /* v37 */
-  document.getElementById('sw-title').textContent=mode==='mark'?'Add visitor':'Arrange replacement / temp slot';
-  document.getElementById('sw-sub').textContent=mode==='mark'?('To '+swCls(toClass)+' · '+selectedDate):'SRT only. The student will appear in that class roster on that day.';
+  SW={mode,kind:'replacement',rows:[swNewRow()],lock:(mode==='mark'&&toClass)?{cls:toClass,date:selectedDate}:null,src:'',_mm:{}};
+  document.getElementById('sw-title').textContent=mode==='mark'?'Add visitor':'SRT replacement / change slot';
+  document.getElementById('sw-sub').textContent=mode==='mark'?('To '+swDot(toClass)+' · '+fmtDate(selectedDate)):'One row per child. The system links everything when you save.';
   document.getElementById('sw-modal').style.display='flex';
   swRenderBody();
 }
-function ntSwap(kind){   /* v33 · Notices 分页登记 SRT 补课 / 换 slot（跟 Manage 同一张表单） */
-  swOpen('manage',''); SW.kind=kind; SW.src='notices';
-  document.getElementById('sw-title').textContent=kind==='replacement'?'SRT replacement class':'SRT change of slot (this one time)';
-  swRenderBody();
-}
+function ntSwap(kind){ swOpen('notices',''); SW.kind=kind; SW.src='notices'; swRenderBody(); }
 function swClose(){ document.getElementById('sw-modal').style.display='none'; }
-function swRenderBody(){
-  const inp='width:100%;padding:8px;border-radius:8px;border:1px solid var(--bdr);font-size:13px;font-family:inherit;box-sizing:border-box';
-  const lab=t=>`<label style="display:block;font-size:11px;color:var(--mut);margin:10px 0 4px">${t}</label>`;
-  let h='';
-  // 1 学生
-  h+=lab('Student');
-  if(SW.stu){
-    const s=swStudent(SW.stu);
-    h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border:1px solid var(--bdr);border-radius:8px"><span style="font-size:13px;font-weight:600">${_escHtml(s.name)}</span><button onclick="SW.stu='';SW.from_class='';SW.from_date='';swRenderBody()" style="border:none;background:none;color:var(--info);font-size:12px;cursor:pointer">Change</button></div>`;
-  }else{
-    h+=`<input id="sw-q" style="${inp}" placeholder="Type a name…" value="${_escHtml(SW.q)}" oninput="SW.q=this.value;swRenderList()">`;
-    h+=`<div id="sw-list" style="max-height:180px;overflow:auto;margin-top:4px"></div>`;
+function swDot(c){ return swCls(c).replace(/_/g,'.'); }
+function swLv(c){ const m=String(c||'').match(/LV(\d+)/i); return m?parseInt(m[1]):null; }
+function swOwnList(r){ if(!r.stu) return []; const d=r.abs||r.to||todayStr(); const a=swStuClasses(r.stu,d); return a.length?a:swStuClasses(r.stu,todayStr()); }
+function swOwn(r){ const L=swOwnList(r); return (r.own&&L.includes(r.own))?r.own:(L[0]||r.own||''); }
+function swSlotsOn(d){ const day=swDayOf(d); const C=swSrtClassesOn(d).filter(c=>swParts(c).day===day); return ['AM','NN','PM'].filter(t=>C.some(c=>swParts(c).slot===t)); }
+function swOptions(r){
+  if(!r.to||!r.slot) return [];
+  const own=swLv(swOwn(r)), day=swDayOf(r.to);
+  return swSrtClassesOn(r.to).filter(c=>swParts(c).day===day&&swParts(c).slot===r.slot)
+    .sort((a,b)=>(Math.abs((swLv(a)||0)-(own||0))-Math.abs((swLv(b)||0)-(own||0)))||((swLv(b)||0)-(swLv(a)||0)));
+}
+function swSkipDay(r){   /* 换 slot：同一个星期（一到日）他自己那班上课的那天 */
+  const own=swOwn(r); if(!own||!r.to) return '';
+  const want=swParts(own).day, d=new Date(r.to+'T12:00:00'), mon=swAddDays(r.to,-((d.getDay()+6)%7));
+  for(let i=0;i<7;i++){ const x=swAddDays(mon,i); if(swDayOf(x)===want) return x; } return '';
+}
+function swMiss(stuId){   /* 最近缺过、还没补的日子（一按就填）；每个孩子各自一份 */
+  SW._mm=SW._mm||{};
+  if(!(stuId in SW._mm)){
+    SW._mm[stuId]=null;
+    const from=ntAddDays(ntToday(),-60);
+    _sb.from('attendance').select('date,status,class_code,voided_at').eq('student_id',stuId).eq('dept','SRT').gte('date',from).in('status',['absent','mc'])
+      .then(({data})=>{ SW._mm[stuId]=(data||[]).filter(r=>!r.voided_at&&!swMadeUp(stuId,r.class_code,r.date)).map(r=>({date:r.date,cls:r.class_code})).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
+        if(document.getElementById('sw-modal').style.display==='flex') swRenderBody(); })
+      .catch(()=>{ SW._mm[stuId]=[]; });
   }
-  // 2 类型
-  h+=lab('Type');
-  h+=`<div style="display:flex;gap:6px">${['replacement','temp'].map(k=>`<button onclick="SW.kind='${k}';SW.from_class='';SW.from_date='';swRenderBody()" style="flex:1;min-height:40px;border-radius:8px;border:1px solid ${SW.kind===k?'transparent':'var(--bdr)'};background:${SW.kind===k?'#7870CC':'#fff'};color:${SW.kind===k?'#fff':'var(--txt)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${SW_LABEL[k]}</button>`).join('')}</div>`;
-  h+=`<div style="font-size:10px;color:var(--hint);margin-top:4px">${SW.kind==='replacement'?'Missed own class on another day and makes it up here.':'This day only: attends this slot instead of own slot. For good (every week)? Use the Student page → Change Class — it comes to Notices for the message by itself.'}</div>`;
-  // 3 去哪 —— v36：日子 → 时段 → 班；v37：老师 + Add visitor 也能改（预设当下这班），补课时放在卡片后面（LL 10-23）
-  const _h0=h; h='';
-  {
-    const btn=(on,txt,js,dis)=>`<button ${dis?'disabled':''} onclick="${js}" style="flex:1;min-height:38px;border-radius:8px;border:1px solid ${on?'transparent':'var(--bdr)'};background:${on?'#7870CC':dis?'var(--sur2)':'#fff'};color:${on?'#fff':'var(--txt)'};opacity:${dis?.5:1};font-size:12px;font-weight:600;cursor:${dis?'default':'pointer'};font-family:inherit">${txt}</button>`;
-    h+=lab('Attends — day');
-    const fri=swNextDay(5), sat=swNextDay(6);
-    h+=`<div style="display:flex;gap:6px;margin-bottom:6px">${btn(SW.to_date===fri,'Fri '+_escHtml(fmtDate(fri).replace(/^\w+,?\s*/,'').replace(/\s\d{4}$/,'')),`swPickDate('${fri}')`)}${btn(SW.to_date===sat,'Sat '+_escHtml(fmtDate(sat).replace(/^\w+,?\s*/,'').replace(/\s\d{4}$/,'')),`swPickDate('${sat}')`)}</div>`;
-    h+=`<input type="date" style="${inp}" value="${SW.to_date}" onchange="swPickDate(this.value)">`;
-    const day=swDayOf(SW.to_date||todayStr());
-    const cls=swSrtClassesOn(SW.to_date||todayStr()).filter(c=>swParts(c).day===day);
-    if(!cls.length){ h+=`<div style="font-size:12px;color:var(--danger);margin-top:6px">No SRT class on ${_escHtml(fmtDate(SW.to_date))}. Choose a Friday or Saturday.</div>`; }
+  return SW._mm[stuId]||[];
+}
+function swCheck(r){   /* {ok} 或 {bad:'…'}；还没填完 = {} */
+  if(!r.stu) return {};
+  const own=swOwn(r); if(!own) return {bad:'This child has no SRT class.'};
+  let skip='';
+  if(SW.kind==='replacement'){
+    if(!r.abs) return {};
+    if(!isClassDay('SRT',own,r.abs)) return {bad:swDot(own)+' has no class on '+fmtDate(r.abs)+'.'};
+    const mu=swMadeUp(r.stu,own,r.abs); if(mu) return {bad:'Already made up on '+fmtDate(mu.to_date)+' · '+swDot(mu.to_class)};
+  }
+  if(!r.to||!r.slot||!r.cls) return {};
+  if(SW.kind==='temp'){ skip=swSkipDay(r); if(!skip||!isClassDay('SRT',own,skip)) return {bad:'No '+swDot(own)+' class that week — nothing to change.'}; }
+  if(r.cls===own&&r.to===(SW.kind==='temp'?skip:r.abs)) return {bad:'That is his own class on that day.'};
+  const same=allSwaps.find(w=>w.status==='active'&&w.student_id===r.stu&&w.to_date===r.to&&w.to_class===r.cls);
+  if(same) return {bad:'Already arranged for '+fmtDate(r.to)+' · '+swDot(r.cls)};
+  return {ok:true,own,skip};
+}
+function swSetTo(i,v){ const r=SW.rows[i]; r.to=v; const sl=swSlotsOn(v); r.slot=sl.length===1?sl[0]:(sl.includes(r.slot)?r.slot:''); r.cls=r.slot?(swOptions(r)[0]||''):''; swRenderBody(); }
+function swSetSlot(i,s){ const r=SW.rows[i]; r.slot=s; r.cls=swOptions(r)[0]||''; swRenderBody(); }
+function swRenderBody(){
+  const inp='width:100%;padding:9px;border-radius:8px;border:1px solid var(--bdr);font-size:14px;font-family:inherit;box-sizing:border-box';
+  const lab=t=>`<label style="display:block;font-size:11.5px;color:var(--mut);margin:8px 0 4px">${t}</label>`;
+  const chip=(on,txt,js,dis)=>`<button ${dis?'disabled':''} onclick="${js}" style="min-height:36px;padding:4px 12px;border-radius:18px;border:1px solid ${on?'transparent':'var(--bdr)'};background:${on?'#7870CC':'#fff'};color:${on?'#fff':'var(--txt)'};opacity:${dis?.4:1};font-size:12.5px;font-weight:600;cursor:${dis?'default':'pointer'};font-family:inherit">${txt}</button>`;
+  const ok=t=>`<div style="font-size:12.5px;font-weight:600;color:var(--ok,#1E8E5A);margin-top:6px">✓ ${t}</div>`;
+  let h=`<div style="display:flex;gap:6px;margin-bottom:10px">${['replacement','temp'].map(k=>`<button onclick="SW.kind='${k}';SW.rows.forEach(r=>{r.abs='';if(!SW.lock){r.to='';r.slot='';r.cls='';}});swRenderBody()" style="flex:1;min-height:42px;border-radius:10px;border:1px solid ${SW.kind===k?'transparent':'var(--bdr)'};background:${SW.kind===k?'#7870CC':'#fff'};color:${SW.kind===k?'#fff':'var(--txt)'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">${k==='replacement'?'📅 Replacement class':'🕐 Change slot (this week)'}</button>`).join('')}</div>`;
+  SW.rows.forEach((r,i)=>{
+    if(SW.lock){ r.to=SW.lock.date; r.cls=SW.lock.cls; r.slot=swParts(SW.lock.cls).slot; }
+    h+=`<div style="border:1px solid var(--bdr);border-radius:12px;padding:10px 12px;margin-bottom:10px">`;
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:13.5px"><b style="color:#7870CC;margin-right:6px">${i+1}</b>`;
+    if(r.stu){ const s=swStudent(r.stu), L=swOwnList(r);
+      h+=`<b>${_escHtml(s.name)}</b> `+(L.length>1?L.map(c=>chip(swOwn(r)===c,swDot(c),`SW.rows[${i}].own=${_escHtml(JSON.stringify(c))};swRenderBody()`)).join(' '):`<span style="font-size:11.5px;background:#F3F1FB;color:#7870CC;border-radius:10px;padding:2px 8px;font-weight:700">${_escHtml(swDot(swOwn(r)))}</span>`)
+        +` <button onclick="SW.rows[${i}]=swNewRow();swRenderBody()" style="border:none;background:none;color:var(--info);font-size:12px;cursor:pointer">Change</button>`; }
+    h+=`</div>${SW.rows.length>1?`<button onclick="SW.rows.splice(${i},1);swRenderBody()" style="border:none;background:none;color:var(--hint);font-size:17px;cursor:pointer" title="Remove">✕</button>`:''}</div>`;
+    if(!r.stu){
+      h+=`<input id="sw-q-${i}" style="${inp};margin-top:6px" placeholder="Type the child's name…" value="${_escHtml(r.q)}" oninput="SW.rows[${i}].q=this.value;swRenderList(${i})"><div id="sw-list-${i}" style="max-height:180px;overflow:auto;margin-top:4px"></div></div>`;
+      return;
+    }
+    const own=swOwn(r);
+    if(SW.kind==='replacement'){
+      h+=lab('Absent (the class he misses) — past or future');
+      h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="date" style="${inp};flex:1;min-width:150px" value="${r.abs}" onchange="SW.rows[${i}].abs=this.value;swRenderBody()">`;
+      swMiss(r.stu).filter(m=>m.cls===own).forEach(m=>{ h+=chip(r.abs===m.date,_escHtml(fmtDate(m.date)),`SW.rows[${i}].abs='${m.date}';swRenderBody()`); });
+      h+=`</div>`;
+      if(r.abs&&isClassDay('SRT',own,r.abs)&&!swMadeUp(r.stu,own,r.abs)) h+=ok(_escHtml(fmtDate(r.abs)+' · '+swDot(own)));
+    }
+    h+=lab(SW.kind==='replacement'?'Replace (where he makes it up)':'Goes to (this week only)');
+    if(SW.lock) h+=ok(_escHtml(fmtDate(r.to)+' · '+swDot(r.cls)));
     else{
-      const slots=['AM','NN','PM'].filter(t=>cls.some(c=>swParts(c).slot===t));
-      if(SW.to_class&&!SW.slot) SW.slot=swParts(SW.to_class).slot;
-      if(slots.length===1) SW.slot=slots[0];
-      h+=lab('Attends — time');
-      h+=`<div style="display:flex;gap:6px">${['AM','NN','PM'].map(t=>btn(SW.slot===t,t,`SW.slot='${t}';SW.to_class='';swRenderBody()`,!slots.includes(t))).join('')}</div>`;
-      if(SW.slot){
-        const ownLv=SW.from_class?swParts(SW.from_class).lv:(SW.stu?swParts(swStuClasses(SW.stu,SW.to_date)[0]||'').lv:'');
-        const list=cls.filter(c=>swParts(c).slot===SW.slot).sort((a,b)=>((swParts(b).lv===ownLv)-(swParts(a).lv===ownLv))||a.localeCompare(b,undefined,{numeric:true}));
-        h+=lab('Attends — class');
-        h+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px">${list.map(c=>{ const on=SW.to_class===c, same=ownLv&&swParts(c).lv===ownLv;
-          return `<button onclick='SW.to_class=${swJ(c)};swRenderBody()' style="min-height:40px;border-radius:8px;border:${on?'2px solid #7870CC':'1px solid var(--bdr)'};background:${on?'#F3F1FB':'#fff'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${_escHtml(swCls(c))}${same?'<div style="font-size:10px;color:#7870CC;font-weight:600">Same level</div>':''}</button>`; }).join('')}</div>`;
+      const fri=swNextDay(5), sat=swNextDay(6);
+      h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><input type="date" style="${inp};flex:1;min-width:150px" value="${r.to}" onchange="swSetTo(${i},this.value)">${chip(r.to===fri,'Fri '+fri.slice(8)+'/'+fri.slice(5,7),`swSetTo(${i},'${fri}')`)}${chip(r.to===sat,'Sat '+sat.slice(8)+'/'+sat.slice(5,7),`swSetTo(${i},'${sat}')`)}</div>`;
+      if(r.to){
+        const sl=swSlotsOn(r.to);
+        if(!sl.length) h+=`<div style="font-size:12.5px;color:var(--danger);margin-top:6px">✕ No SRT class on ${_escHtml(fmtDate(r.to))}.</div>`;
+        else{
+          h+=`<div style="display:flex;gap:6px;margin-top:6px">${['AM','NN','PM'].map(t=>chip(r.slot===t,t,`swSetSlot(${i},'${t}')`,!sl.includes(t))).join('')}</div>`;
+          if(r.slot&&r.cls){
+            h+=ok(_escHtml(fmtDate(r.to)+' · '+swDot(r.cls)));
+            const opts=swOptions(r).filter(c=>c!==r.cls);
+            if(opts.length) h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-size:11px;color:var(--hint)">Other classes:</span>${opts.map(c=>chip(false,_escHtml(swDot(c)),`SW.rows[${i}].cls=${_escHtml(JSON.stringify(c))};swRenderBody()`)).join('')}</div>`;
+          }
+        }
       }
     }
-  }
-  const _attends=h; h=_h0;
-  if(SW.kind==='temp') h+=_attends;
-  // 4 原本的班 + 日子
-  if(SW.stu&&SW.kind==='temp'){   /* v33 · 补课的原班由卡片带出来 */
-    const own=swStuClasses(SW.stu,SW.from_date||SW.to_date);
-    if(!SW.from_class) SW.from_class=own[0]||'';
-    h+=lab('Own class');
-    h+=`<select style="${inp}" onchange="SW.from_class=this.value">${(own.length?own:[SW.from_class]).filter(Boolean).map(c=>`<option value="${_escHtml(c)}"${c===SW.from_class?' selected':''}>${_escHtml(swCls(c))}</option>`).join('')||'<option value="">— no SRT class —</option>'}</select>`;
-  }
-  if(SW.kind==='temp'){
-    if(!SW.from_date) SW.from_date=SW.to_date;
-    h+=lab('Own class date (the day he skips)');
-    h+=`<input type="date" style="${inp}" value="${SW.from_date||''}" onchange="SW.from_date=this.value">`;
-  }else{
-    /* v33 · 补课：选「补哪一次缺席」—— 最近 60 天的缺席一天一张卡；已补的变灰不能选；家长已请假、还没点的也列（Owner 22-10） */
-    h+=lab('Which missed class is this for?');
-    if(!SW.stu) h+=`<div style="font-size:12px;color:var(--hint)">Choose the student first.</div>`;
-    else{
-      const L=swMissedCards(SW.stu);
-      if(L===null) h+=`<div style="font-size:12px;color:var(--mut)">Loading…</div>`;
-      else if(!L.length) h+=`<div style="font-size:12px;color:var(--danger)">No missed classes in the last 60 days — nothing to make up.</div>`;
-      else h+=`<div style="display:grid;gap:6px">${L.map((c,i)=>{ const on=SW.from_date===c.date&&SW.from_class===c.cls, dis=!!c.made;
-        return `<button ${dis?'disabled':''} onclick="swPickMissed(${i})" style="text-align:left;padding:8px 10px;border-radius:10px;border:${on?'2px solid #7870CC':'1px solid var(--bdr)'};background:${dis?'var(--sur2)':on?'#F3F1FB':'#fff'};opacity:${dis?.55:1};cursor:${dis?'default':'pointer'};font-family:inherit">
-          <div style="font-size:13px;font-weight:700;color:var(--txt)">${_escHtml(fmtDate(c.date))} · ${_escHtml(swCls(c.cls))}</div>
-          <div style="font-size:11.5px;color:var(--mut)">${_escHtml(c.why)}</div>
-          <div style="font-size:11px;font-weight:600;color:${dis?'var(--mut)':c.notice?'#7A4A00':'#B42318'}">${dis?_escHtml('Made up on '+fmtDate(c.made.to_date)+' · '+swCls(c.made.to_class)):c.notice?'Notified, not marked yet':'Not made up yet'}</div></button>`; }).join('')}</div>`;
-    }
-  }
-  if(SW.kind!=='temp'&&SW.stu&&SW.from_date) h+=_attends;   /* v37 · 先选补哪一次缺席，选了卡片才出现去哪补 */
-  h+=lab('Note (optional)');
-  h+=`<input style="${inp}" value="${_escHtml(SW.note||'')}" oninput="SW.note=this.value" placeholder="e.g. parent asked">`;
+    if(r.cls&&swLv(r.cls)!==swLv(own)) h+=`<div style="display:inline-block;margin-top:6px;background:#FFF6DD;color:#8A5A00;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700">Different level: LV${swLv(own)} → LV${swLv(r.cls)}</div>`;
+    if(SW.kind==='temp'&&r.cls){ const sk=swSkipDay(r); if(sk) h+=`<div style="font-size:12.5px;color:var(--mut);margin-top:6px">Skips own class: <b>${_escHtml(fmtDate(sk)+' · '+swDot(own))}</b></div>`; }
+    const c=swCheck(r); if(c.bad) h+=`<div style="font-size:12.5px;font-weight:600;color:var(--danger);margin-top:6px">✕ ${_escHtml(c.bad)}</div>`;
+    h+=`</div>`;
+  });
+  h+=`<button onclick="SW.rows.push(swNewRow());swRenderBody()" style="width:100%;min-height:42px;border-radius:12px;border:1.5px dashed #7870CC;background:transparent;color:#7870CC;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit">+ Add student</button>`;
   document.getElementById('sw-body').innerHTML=h;
-  if(SW.mode==='mark') document.getElementById('sw-sub').textContent=SW.to_class?('To '+swCls(SW.to_class)+' · '+SW.to_date):'Choose the day, time and class';   /* v37 */
-  if(!SW.stu) swRenderList();
+  const n=SW.rows.filter(r=>swCheck(r).ok).length;
+  const b=document.getElementById('sw-save'); if(b) b.textContent=(SW.mode!=='mark'&&noticeEditor?'Save & make message':'Save')+(n?' ('+n+')':'');
+  SW.rows.forEach((r,i)=>{ if(!r.stu) swRenderList(i); });
 }
+function swRenderList(i){
+  const el=document.getElementById('sw-list-'+i); if(!el) return;
+  const r=SW.rows[i], q=(r.q||'').trim().toLowerCase();
+  if(q.length<2){ el.innerHTML='<div style="font-size:11px;color:var(--hint);padding:6px">Type at least 2 letters</div>'; return; }
+  const d=todayStr();
+  const ids=new Set(allMemberships.filter(m=>m.dept==='SRT'&&(m.end_date==null||m.end_date>d)&&!String(m.class_code).includes('RSVP')).map(m=>m.student_id));
+  const list=allStudents.filter(s=>ids.has(s.id)&&((s.name||'').toLowerCase().includes(q)||(s.name_cn||'').includes(r.q.trim()))).slice(0,30);
+  el.innerHTML=list.length?list.map(s=>`<div onclick='SW.rows[${i}].stu=${swJ(s.id)};SW.rows[${i}].own="";swRenderBody()' style="padding:9px;border-bottom:.5px solid var(--bdr);cursor:pointer;font-size:13px">${_escHtml(s.name)} <span style="color:var(--mut);font-size:11px">${_escHtml(s.name_cn||'')} · ${_escHtml(swStuClasses(s.id,d).map(swDot).join(', '))}</span></div>`).join(''):'<div style="font-size:11px;color:var(--hint);padding:6px">No matching results</div>';
+}
+/* MiscGo 纪录的文字（一个孩子一则，跟群组讯息同一个手机排版） */
+function swD(d){ return d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+' '+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(d+'T12:00:00').getDay()]; }
+function swRecText(w){
+  const H=t=>'*⦀⦀⦀⦀ '+t+' ⦀⦀⦀⦀*', nm=swStudent(w.student_id).name, f=swDot(w.from_class), t=swDot(w.to_class);
+  const lv=swLv(f)!==swLv(t)?'\nDifferent level: LV'+swLv(f)+' → LV'+swLv(t):'';
+  if(w.kind==='replacement') return H('CLASS REPLACEMENT')+'\n\n*'+['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'][parseInt(w.to_date.slice(5,7))-1]+' '+w.to_date.slice(0,4)+'*\n\n1. *'+nm+'*\n'+f+'\nAbsent: '+swD(w.from_date)+'\nReplace: '+swD(w.to_date)+'\nReplace class: '+t+lv;
+  return H('CHANGE SLOT')+'\n\n*'+swD(w.to_date).replace(' ','* ')+'\n\n1. *'+nm+'*\nFrom: '+f+'\nSkip: '+swD(w.from_date)+'\nTo: '+t+lv+'\nType: Temporary';
+}
+async function swSave(){
+  const R=SW.rows.filter(r=>r.stu);
+  if(!R.length){ toast('Choose a student'); return; }
+  /* 先向资料库重查这些孩子的安排（行政可能刚排过） */
+  try{ const ids=[...new Set(R.map(r=>r.stu))];
+       const{data:fresh,error:fe}=await _sb.from('attendance_swap').select('*').eq('status','active').in('student_id',ids);
+       if(!fe&&fresh) allSwaps=allSwaps.filter(w=>!ids.includes(w.student_id)).concat(fresh); }catch(e){}
+  const C=R.map(swCheck);
+  const bi=C.findIndex(c=>!c.ok);
+  if(bi>=0){ swRenderBody(); toast('Row '+(SW.rows.indexOf(R[bi])+1)+': '+(C[bi].bad||'not finished yet'),4500); return; }
+  const rows=R.map((r,k)=>({kind:SW.kind,student_id:r.stu,dept:'SRT',from_class:C[k].own,from_date:SW.kind==='temp'?C[k].skip:r.abs,to_class:r.cls,to_date:r.to,note:null,client_uid:ntUid()}));
+  const btn=document.getElementById('sw-save'); btn.disabled=true;
+  const{data,error}=await _sb.from('attendance_swap').insert(rows).select();
+  btn.disabled=false;
+  if(error){ console.error(error); toast(String(error.code)==='23505'?'Already arranged for one of these children (same class and day, or the same missed class) — refresh to see it':'✕ Save failed',5000); return; }
+  const saved=(data&&data.length)?data:rows.map(x=>({status:'active',...x}));
+  saved.forEach(w=>allSwaps.push({status:'active',created_by:userEmail,...w}));
+  /* MiscGo 纪录（MiscGo Dashboard 看得到；按了送出就标 wa_sent） */
+  try{ const now=new Date().toISOString(), who=(markerNames&&markerNames[userEmail])||userEmail;
+       const{error:re}=await _sb.from('records').insert(saved.map(w=>({student_name:swStudent(w.student_id).name,student_id:w.student_id,report_type:w.kind==='replacement'?'REPLACEMENT':'CHANGE_SLOT',
+         details:swRecText(w),teacher:who,created_at:now,report_date:w.to_date,status:'open',flagged:false,handled:false,parent_notified:false,wa_sent:false,client_uid:w.client_uid})));
+       if(re) console.warn('[v43] MiscGo record',re); }catch(e){ console.warn('[v43] MiscGo record',e); }
+  const kind=SW.kind, mode=SW.mode;
+  swClose(); toast('✓ Saved '+saved.length);
+  if(document.getElementById('page-mark').classList.contains('on')) renderMark();
+  if(document.getElementById('page-manage').classList.contains('on')) swRenderAdmin();
+  if(mode!=='mark'&&noticeEditor&&typeof msBatch==='function'){ MS.selD=['SRT']; MS.selK=[kind]; await msBatch(); }   /* 马上出一则讯息 */
+}
+
 function swMissedCards(stuId){
   if(!SW._miss||SW._miss.id!==stuId){
     SW._miss={id:stuId,list:null};
@@ -2208,42 +2281,6 @@ function swRecentAbsences(stuId){
     });
   }
   return SW._abs.list;
-}
-function swRenderList(){
-  const el=document.getElementById('sw-list'); if(!el) return;
-  const q=(SW.q||'').trim().toLowerCase();
-  if(q.length<2){ el.innerHTML='<div style="font-size:11px;color:var(--hint);padding:6px">Type at least 2 letters</div>'; return; }
-  const d=SW.to_date||selectedDate;
-  const ids=new Set(allMemberships.filter(m=>m.dept==='SRT'&&m.start_date<=d&&(m.end_date==null||m.end_date>d)).map(m=>m.student_id));
-  const list=allStudents.filter(s=>ids.has(s.id)&&((s.name||'').toLowerCase().includes(q)||(s.name_cn||'').includes(SW.q.trim()))).slice(0,30);
-  el.innerHTML=list.length?list.map(s=>`<div onclick='SW.stu=${swJ(s.id)};SW.from_class="";swRenderBody()' style="padding:8px;border-bottom:.5px solid var(--bdr);cursor:pointer;font-size:12px">${_escHtml(s.name)} <span style="color:var(--mut);font-size:11px">${_escHtml(s.name_cn||'')} · ${_escHtml(swStuClasses(s.id,d).map(swCls).join(', '))}</span></div>`).join(''):'<div style="font-size:11px;color:var(--hint);padding:6px">No matching results</div>';
-}
-async function swSave(){
-  if(!SW.stu){ toast('Choose a student'); return; }
-  if(SW.kind==='replacement'&&!SW.from_date){ toast('Choose which missed class this is for',4000); return; }   /* v33 · 一定要选 */
-  if(!SW.to_class||!SW.to_date){ toast('Choose the day, time and class he attends'); return; }
-  if(SW.kind==='replacement'&&allSwaps.some(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===SW.stu&&w.from_class===SW.from_class&&w.from_date===SW.from_date)){ toast('That missed class is already made up'); return; }   /* v36 */
-  if(!SW.from_class){ toast('Own class is missing'); return; }
-  if(SW.kind==='temp'&&!SW.from_date){ toast('Temp slot needs the own class date'); return; }
-  if(SW.from_class===SW.to_class&&(SW.from_date||'')===SW.to_date){ toast('That is his own class on that day'); return; }
-  /* v32 · 先向资料库重查（行政可能刚安排过）。同一孩子、同一目标班、同一天 = 已安排，不再写第二笔；
-     同一天别的班（可能是另一节合法的课）→ 问一句再写 */
-  try{ const{data:fresh,error:fe}=await _sb.from('attendance_swap').select('*').eq('status','active').eq('student_id',SW.stu).eq('to_date',SW.to_date);
-       if(!fe&&fresh){ allSwaps=allSwaps.filter(w=>!(w.student_id===SW.stu&&w.to_date===SW.to_date)).concat(fresh); } }catch(e){}
-  const _same=allSwaps.find(w=>w.student_id===SW.stu&&w.to_date===SW.to_date&&w.to_class===SW.to_class&&w.status==='active');
-  if(_same){ toast((_same.created_by&&_same.created_by!==userEmail?'Already arranged by '+(markerNames[_same.created_by]||'the office'):'Already arranged')+' for this class that day',4500); return; }
-  const _other=allSwaps.find(w=>w.student_id===SW.stu&&w.to_date===SW.to_date&&w.status==='active');
-  if(_other&&!confirm('This child already has another arrangement that day ('+_other.to_class+').\n\nAdd this one too?')) return;
-  const row={kind:SW.kind,student_id:SW.stu,dept:'SRT',from_class:SW.from_class,from_date:SW.from_date||null,to_class:SW.to_class,to_date:SW.to_date,note:(SW.note||'').trim()||null,client_uid:(crypto.randomUUID?crypto.randomUUID():undefined)};
-  const btn=document.getElementById('sw-save'); btn.disabled=true;
-  const{data,error}=await _sb.from('attendance_swap').insert(row).select();
-  btn.disabled=false;
-  if(error){ console.error(error); toast(String(error.code)==='23505'?'Already arranged for this child (same class and day, or the same missed class) — refresh to see it':'✕ Save failed',5000); return; }   /* v33 · Step B 资料库防重复 */
-  allSwaps.push({status:'active',created_by:userEmail,...row,...((data&&data[0])||{})});
-  swClose(); toast('✓ Saved');
-  if(SW.src==='notices'){ const _nid=((data&&data[0])||{}).id; if(_nid&&typeof msSend==='function') msSend('swap',_nid); else if(typeof msLoad==='function') msLoad(); }   /* v33 · 从 Notices 登记 → 问要不要现在发 */
-  if(document.getElementById('page-mark').classList.contains('on')) renderMark();
-  if(document.getElementById('page-manage').classList.contains('on')) swRenderAdmin();
 }
 async function swCancel(id){
   const w=allSwaps.find(x=>x.id===id); if(!w) return;
@@ -2735,6 +2772,8 @@ async function markAll(dept,classCode,status){
     if(getStatus(s.id,dept,currentSession)!=='unmarked') continue;
     const nt=noticeFor(s.id,dept,currentSession);
     if(nt){ const p=(NT_REASON[nt.reason_code]||NT_REASON.notified_no_reason).pick; plan.push([s,p.status,p.note]); nNt++; continue; }
+    const _mu=dept==='SRT'&&swMadeUp(s.id,classCode,selectedDate);   /* v43 · 预补：这堂已经提前补了 → 缺席 */
+    if(_mu){ plan.push([s,'absent','Absent: Notified — made up '+swD(_mu.to_date)+' '+swDot(_mu.to_class)]); nNt++; continue; }
     const la=noticeOf(s.id,dept,currentSession,'late_arrival');
     if(la){ const t=ntHmT(la.expected_time);
       if(dept==='ATC'&&currentSession===1&&t>='15:00'){ plan.push([s,'absent','Absent: Other — Late arrival '+t+' (notified)']); nPre++; }
