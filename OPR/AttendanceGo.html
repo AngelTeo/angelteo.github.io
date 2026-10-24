@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v44</title>
+<title>OPR-AttendanceGo v45</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v44</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v45</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=44;   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=45;   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -1435,7 +1435,7 @@ function rateFor(s,mem,dept,cls,session,rm,ym,days,eEls,vis){
     if(r&&RATE_ATT[r.status]){ att++; continue; }
     if(r&&RATE_ABS[r.status]){
       const mu=swMadeUp(s.id,cls,ds);
-      if(mu){ const v=vis&&vis[s.id+'|'+mu.to_date];
+      if(mu){ const v=vis&&vis[s.id+'|'+mu.to_date+'|'+mu.to_class];   /* v45 */
         if(v&&RATE_ATT[v]){ att++; continue; }
         if(!v&&mu.to_date>=today) continue;                   /* 补课还没到：先不算 */
       }
@@ -2074,12 +2074,40 @@ function swAwayOn(stuId,cls,date){ return allSwaps.find(w=>w.status==='active'&&
 function swMadeUp(stuId,cls,date){ return allSwaps.find(w=>w.status==='active'&&w.kind==='replacement'&&w.student_id===stuId&&w.from_class===cls&&w.from_date===date)||null; }
 function swInto(cls,date){ return allSwaps.filter(w=>w.status==='active'&&w.to_class===cls&&w.to_date===date); }
 /* Monthly 格子下面的小字：在别班上的那天 → 补 / 换；缺席那天已经补了 → 已补 */
-function swMarkFor(stuId,cls,date,status){
-  const into=allSwaps.find(w=>w.status==='active'&&w.student_id===stuId&&w.from_class===cls&&w.to_date===date);
-  if(into) return into.kind==='replacement'?{k:'Rep',t:'Replacement in '+swCls(into.to_class)}:{k:'Temp',t:'Temp slot in '+swCls(into.to_class)};
+function swDM(d){ return d?d.slice(8)+'/'+d.slice(5,7):''; }
+function swMarkFor(stuId,cls,date,status,rCls){   /* v45 · rCls = 这笔纪录是在哪一班点的；只有在补课 / 换去的那班点的，才标补 / 换 */
+  const into=allSwaps.find(w=>w.status==='active'&&w.student_id===stuId&&w.from_class===cls&&w.to_date===date&&(rCls===undefined||rCls===w.to_class));
+  if(into) return into.kind==='replacement'?{k:'for '+swDM(into.from_date),t:'Replacement in '+swDot(into.to_class)+' for '+into.from_date}:{k:swDot(into.from_class),t:'Temp slot in '+swDot(into.to_class)+' (own class '+swDot(into.from_class)+')'};
   const mu=swMadeUp(stuId,cls,date);
-  if(mu) return {k:'Made up',t:'Made up on '+mu.to_date+' '+swCls(mu.to_class)};
+  if(mu) return {k:'Made up '+swDM(mu.to_date),t:'Made up on '+mu.to_date+' '+swDot(mu.to_class)};
   return null;
+}
+/* v45 · 补课那天他自己也有课（例：早上上自己的 AM，中午来 NN 预补）→ 补课那堂另存 session 1，不盖掉自己那堂 */
+function swVisSess(w){
+  if(!w||w.kind!=='replacement') return 0;
+  return swStuClasses(w.student_id,w.to_date).some(c=>c!==w.to_class&&isClassDay('SRT',c,w.to_date)&&!swAwayOn(w.student_id,c,w.to_date))?1:0;
+}
+async function markVisitor(id,status){
+  const w=allSwaps.find(x=>x.id===id); if(!w) return;
+  const S=1, s=swStudent(w.student_id), cur=getStatus(w.student_id,'SRT',S);
+  let note='';
+  if(cur===status&&status!=='absent'){ return unmarkVisitor(w); }
+  if(status==='absent'){ const pick=await absentPicker('SRT',s.name,null,null,null,cur==='absent'||cur==='mc'); if(!pick) return; if(pick.clear) return unmarkVisitor(w); status=pick.status; note=pick.note; }
+  else if(status==='late'){ const n=new Date(), t=prompt('Late time:',String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')); if(t===null) return; note='Late: '+t; }
+  else if(status==='early_leave'){ const t=prompt('Left early — what time and why? (you can leave this blank):',''); if(t===null) return; note=t?'Early: '+t:'Early leave'; }
+  const row={date:selectedDate,student_id:w.student_id,student_name:s.name,dept:'SRT',class_code:w.to_class,status,note,marked_by:userEmail,session:S};
+  const i=todayRecords.findIndex(r=>r.student_id===w.student_id&&r.dept==='SRT'&&(r.session??0)===S);
+  if(i>=0) Object.assign(todayRecords[i],row); else todayRecords.push(row);
+  const y=window.scrollY; renderMark(); window.scrollTo(0,y);
+  try{ const{error}=await _sb.from('attendance').upsert({...row,updated_at:new Date().toISOString()},{onConflict:'date,student_id,dept,session'});
+       if(error){ console.error(error); toast('✕ Save failed'); } else { document.getElementById('last-saved').textContent='Saved '+fmtTime(); toast('✓ Saved'); } }catch(e){ toast('✕ Save error'); }
+}
+async function unmarkVisitor(w){
+  if(!canClearDay()){ toast('Only today\'s marks can be changed back to not marked'); return; }
+  try{ const{data,error}=await _sb.from('attendance').delete().eq('date',selectedDate).eq('student_id',w.student_id).eq('dept','SRT').eq('session',1).select('student_id');
+       if(error) throw error; if(!(data||[]).length){ toast('⚠ Not changed — refresh the page and check',5000); return; }
+       todayRecords=todayRecords.filter(r=>!(r.student_id===w.student_id&&r.dept==='SRT'&&(r.session??0)===1));
+       const y=window.scrollY; renderMark(); window.scrollTo(0,y); toast('↺ Not marked'); }catch(e){ toast('✕ Could not change — nothing changed',5000); }
 }
 function swStudent(id){ return allStudents.find(s=>s.id===id)||{id,name:id,name_cn:''}; }
 function swVisitorsHtml(code){
@@ -2087,21 +2115,22 @@ function swVisitorsHtml(code){
   const _dow=new Date(selectedDate+'T12:00:00').getDay();
   let h=`<div style="margin:10px 16px 0;padding-top:10px;border-top:1px dashed var(--bdr)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <span style="font-size:11px;font-weight:700;color:#7870CC">Visitors${vs.length?' · '+vs.filter(w=>getStatus(w.student_id,'SRT',0)!=='unmarked').length+'/'+vs.length:''}</span>
+      <span style="font-size:11px;font-weight:700;color:#7870CC">Visitors${vs.length?' · '+vs.filter(w=>getStatus(w.student_id,'SRT',swVisSess(w))!=='unmarked').length+'/'+vs.length:''}</span>
       <button onclick='swOpen("mark",${swJ(code)})' style="min-height:32px;padding:4px 12px;border-radius:8px;border:1px solid #7870CC;background:#fff;color:#7870CC;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">+ Add visitor</button>
     </div>
     <div style="font-size:9px;color:var(--hint);margin-bottom:4px">Replacement / temp slot students. Marked here, counted in their own class.</div>`;
   vs.forEach(w=>{
     const s=swStudent(w.student_id);
-    const st=getStatus(s.id,'SRT',0); const active=st==='unmarked'?'':st;
+    const _vs=swVisSess(w);   /* v45 · 同一天也有自己的课 → 补课这堂另存 */
+    const st=getStatus(s.id,'SRT',_vs); const active=st==='unmarked'?'':st;
     const LABELS_ROW={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
     const from=(w.kind==='replacement'?('from '+swDot(w.from_class)+(w.from_date?' · missed '+w.from_date:'')):('from '+swDot(w.from_class)+(w.from_date!==selectedDate?' · '+w.from_date:'')))+(swLv(w.from_class)!==swLv(w.to_class)?' · LV'+swLv(w.from_class)+' → LV'+swLv(w.to_class):'');   /* v43 · 跨级 */
     h+=`<div class="stu-row">
       <div class="stu-num" style="color:#7870CC">+</div>
       <div class="stu-name">${_escHtml(s.name)}${s.name_cn?' <span class="stu-cn">'+_escHtml(s.name_cn)+'</span>':''}
-        <span style="font-size:9px;background:#F3F1FB;color:#7870CC;border-radius:8px;padding:1px 7px;margin-left:4px;font-weight:600">${SW_LABEL[w.kind]}</span>
+        <span style="font-size:9px;background:#F3F1FB;color:#7870CC;border-radius:8px;padding:1px 7px;margin-left:4px;font-weight:600">${w.kind==='replacement'?'Replacement · for '+_escHtml(swDM(w.from_date)):'Temp slot · '+_escHtml(swDot(w.from_class))}</span>${_vs?'<span style="font-size:9px;background:#FFF1D6;color:#7A4A00;border-radius:8px;padding:1px 7px;margin-left:4px;font-weight:600">2nd class today</span>':''}
         <div style="font-size:9px;color:var(--mut);margin-top:2px">${_escHtml(from)}${w.note?' · '+_escHtml(w.note):''}</div></div>
-      <div class="sb-wrap">${ROW_STATUSES.map(status=>{ const on=active===status||(status==='absent'&&active==='mc'); const _n=(todayRecords.find(r=>r.student_id===s.id&&r.dept==='SRT'&&(r.session??0)===0)||{}).note; const tx=status==='absent'?(absKind(active,_n)||'Absent'):STATUS_TX[status]; return `<button class="status-btn${on?' s-'+active:''}" onclick='markStudent(${swJ(s.id)},${swJ(s.name)},"SRT",${swJ(code)},${swJ(status)})'><span class="sb-ic">${status==='absent'&&active==='mc'?LABELS_ROW.mc:LABELS_ROW[status]}</span><span class="sb-tx">${tx}</span></button>`; }).join('')}</div>
+      <div class="sb-wrap">${ROW_STATUSES.map(status=>{ const on=active===status||(status==='absent'&&active==='mc'); const _n=(todayRecords.find(r=>r.student_id===s.id&&r.dept==='SRT'&&(r.session??0)===_vs)||{}).note; const tx=status==='absent'?(absKind(active,_n)||'Absent'):STATUS_TX[status]; return `<button class="status-btn${on?' s-'+active:''}" onclick='${_vs?`markVisitor(${swJ(w.id)},${swJ(status)})`:`markStudent(${swJ(s.id)},${swJ(s.name)},"SRT",${swJ(code)},${swJ(status)})`}'><span class="sb-ic">${status==='absent'&&active==='mc'?LABELS_ROW.mc:LABELS_ROW[status]}</span><span class="sb-tx">${tx}</span></button>`; }).join('')}</div>
     </div>`;
   });
   return h+`</div>`;
@@ -2966,15 +2995,15 @@ async function renderMonthly(){
   const _vis={};
   if(monthlyDept==='SRT'){
     const mus=allSwaps.filter(w=>w.status==='active'&&w.kind==='replacement'&&w.from_class===monthlyClass&&w.from_date&&w.from_date.slice(0,7)===monthlyMonth);
-    if(mus.length){ try{ const{data:vr}=await _sb.from('attendance').select('student_id,date,status,voided_at').in('student_id',[...new Set(mus.map(w=>w.student_id))]).in('date',[...new Set(mus.map(w=>w.to_date))]).eq('dept','SRT');
-      (vr||[]).filter(r=>!r.voided_at).forEach(r=>{ _vis[r.student_id+'|'+r.date]=r.status; }); }catch(e){} }
+    if(mus.length){ try{ const{data:vr}=await _sb.from('attendance').select('student_id,date,status,class_code,voided_at').in('student_id',[...new Set(mus.map(w=>w.student_id))]).in('date',[...new Set(mus.map(w=>w.to_date))]).eq('dept','SRT');
+      (vr||[]).filter(r=>!r.voided_at).forEach(r=>{ _vis[r.student_id+'|'+r.date+'|'+r.class_code]=r.status; }); }catch(e){} }   /* v45 · 只认在补课那班点的 */
     if(_tok!==_monthlyTok) return;
   }
   // Build lookup: recMap[studentId][day] = {status, note, marked_by}
   const recMap={};
   recs.forEach(r=>{
     const day=parseInt(r.date.split('-')[2]);
-    (recMap[r.student_id]=recMap[r.student_id]||{})[day]={status:r.status,note:r.note||'',marked_by:r.marked_by||'',other:r.class_code!==monthlyClass?r.class_code:''};   /* v18 · other = 在别班名单点的 */
+    (recMap[r.student_id]=recMap[r.student_id]||{})[day]={status:r.status,note:r.note||'',marked_by:r.marked_by||'',other:r.class_code!==monthlyClass?r.class_code:'',cls:r.class_code};   /* v45 · cls */   /* v18 · other = 在别班名单点的 */
   });
 
   const ICON={present:'✓',absent:'✕',late:'⏰',early_leave:'🚪',mc:'🤒'};
@@ -3044,7 +3073,7 @@ async function renderMonthly(){
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">Temp</td>`;
         }else if(r){
           const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)||'·';
-          const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status);   /* v19 · 补 / 换 / 已补 */
+          const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status,r.cls);   /* v19 · 补 / 换 / 已补 · v45 只认在补 / 换去那班点的 */
           if(_sw){ r.other=r.other||''; }
           const oth=(r.other?' · marked in '+r.other:'')+(_sw?' · '+_sw.t:'');   /* v18 / v19 */
           const _tn=ntMonthTag(s.id,monthlyDept,monthlySession,dayStr);   /* v44 */
