@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v47</title>
+<title>OPR-AttendanceGo v48</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v47</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v48</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -248,7 +248,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
   <!-- v19 · 补课 / 换时段 modal -->
   <div id="sw-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:210;justify-content:center;align-items:center" onclick="if(event.target===this)swClose()">
     <div style="background:#fff;border-radius:12px;padding:20px;width:540px;max-width:94vw;max-height:90vh;overflow:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:14px;font-weight:700" id="sw-title">Add visitor</div><button onclick="swClose()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--mut)">✕</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:14px;font-weight:700" id="sw-title">Add replacement / change slot</div><button onclick="swClose()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--mut)">✕</button></div>
       <div style="font-size:11px;color:var(--mut);margin-bottom:12px" id="sw-sub"></div>
       <div id="sw-body"></div>
       <div style="display:flex;gap:8px;margin-top:16px">
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=47;   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=48;   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -2115,10 +2115,10 @@ function swVisitorsHtml(code){
   const _dow=new Date(selectedDate+'T12:00:00').getDay();
   let h=`<div style="margin:10px 16px 0;padding-top:10px;border-top:1px dashed var(--bdr)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <span style="font-size:11px;font-weight:700;color:#7870CC">Visitors${vs.length?' · '+vs.filter(w=>getStatus(w.student_id,'SRT',swVisSess(w))!=='unmarked').length+'/'+vs.length:''}</span>
-      <button onclick='swOpen("mark",${swJ(code)})' style="min-height:32px;padding:4px 12px;border-radius:8px;border:1px solid #7870CC;background:#fff;color:#7870CC;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">+ Add visitor</button>
+      <span style="font-size:11px;font-weight:700;color:#7870CC">Replacement / Change slot${vs.length?' · '+vs.filter(w=>getStatus(w.student_id,'SRT',swVisSess(w))!=='unmarked').length+'/'+vs.length:''}</span>
+      <button onclick='swOpen("mark",${swJ(code)})' style="min-height:32px;padding:4px 12px;border-radius:8px;border:1px solid #7870CC;background:#fff;color:#7870CC;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">+ Add replacement / change slot</button>
     </div>
-    <div style="font-size:9px;color:var(--hint);margin-bottom:4px">Replacement / temp slot students. Marked here, counted in their own class.</div>`;
+    <div style="font-size:9px;color:var(--hint);margin-bottom:4px">From other classes today. Marked here, counted in their own class.</div>`;
   vs.forEach(w=>{
     const s=swStudent(w.student_id);
     const _vs=swVisSess(w);   /* v45 · 同一天也有自己的课 → 补课这堂另存 */
@@ -2157,7 +2157,7 @@ function swPickDate(d){ SW.to_date=d; if(SW.to_class&&swParts(SW.to_class).day!=
 function swNewRow(){ return {q:'',stu:'',own:'',abs:'',to:'',slot:'',cls:''}; }
 function swOpen(mode,toClass){
   SW={mode,kind:'replacement',rows:[swNewRow()],lock:(mode==='mark'&&toClass)?{cls:toClass,date:selectedDate}:null,src:'',_mm:{}};
-  document.getElementById('sw-title').textContent=mode==='mark'?'Add visitor':'SRT replacement / change slot';
+  document.getElementById('sw-title').textContent=mode==='mark'?'Add replacement / change slot':'SRT replacement / change slot';
   document.getElementById('sw-sub').textContent=mode==='mark'?('To '+swDot(toClass)+' · '+fmtDate(selectedDate)):'One row per child. The system links everything when you save.';
   document.getElementById('sw-modal').style.display='flex';
   swRenderBody();
@@ -3102,7 +3102,7 @@ async function renderMonthly(){
     const _vw=allSwaps.filter(w=>w.status==='active'&&w.to_class===monthlyClass&&w.to_date&&w.to_date.slice(0,7)===monthlyMonth);
     const _vs=[...new Set(_vw.map(w=>w.student_id))];
     if(_vs.length){
-      h+=`<tr><td colspan="${daysInMonth+1+_rCols.length}" style="padding:8px 8px 2px;font-size:10px;font-weight:700;color:#7870CC;position:sticky;left:0">Visitors · counted in their own class</td></tr>`;
+      h+=`<tr><td colspan="${daysInMonth+1+_rCols.length}" style="padding:8px 8px 2px;font-size:10px;font-weight:700;color:#7870CC;position:sticky;left:0">Replacement / Change slot · counted in their own class</td></tr>`;
       _vs.forEach(sid=>{
         const st=swStudent(sid), mine=_vw.filter(w=>w.student_id===sid);
         h+=`<tr><td style="padding:4px 8px;position:sticky;left:0;background:var(--sur);z-index:1;border-bottom:.5px solid var(--bdr);white-space:nowrap;font-size:11px;color:#7870CC">+ ${_escHtml(st.name)} <span style="font-size:9px;background:#F3F1FB;border-radius:8px;padding:1px 6px;font-weight:600">${_escHtml(swDot(mine[0].from_class))}</span></td>`;
