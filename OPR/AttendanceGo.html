@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v45</title>
+<title>OPR-AttendanceGo v46</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v45</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v46</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=45;   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=46;   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -2077,7 +2077,7 @@ function swInto(cls,date){ return allSwaps.filter(w=>w.status==='active'&&w.to_c
 function swDM(d){ return d?d.slice(8)+'/'+d.slice(5,7):''; }
 function swMarkFor(stuId,cls,date,status,rCls){   /* v45 · rCls = 这笔纪录是在哪一班点的；只有在补课 / 换去的那班点的，才标补 / 换 */
   const into=allSwaps.find(w=>w.status==='active'&&w.student_id===stuId&&w.from_class===cls&&w.to_date===date&&(rCls===undefined||rCls===w.to_class));
-  if(into) return into.kind==='replacement'?{k:'for '+swDM(into.from_date),t:'Replacement in '+swDot(into.to_class)+' for '+into.from_date}:{k:swDot(into.from_class),t:'Temp slot in '+swDot(into.to_class)+' (own class '+swDot(into.from_class)+')'};
+  if(into) return into.kind==='replacement'?{k:'for '+swDM(into.from_date),t:'Replacement in '+swDot(into.to_class)+' for '+into.from_date}:{k:swDot(into.to_class),t:'Went to '+swDot(into.to_class)+' this day (own class '+swDot(into.from_class)+')',temp:true};   /* v46 · 去上的那班 */
   const mu=swMadeUp(stuId,cls,date);
   if(mu) return {k:'Made up '+swDM(mu.to_date),t:'Made up on '+mu.to_date+' '+swDot(mu.to_class)};
   return null;
@@ -3070,13 +3070,16 @@ async function renderMonthly(){
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#f0eee8;color:var(--mut);font-size:8px;font-weight:600" title="${_escHtml('Counted in '+swCls(attClassOf(er)))}">${er.status==='late'?'⏰':'✓'}</td>`;
         }else if(!r&&swAwayOn(s.id,monthlyClass,dayStr)){   /* v19 · 换到别的日子上，这天没纪录 */
           const aw=swAwayOn(s.id,monthlyClass,dayStr);
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#F3F1FB;color:#7870CC;font-size:9px;font-weight:600" title="${_escHtml('Temp slot → '+aw.to_date+' '+swCls(aw.to_class))}">Temp</td>`;
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#ECEBE7;color:var(--mut);font-size:6.5px;font-weight:700;line-height:1.1;white-space:nowrap" title="${_escHtml('Went to '+swDot(aw.to_class)+' on '+aw.to_date)}">${_escHtml(swDot(aw.to_class))}<div>${_escHtml(swDM(aw.to_date))}</div></td>`;   /* v46 · 灰色，写去的那班 */
         }else if(r){
           const display=r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)||'·';
           const _sw=swMarkFor(s.id,monthlyClass,dayStr,r.status,r.cls);   /* v19 · 补 / 换 / 已补 · v45 只认在补 / 换去那班点的 */
           if(_sw){ r.other=r.other||''; }
           const oth=(r.other?' · marked in '+r.other:'')+(_sw?' · '+_sw.t:'');   /* v18 / v19 */
           const _tn=ntMonthTag(s.id,monthlyDept,monthlySession,dayStr);   /* v44 */
+          if(_sw&&_sw.temp){   /* v46 · 换 slot：本班这格变灰，写他去上的那班（点名在那班的 Visitors） */
+            h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#ECEBE7;color:var(--mut);line-height:1.05" title="${_escHtml(_sw.t+' · '+(r.note||r.status))}"><div style="font-size:8px">${display}</div><div style="font-size:6.5px;font-weight:700;white-space:nowrap">${_escHtml(_sw.k)}</div></td>`;
+          }else
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth+(_tn?' · '+_tn.title:''))}">${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}${_tn?_tn.html:''}</td>`;
         }else if(noticeOn(s.id,monthlyDept,monthlySession,dayStr)&&isClassDay(monthlyDept,monthlyClass,dayStr)){   /* v33 · 家长说不来、还没点 */
           const _n=noticeOn(s.id,monthlyDept,monthlySession,dayStr);
@@ -3093,6 +3096,29 @@ async function renderMonthly(){
       _rTot[ss].att+=x.att; _rTot[ss].abs+=x.abs; _rTot[ss].unm+=x.unm; h+=rateCell(x); });   /* v33 */
     h+=`</tr>`;
   });
+
+  /* v46 · Visitors：这个月来这班上课的别班孩子（补课 / 换 slot）。点名照样看得到，标他自己的班；出席率算回他自己的班，这里不算 */
+  if(monthlyDept==='SRT'){
+    const _vw=allSwaps.filter(w=>w.status==='active'&&w.to_class===monthlyClass&&w.to_date&&w.to_date.slice(0,7)===monthlyMonth);
+    const _vs=[...new Set(_vw.map(w=>w.student_id))];
+    if(_vs.length){
+      h+=`<tr><td colspan="${daysInMonth+1+_rCols.length}" style="padding:8px 8px 2px;font-size:10px;font-weight:700;color:#7870CC;position:sticky;left:0">Visitors · counted in their own class</td></tr>`;
+      _vs.forEach(sid=>{
+        const st=swStudent(sid), mine=_vw.filter(w=>w.student_id===sid);
+        h+=`<tr><td style="padding:4px 8px;position:sticky;left:0;background:var(--sur);z-index:1;border-bottom:.5px solid var(--bdr);white-space:nowrap;font-size:11px;color:#7870CC">+ ${_escHtml(st.name)} <span style="font-size:9px;background:#F3F1FB;border-radius:8px;padding:1px 6px;font-weight:600">${_escHtml(swDot(mine[0].from_class))}</span></td>`;
+        for(let d=1;d<=daysInMonth;d++){
+          const ds=monthlyMonth+'-'+String(d).padStart(2,'0'), w=mine.find(x=>x.to_date===ds);
+          if(!w){ h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);color:var(--hint)"></td>`; continue; }
+          const r=(monthRecs||[]).find(x=>x.student_id===sid&&x.date===ds&&x.class_code===monthlyClass);
+          const tag=w.kind==='replacement'?'for '+swDM(w.from_date):swDot(w.from_class);
+          const disp=r?(r.status==='late'&&lateTime(r.note)?lateTime(r.note):attMark(r,ICON)||'·'):'·';
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${r?(BG[r.status]||''):'#F3F1FB'};font-size:${r&&r.status!=='late'?'11px':'8px'};line-height:1.05;box-shadow:inset 0 -2px 0 #7870CC" title="${_escHtml((w.kind==='replacement'?'Replacement for '+w.from_date:'Temp slot')+' · own class '+swDot(w.from_class)+(r?' · '+(r.note||r.status):' · not marked yet'))}">${disp}<div style="font-size:6px;color:#7870CC;font-weight:700;white-space:nowrap">${_escHtml(tag)}</div></td>`;
+        }
+        _rCols.forEach(()=>{ h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);border-left:.5px solid var(--bdr);font-size:9px;color:var(--hint)">–</td>`; });
+        h+=`</tr>`;
+      });
+    }
+  }
 
   // Rate row
   h+=`<tr style="background:var(--sur2);font-weight:600"><td style="padding:6px 8px;position:sticky;left:0;background:var(--sur2);z-index:1;font-size:10px">Rate</td>`;
