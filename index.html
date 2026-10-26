@@ -388,6 +388,53 @@ async function showApp(){
 
 /* B2 版本核对：只有管理员主动点选时才下载系统 HTML；比较清单的版本、来源、SHA、位元组大小。 */
 
+const VERCHECK_ROLES=['OWNER','TOP_MGMT','ADMIN'];
+let VERSION_MANIFESTS={};
+async function loadVersionManifests(){
+  const sources=[['main','/versions.json'],['tools','/academee-tools/versions.json']];
+  const result=await Promise.all(sources.map(async ([key,url])=>{
+    try{
+      const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+      const j=await r.json();
+      if(j.schema!==1||!j.files||typeof j.files!=='object'||typeof j.commit!=='string')throw Error('Invalid manifest');
+      return [key,j];
+    }catch(e){console.warn('[versions] '+key+' unavailable',e);return [key,null];}
+  }));
+  VERSION_MANIFESTS=Object.fromEntries(result);
+}
+function manifestEntry(href){
+  const u=new URL(href,location.href);
+  if(u.origin!==location.origin)return null;
+  const tools=u.pathname.startsWith('/academee-tools/');
+  const key=decodeURIComponent(u.pathname.slice(tools?'/academee-tools/'.length:1));
+  const manifest=VERSION_MANIFESTS[tools?'tools':'main'];
+  return manifest?.files?.[key]||null;
+}
+function cardVersion(s){
+  const e=manifestEntry(s.href);
+  const valid=e&&['app_version','title'].includes(e.source)&&Number.isInteger(e.version);
+  return {label:valid?'v'+e.version:(s.ver||''),verified:!!valid&&e.source==='app_version',
+    sha:valid&&/^[a-f0-9]{64}$/.test(e.sha256)?e.sha256.slice(0,12):null};
+}
+function cardHref(href,v){
+  const u=new URL(href,location.href);
+  u.searchParams.set('v',v.sha||v.label||'fallback');
+  return u.pathname+u.search+u.hash;
+}
+function liveVersion(bytes){
+  let txt=new TextDecoder().decode(bytes);
+  txt=txt.replace(/<!--[\s\S]*?-->|\/\*[\s\S]*?\*\//g,'');
+  txt=txt.split('\n').filter(line=>!line.trimStart().startsWith('//')).join('\n');
+  const nums=[...txt.matchAll(/^\s*(?:const|let|var)\s+APP_VERSION\s*=\s*['"]?v?(\d+)['"]?(?=[\s;,)]|$)/gm)].map(m=>+m[1]);
+  const unique=[...new Set(nums)];
+  if(unique.length>1)return {source:'conflict',version:null};
+  if(unique.length===1)return {source:'app_version',version:unique[0]};
+  const t=txt.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+  const v=t?.[1]?.match(/\bv(\d{1,4})\b/i);
+  return v?{source:'title',version:+v[1]}:{source:'none',version:null};
+}
+
+
 function vcBadge(card){
   let b=card.querySelector('.app-ver');
   if(!b){b=document.createElement('span');b.className='app-ver';card.appendChild(b);}
