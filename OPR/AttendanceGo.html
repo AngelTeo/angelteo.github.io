@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v48</title>
+<title>OPR-AttendanceGo v49</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v48</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v49</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=48;   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=49;   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -669,26 +669,31 @@ function ntListHtml(){
   if(NT.listErr) return '<div class="card" style="color:var(--danger)">'+NT.listErr+' <button style="'+NT_BTN+'" onclick="ntLoadList()">Retry</button></div>';
   const L=NT.list||[]; if(!L.length) return warn+'<div style="color:var(--mut);padding:8px 0">No parent notices.</div>';
   let h=warn;
-  L.forEach(n=>{
-    const act=n.status==='active', ms=ntMsgStateN(n), x=ntWhat(n);
+  /* v49 · 同一次登记、同一个孩子、同一类 → 一张卡（多部门列在一起） */
+  const G=[], gi={};
+  L.forEach(n=>{ const k=n.submission_id+'|'+n.student_id+'|'+n.kind+'|'+n.status; if(gi[k]===undefined){ gi[k]=G.length; G.push([]); } G[gi[k]].push(n); });
+  G.forEach(g=>{
+    const n=g[0], act=n.status==='active', ms=ntMsgStateN(n), x=ntWhat(n);
+    const where=g.map(m=>m.dept+' '+ntEsc(m.class_code||'')+ntWhat(m).sess).join(' + ');
+    const ids=g.map(m=>m.id).join(',');
     h+='<div class="card" style="padding:10px 12px;'+(act?'':'opacity:.6')+'"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0">'
       +'<div style="font-weight:700">'+ntEsc(ntStuName(n.student_id))+' <span style="font-weight:600;color:var(--info);font-size:11px">'+NT_KIND_LABEL[n.kind]+'</span></div>'
-      +'<div style="font-size:12.5px;color:var(--mut)">'+n.dept+' '+ntEsc(n.class_code||'')+x.sess+' · '+ntDates(n.date_from,n.date_to)+'</div>'
+      +'<div style="font-size:12.5px;color:var(--mut)">'+where+' · '+ntDates(n.date_from,n.date_to)+'</div>'
       +'<div style="font-size:12.5px">'+x.w+(n.remark?' · <span style="color:var(--mut)">'+ntEsc(n.remark)+'</span>':'')+'</div>'
       +(act?'<div style="font-size:11.5px;color:'+(ms.sent?'var(--ok)':'#b45309')+';margin-top:2px">'+ms.txt+'</div>'
            :'<div style="font-size:11.5px;color:var(--danger);margin-top:2px">Cancelled'+(n.void_reason?': '+ntEsc(n.void_reason):'')+(ms.sent?(ms.cancel_sent?' · the group was told it is cancelled ✓':' · the group was told before — it is waiting in “Send to the group” as a cancellation'):'')+'</div>')
       +'</div><div style="display:flex;flex-direction:column;gap:6px">'
       +(act&&!ms.sent?'<button style="'+NT_PRI+'" onclick="ntSendFromList(\''+n.submission_id+'\')">Send message</button>':'')
-      +(act?'<button style="'+NT_RED+'" onclick="ntVoidAsk(\''+n.id+'\')">Cancel</button>':'')
+      +(act?'<button style="'+NT_RED+'" onclick="ntVoidAsk(\''+ids+'\')">Cancel</button>':'')
       +'</div></div></div>';
   });
   return h;
 }
 
 /* ── 作废 ─────────────────────────────────────────────────────────────── */
-function ntVoidAsk(id){
-  const n=(NT.list||[]).find(x=>x.id===id); if(!n) return;
-  ntModal('Cancel notice','<div style="margin-bottom:10px"><b>'+ntEsc(ntStuName(n.student_id))+'</b> · '+NT_KIND_LABEL[n.kind]+' · '+n.dept+' · '+ntDates(n.date_from,n.date_to)+'</div>'
+function ntVoidAsk(id){   /* v49 · id 可以是几个（同一张卡的各部门），用逗号隔开 */
+  const ns=String(id).split(',').map(i=>(NT.list||[]).find(x=>x.id===i)).filter(Boolean); if(!ns.length) return; const n=ns[0];
+  ntModal('Cancel notice','<div style="margin-bottom:10px"><b>'+ntEsc(ntStuName(n.student_id))+'</b> · '+NT_KIND_LABEL[n.kind]+' · '+ns.map(m=>m.dept).join(' + ')+' · '+ntDates(n.date_from,n.date_to)+'</div>'
     +'<div style="font-size:12px;color:var(--mut);margin-bottom:8px">Teachers will no longer see this notice. Attendance already marked is not changed.</div>'
     +'<label style="font-weight:600;display:block;margin-bottom:6px">Why is it cancelled? <span style="color:var(--danger)">*</span></label>'
     +'<input id="nt-void-why" placeholder="e.g. Parent says the child is coming after all" style="'+NT_IN+'">',
@@ -698,9 +703,11 @@ async function ntVoidGo(id){
   const why=((document.getElementById('nt-void-why')||{}).value||'').trim();
   if(!why){ ntToast('Please write why it is cancelled',true); return; }
   const b=document.getElementById('nt-void-go'); if(b){ b.disabled=true; b.textContent='Cancelling…'; }
-  const n=(NT.list||[]).find(x=>x.id===id);
-  const res=await ntRpc('notice_void',{p_id:id,p_reason:why});
-  if(res.kind!=='ok'){ if(b){ b.disabled=false; b.textContent='Cancel notice'; } ntToast(ntErrText(res),true); return; }
+  const _ids=String(id).split(','), n=(NT.list||[]).find(x=>x.id===_ids[0]);
+  for(const one of _ids){   /* v49 · 同一张卡的各部门一起取消 */
+    const res=await ntRpc('notice_void',{p_id:one,p_reason:why});
+    if(res.kind!=='ok'){ if(b){ b.disabled=false; b.textContent='Cancel notice'; } ntToast(ntErrText(res),true); ntLoadList(); return; }
+  }
   ntClose();
   ntToast(n&&ntMsgState(n.submission_id).sent?'Cancelled. The group was told before — please tell them it is cancelled.':'Cancelled. Teachers will no longer see it.');
   ntLoadList(); for(const k in noticeCache) delete noticeCache[k];
@@ -848,6 +855,25 @@ function ntReview(){
   b+='<div style="font-size:13px;margin-top:6px"><b>'+(f.kind==='absence'?'Days':'Day')+':</b> '+ntDates(f.from,f.kind==='absence'?f.to:f.from)+'</div>'
     +(f.remark?'<div style="font-size:13px"><b>Note:</b> '+ntEsc(f.remark)+'</div>':'');
   ntModal('Check before saving',b,'<button style="'+NT_BTN+'" onclick="ntDrawForm()">Back</button><button style="'+NT_PRI+'" id="nt-save" onclick="ntSubmit()">Save</button>');
+  ntDupCheck(f);   /* v49 */
+}
+/* v49 · 同一个孩子、同一个部门、日子重叠、同一类，已经登记过 → 红字提醒（还是可以照存） */
+async function ntDupCheck(f){
+  try{
+    const to=f.kind==='absence'?f.to:f.from, sids=f.kids.map(k=>k.sid);
+    const{data,error}=await _sb.from('attendance_notice').select('student_id,dept,kind,date_from,date_to,sessions,reason_code,reason_text,expected_time,created_at')
+      .eq('status','active').eq('kind',f.kind).in('student_id',sids).lte('date_from',to).gte('date_to',f.from);
+    if(error||!data||!data.length) return;
+    const hits=data.filter(n=>{ const k=f.kids.find(x=>x.sid===n.student_id); if(!k||k.depts[n.dept]===undefined) return false;
+      const ss=n.dept==='ATC'?k.depts.ATC.split(',').map(Number):[0]; return (n.sessions||[]).some(x=>ss.includes(x)); });
+    if(!hits.length) return;
+    const box=document.getElementById('nt-review-err'); if(!box) return;
+    const seen=new Set();
+    box.innerHTML='<b>Already registered:</b>'+hits.filter(n=>{ const k=n.student_id+n.dept; if(seen.has(k)) return false; seen.add(k); return true; }).map(n=>'<div>• '+ntEsc(ntStuName(n.student_id))+' · '+n.dept+' · '+ntDates(n.date_from,n.date_to)+' · '+ntWhat(n).w+' <span style="opacity:.8">(registered '+ntDmy(String(n.created_at).slice(0,10))+')</span></div>').join('')
+      +'<div style="margin-top:4px">Go Back to remove the child, or Save anyway.</div>';
+    box.style.display='block';
+    const sv=document.getElementById('nt-save'); if(sv) sv.textContent='Save anyway';
+  }catch(e){}
 }
 
 /* ── 存档：先在本机记下 id，再送资料库 ────────────────────────────────── */
