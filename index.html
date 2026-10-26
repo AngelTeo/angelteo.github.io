@@ -183,6 +183,10 @@ const LIVE={
   'OPR-NoticeGo-Holiday': {href:'OPR/NoticeGo-Holiday.html', name:'NoticeGo-Holiday', ver:'v39', group:'OPR — Operations',    color:'#8B6C2A', order:8},
   // 2026-10-24：DutyQ 首页上架（Owner 10-17 定、10-24「直接放上去」）· 放学排队；权限码 OPR-DutyQ（role_access：只有 MGMT / TOP_MGMT / OWNER 看得到、用得到）。
   'OPR-DutyQ':         {href:'OPR/DutyQ.html',            name:'DutyQ',        ver:'v3',   group:'OPR — Operations',        color:'#8B6C2A', order:13},
+  // 2026-10-26：MarketingCRM 首页上架（Marketing CRM 线交办，Owner「你直接做」）· 档在 academee-tools（跟 MiscGo 同 repo）。
+  //             权限码 BIZ-MarketingCRM（role_access：OWNER / ADMIN / MARKETING 看得到）。⚠️ MarketingCRM 是独立登入（自己的 Supabase 项目 marketingcrm ＋ crm_staff 名单），
+  //             首页看得到卡片 ≠ 登得进去；两份名单要人工保持一致（26-10：Teo / Lynnie / Serene）。
+  'BIZ-MarketingCRM':  {href:'academee-tools/MarketingCRM.html', name:'MarketingCRM', ver:'v23', group:'BIZ — Marketing',      color:'#C04E28', order:0},
   'LIB-SpellGo':       {href:'LIB/SpellGo.html',         name:'SpellGo',      ver:'v15',  group:'LIB — Library',           color:'#6B6B3A', order:8},
   'LIB-WordGo':        {href:'LIB/WordGo.html',          name:'WordGo',       ver:'v9',   group:'LIB — Library',           color:'#6B6B3A', order:9},
   // 2026-10-10：E-Class Attendance v1 新上架（SRT 网课点名；点名直接写进 AttendanceGo 同一张 attendance 表，记回学生自己原本的班）。
@@ -257,7 +261,7 @@ const LAYER_COLORS={
 
 // Group order for sections
 // ⚠️ 渲染只走 GROUP_ORDER。LIVE 里有卡片但 group 不在这个阵列 = 卡片永远不出现,而且零报错。
-const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','EDU — Education','RPT — Reports','OPR — Operations','LIB — Library','EVT — Events'];
+const GROUP_ORDER=['CORE — Permissions','MasterHub — Master Data','EDU — Education','RPT — Reports','OPR — Operations','BIZ — Marketing','LIB — Library','EVT — Events'];   // 2026-10-26：加 BIZ — Marketing（MarketingCRM）
 
 async function doLogin(){
   const email=document.getElementById('auth-email').value.trim();
