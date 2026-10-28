@@ -182,6 +182,8 @@ const LIVE={
   'OPR-NoticeGo-Holiday': {href:'OPR/NoticeGo-Holiday.html', name:'NoticeGo-Holiday', ver:'v39', group:'OPR — Operations',    color:'#8B6C2A', order:8},
   // 2026-10-24：DutyQ 首页上架（Owner 10-17 定、10-24「直接放上去」）· 放学排队；权限码 OPR-DutyQ（role_access：只有 MGMT / TOP_MGMT / OWNER 看得到、用得到）。
   'OPR-DutyQ':         {href:'OPR/DutyQ.html',            name:'DutyQ',        ver:'v3',   group:'OPR — Operations',        color:'#8B6C2A', order:13},
+  // 2026-10-28：MaintenanceGo 首页上架（OPR-MaintenanceGo 线，Owner「你直接加首页卡片」）· 维修 / 报修；权限码 OPR-MaintenanceGo（role_access：OWNER / TOP_MGMT / MGMT / ADMIN 看得到，TEACHER / MARKETING 看不到）。费用另用 OPR-MaintenanceGo-Cost（INVISIBLE，不建卡片）。
+  'OPR-MaintenanceGo': {href:'OPR/MaintenanceGo.html',      name:'MaintenanceGo', ver:'v1',  group:'OPR — Operations',        color:'#8B6C2A', order:14},
   // 2026-10-26：MarketingCRM 首页上架（Marketing CRM 线交办，Owner「你直接做」）· 档在 academee-tools（跟 MiscGo 同 repo）。
   //             权限码 BIZ-MarketingCRM（role_access：OWNER / ADMIN / MARKETING 看得到）。⚠️ MarketingCRM 是独立登入（自己的 Supabase 项目 marketingcrm ＋ crm_staff 名单），
   //             首页看得到卡片 ≠ 登得进去；两份名单要人工保持一致（26-10：Teo / Lynnie / Serene）。
