@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v49</title>
+<title>OPR-AttendanceGo v50</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v49</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v50</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=49;   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=50;   /* v50 · 「Make one message」改成今天以后的全部（发过的也放）—— 行政每天重复发报告（Owner 10-28，配合资料库 Step H3） */ /* v49 */ //   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -1075,7 +1075,7 @@ function msHtml(){
   let h='';
   /* ── 1 · 合并成一则发群 ── */
   h+='<div style="font-weight:700;margin-bottom:2px">Send to the group — one message</div>'
-    +'<div style="font-size:12px;color:var(--mut);margin-bottom:8px">Tick the departments and kinds. Everything not told to the group yet goes into one WhatsApp message.</div>';
+    +'<div style="font-size:12px;color:var(--mut);margin-bottom:8px">Tick the departments and kinds. Everything from today on goes into one WhatsApp message — sent ones too, so you can send the report again.</div>';
   if(MS.err) h+='<div style="color:var(--danger);font-size:12.5px;margin-bottom:8px">'+ntEsc(MS.err)+' <button style="'+NT_BTN+'" onclick="msLoad()">Retry</button></div>';
   if(MS.missing||(MS.waiting===null&&MS.data===null&&!MS.err)){
     h+='<div style="font-size:12px;color:var(--mut);margin-bottom:8px">'+(MS.missing?'One combined message needs the database update (Step B). Until then each notice is sent on its own.':'Loading…')+'</div>';
@@ -1085,8 +1085,8 @@ function msHtml(){
     h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">'+['SRK','GAK','ATC','SRT'].map(d=>chip('d',d,d,cnt(d,null),MS.selD.includes(d))).join('')+'</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+MS_KINDS.map(([k,t])=>chip('k',k,t,cnt(null,k),MS.selK.includes(k))).join('')+'</div>';
     const _D=msDepts(); const n=W.filter(x=>_D.includes(x.dept)&&MS.selK.includes(x.kind)).reduce((a,x)=>a+x.count,0);
-    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button style="'+NT_PRI+(n?'':';opacity:.45')+'" '+(n?'':'disabled')+' onclick="msBatch()">Make one message'+(n?' ('+n+')':'')+'</button>'+(!n&&W.length?'<span style="font-size:12px;color:#B42318">'+(!MS.selK.length?'Tick at least one kind.':'Nothing waiting for what you ticked.')+'</span>':'')+(!MS.selD.length&&n?'<span style="font-size:12px;color:var(--mut)">(all departments)</span>':'')
-      +'<span style="font-size:12px;color:var(--mut)">'+(W.length?'Waiting: '+W.map(x=>x.dept+' '+MS_KIND_LABEL[x.kind].replace(/^SRT /,'').toLowerCase()+' '+x.count).join(' · '):'Nothing waiting — everything has been told ✓')+'</span></div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button style="'+NT_PRI+(n?'':';opacity:.45')+'" '+(n?'':'disabled')+' onclick="msBatch()">Make one message'+(n?' ('+n+')':'')+'</button>'+(!n&&W.length?'<span style="font-size:12px;color:#B42318">'+(!MS.selK.length?'Tick at least one kind.':'Nothing from today on for what you ticked.')+'</span>':'')+(!MS.selD.length&&n?'<span style="font-size:12px;color:var(--mut)">(all departments)</span>':'')
+      +'<span style="font-size:12px;color:var(--mut)">'+(W.length?'From today on: '+W.map(x=>x.dept+' '+MS_KIND_LABEL[x.kind].replace(/^SRT /,'').toLowerCase()+' '+x.count).join(' · '):'Nothing from today on.')+'</span></div>';
   }
   /* ── 2 · 今天名单 ── */
   h+='<div style="border-top:1px solid var(--bdr);padding-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px">'
@@ -1104,7 +1104,7 @@ async function msBatch(){
   const key='batch|'+Date.now();   /* 每按一次都是新的一则（只在同一次按、断网重送时沿用） */
   const prep=uid=>ntRpc('delivery_prepare_batch',{p_client_uid:uid,p_depts:msDepts(),p_kinds:MS.selK.slice()});
   MS.busy=true; const res=await prep(msUidFor(key)); MS.busy=false;
-  if(res.kind==='rejected'&&res.code==='NOTHING_TO_SEND'){ ntToast('Nothing waiting for those — everything has been told'); msLoad(); return; }
+  if(res.kind==='rejected'&&res.code==='NOTHING_TO_SEND'){ ntToast('Nothing from today on for those.'); msLoad(); return; }
   if(res.kind!=='ok'){ ntToast(ntErrText(res),true); return; }
   MS.cur={key,label:'one message for '+(res.data.count||'')+(res.data.count===1?' item':' items'),d:res.data,redo:prep}; msPanel();
 }
