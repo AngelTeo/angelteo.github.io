@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v50</title>
+<title>OPR-AttendanceGo v51</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v50</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v51</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=50;   /* v50 · 「Make one message」改成今天以后的全部（发过的也放）—— 行政每天重复发报告（Owner 10-28，配合资料库 Step H3） */ /* v49 */ //   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=51;   /* v51 · 连续 2 个上课日无故缺席：Dashboard Contact Parents 列出来、Monthly 那两天右上角 ⚠️；行政写下联络结果后才消失（Owner 10-28，资料库 Step I） */ /* v50 */ //   /* v50 · 「Make one message」改成今天以后的全部（发过的也放）—— 行政每天重复发报告（Owner 10-28，配合资料库 Step H3） */ /* v49 */ //   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -2460,7 +2460,7 @@ function renderDashboard(){
 
   // Contact parents section
   h+=`<div class="card" style="margin-top:10px"><div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--danger)">📞 Contact Parents</div>`;
-  h+=`<div style="font-size:10px;color:var(--mut);margin-bottom:8px">Absent 2+ consecutive days without notified reason</div>`;
+  h+=`<div style="font-size:10px;color:var(--mut);margin-bottom:8px">Absent 2 class days in a row with no reason (not MC, Holiday, School event, Family matter, Stay back, Notified, weekly exception or a parent notice). Call the parent, then write what they said — the ⚠️ in Monthly goes away.</div>`;
   h+=`<div id="contact-parents">Loading...</div></div>`;
 
   el.innerHTML=h;
@@ -2495,45 +2495,46 @@ function dashDetail(status){
   el.style.display='block';
 }
 
-// Contact parents: 2+ consecutive absent without reason
+// v51 · Contact parents：连续 2 个上课日无故缺席（资料库 att_contact_flags 算，Monthly 用同一个）
+let cpItems=[];
+function cpDM(d){ return d.slice(8,10)+'/'+d.slice(5,7); }
 async function loadContactParents(){
   const el=document.getElementById('contact-parents');
   if(!el) return;
-  // Get yesterday's date (skip weekends simply)
-  const today=new Date(selectedDate+'T12:00:00');
-  const prev=new Date(today);
-  prev.setDate(prev.getDate()-1);
-  // Skip Sunday→Friday, Saturday→Friday
-  if(prev.getDay()===0) prev.setDate(prev.getDate()-2);
-  if(prev.getDay()===6) prev.setDate(prev.getDate()-1);
-  const prevDate=prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0')+'-'+String(prev.getDate()).padStart(2,'0');
-
-  const{data:prevRecs}=await _sb.from('attendance').select('student_id,student_name,dept,class_code,note').eq('date',prevDate).eq('status','absent');
-  const prevAbsent=prevRecs||[];
-
-  // Today's absent without reason
-  const todayAbsent=todayRecords.filter(r=>r.status==='absent'&&!r.note);
-
-  // Find students absent BOTH days without reason
-  const needContact=[];
-  todayAbsent.forEach(t=>{
-    const prev=prevAbsent.find(p=>p.student_id===t.student_id&&p.dept===t.dept&&!p.note);
-    if(prev) needContact.push(t);
-  });
-
-  if(!needContact.length){
-    el.innerHTML='<div style="font-size:11px;color:var(--ok);padding:4px 0">✓ No students need contacting</div>';
-    return;
-  }
+  const to=new Date(selectedDate+'T12:00:00'); const fr=new Date(to); fr.setDate(fr.getDate()-60);
+  const f=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+  let rows;
+  try{ const r=await _sb.rpc('att_contact_flags',{p_from:f(fr),p_to:selectedDate}); if(r.error) throw r.error; rows=r.data||[]; }
+  catch(e){ console.warn('[v51] contact flags',e); el.innerHTML='<div style="font-size:11px;color:var(--mut)">Could not load — try again later.</div>'; return; }
+  const g={};
+  rows.filter(x=>!x.covered).forEach(x=>{ const k=x.student_id+'|'+x.dept; (g[k]=g[k]||{student_id:x.student_id,name:x.name,dept:x.dept,cls:x.class_code,days:[]}).days.push(x); });
+  cpItems=Object.values(g).sort((a,b)=>a.dept.localeCompare(b.dept)||a.name.localeCompare(b.name));
+  if(!cpItems.length){ el.innerHTML='<div style="font-size:11px;color:var(--ok);padding:4px 0">✓ No students need contacting</div>'; return; }
   let h='';
-  needContact.forEach(r=>{
-    h+=`<div style="display:flex;align-items:center;padding:6px 0;border-bottom:.5px solid var(--bdr);font-size:12px">
-      <div class="dept-dot" style="background:${DEPT_COLORS[r.dept]};margin-right:8px"></div>
-      <div style="flex:1;font-weight:500">${r.student_name}</div>
-      <div style="font-size:10px;color:var(--mut)">${r.dept} · ${r.class_code}</div>
-    </div>`;
+  cpItems.forEach((it,i)=>{
+    const notes=[...new Set(it.days.map(d=>d.note).filter(Boolean))].join(' / ');
+    h+=`<div style="padding:8px 0;border-bottom:.5px solid var(--bdr);font-size:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="dept-dot" style="background:${DEPT_COLORS[it.dept]}"></div>
+        <div style="flex:1"><div style="font-weight:600">⚠️ ${_escHtml(it.name)}</div>
+          <div style="font-size:10px;color:var(--mut)">${it.dept} · ${_escHtml(it.cls||'')} · absent ${it.days.map(d=>cpDM(d.date)).join(', ')}${notes?' · teacher wrote: '+_escHtml(notes):''}</div></div>
+        ${noticeEditor?`<button id="cp-btn-${i}" onclick="cpOpen(${i})" style="padding:6px 12px;border-radius:8px;border:none;background:var(--layer);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Contacted</button>`:'<span style="font-size:10px;color:var(--mut)">Office to call</span>'}
+      </div>
+      <div id="cp-form-${i}" style="display:none;margin:8px 0 0 16px">
+        <textarea id="cp-note-${i}" rows="2" placeholder="What did the parent say? e.g. Sick, back on Monday" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--bdr);border-radius:8px;font-family:inherit;font-size:12px"></textarea>
+        <div style="display:flex;gap:6px;margin-top:6px"><button onclick="cpSave(${i})" style="padding:6px 14px;border-radius:8px;border:none;background:var(--layer);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Save</button>
+        <button onclick="cpOpen(${i},true)" style="padding:6px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--sur);font-size:11px;cursor:pointer;font-family:inherit">Cancel</button></div>
+      </div></div>`;
   });
   el.innerHTML=h;
+}
+function cpOpen(i,close){ const f=document.getElementById('cp-form-'+i); if(!f) return; f.style.display=close?'none':'block'; if(!close){ const t=document.getElementById('cp-note-'+i); t&&t.focus(); } }
+async function cpSave(i){
+  const it=cpItems[i]; const t=document.getElementById('cp-note-'+i); const note=(t&&t.value||'').trim();
+  if(!note){ t&&(t.style.borderColor='var(--danger)'); t&&t.focus(); return; }
+  const r=await _sb.rpc('att_contact_save',{p_student:it.student_id,p_dept:it.dept,p_dates:it.days.map(d=>d.date),p_note:note});
+  if(r.error){ console.error(r.error); alert('Could not save: '+r.error.message); return; }
+  loadContactParents();
 }
 
 // ═══════════════════════════════════════
@@ -3017,6 +3018,10 @@ async function renderMonthly(){
     if(noticeEditor||noticeScope[monthlyDept]!==false) await Promise.all(_days.map(ds=>loadNotices(ds,monthlyDept)));
   }catch(e){ console.warn('[v33] month notices',e); }
   if(_tok!==_monthlyTok) return;
+  /* v51 · 连续 2 天无故缺席、行政还没联络 → 格子右上角 ⚠️ */
+  const _cpWarn={};
+  try{ const r=await _sb.rpc('att_contact_flags',{p_from:monthStart,p_to:monthEnd}); (r.data||[]).filter(x=>!x.covered&&x.dept===monthlyDept).forEach(x=>{ _cpWarn[x.student_id+'|'+x.date]=1; }); }catch(e){ console.warn('[v51] month flags',e); }
+  if(_tok!==_monthlyTok) return;
   /* v33 · SRT 补课那天的纪录（可能在别的月份）→ 缺的那天算不算补回来 */
   const _vis={};
   if(monthlyDept==='SRT'){
@@ -3105,8 +3110,9 @@ async function renderMonthly(){
           const _tn=ntMonthTag(s.id,monthlyDept,monthlySession,dayStr);   /* v44 */
           if(_sw&&_sw.temp){   /* v46 · 换 slot：本班这格变灰，写他去上的那班（点名在那班的 Visitors） */
             h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#ECEBE7;color:var(--mut);line-height:1.05" title="${_escHtml(_sw.t+' · '+(r.note||r.status))}"><div style="font-size:8px">${display}</div><div style="font-size:6.5px;font-weight:700;white-space:nowrap">${_escHtml(_sw.k)}</div></td>`;
-          }else
-          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth+(_tn?' · '+_tn.title:''))}">${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}${_tn?_tn.html:''}</td>`;
+          }else{
+          const _cw=r.status==='absent'&&_cpWarn[s.id+'|'+dayStr];   /* v51 */
+          h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);${_cw?'position:relative;':''}background:${BG[r.status]||''};font-size:${(r.status==='late'||display==='Hol'||display==='SB'||String(display).startsWith('E·'))?'8px':'11px'};${(r.other||_sw)?'box-shadow:inset 0 -2px 0 #7870CC':''};line-height:1.05" title="${_escHtml((r.note||r.status)+oth+(_tn?' · '+_tn.title:'')+(_cw?' · No reason 2 class days in a row — office to call the parent':''))}">${_cw?'<span class="cp-warn" style="position:absolute;top:0;right:1px;font-size:7px;line-height:1">⚠️</span>':''}${display}${_sw?'<div style="font-size:7px;color:#7870CC;font-weight:700">'+_sw.k+'</div>':''}${_tn?_tn.html:''}</td>`; }
         }else if(noticeOn(s.id,monthlyDept,monthlySession,dayStr)&&isClassDay(monthlyDept,monthlyClass,dayStr)){   /* v33 · 家长说不来、还没点 */
           const _n=noticeOn(s.id,monthlyDept,monthlySession,dayStr);
           h+=`<td style="padding:2px;text-align:center;border-bottom:.5px solid var(--bdr);background:#FFF4F4;color:var(--danger);font-size:9px;font-weight:700;outline:1px dashed #E07070;outline-offset:-3px" title="${_escHtml('Parent told the office: '+((NT_REASON[_n.reason_code]||{label:'Absent'}).label)+' · not marked yet · counted as absent')}">N</td>`;
