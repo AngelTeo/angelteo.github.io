@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PlanGo v1</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --layer:#8B6C2A;
+  --sur:#ffffff; --sur2:#f7f6f2; --bdr:#e0ddd6;
+  --txt:#1a1a1a; --mut:#888888; --hint:#bbbbbb;
+  --ok:#0F6E56; --warn:#854F0B; --danger:#A32D2D;
+  --c-academic:#236FAD; --c-activity:#D97706; --c-admin:#5B6472; --c-marketing:#B5179E;
+  --b-academic:#E8F1FA; --b-activity:#FFF1DE; --b-admin:#EEF0F3; --b-marketing:#FBE8F6;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--sur2);color:var(--txt);font-size:13px;line-height:1.4}
+.nav{background:var(--layer);display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:50;flex-wrap:wrap;min-height:56px}
+.nav-home{background:none;border:none;color:rgba(255,255,255,.75);font-size:16px;cursor:pointer;min-width:44px;min-height:44px;padding:0 10px 0 0}
+.nav-logo{font-size:13px;font-weight:600;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.2);margin-right:4px;white-space:nowrap;color:#fff}
+.ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
+.tabs{display:flex;flex-wrap:wrap}
+.ntab{padding:0 13px;min-height:52px;font-size:12px;color:rgba(255,255,255,.75);cursor:pointer;border:none;background:transparent;border-bottom:2.5px solid transparent;white-space:nowrap;font-family:inherit}
+.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.ntab .n{background:#fff;color:var(--danger);border-radius:9px;padding:0 6px;font-size:10px;font-weight:700;margin-left:4px}
+.nav-r{margin-left:auto;display:flex;gap:6px;align-items:center;padding:6px 0;flex-wrap:wrap}
+.dpill{min-height:32px;padding:0 12px;border-radius:16px;border:.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.dpill.on{background:#fff;color:var(--layer)}
+.sync{min-height:32px;padding:0 10px;border-radius:16px;border:.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:11px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit}
+.sync .d{width:8px;height:8px;border-radius:50%;background:#7fd6b7}
+.sync.busy .d{background:#F9CB42}.sync.err .d{background:#ff8d8d}
+.page{display:none;padding:16px;max-width:1240px;margin:0 auto}
+.page.on{display:block}
+.card{background:var(--sur);border:.5px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:12px}
+.tip{font-size:12px;color:var(--mut);margin-top:6px}
+.btn{min-height:36px;padding:0 12px;border-radius:8px;border:.5px solid var(--bdr);background:var(--sur);color:var(--txt);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--sur2)}
+.btn-pri{background:var(--layer);color:#fff;border-color:var(--layer);font-weight:600}
+.btn-pri:hover{background:var(--layer);opacity:.9}
+.btn-dng{color:var(--danger);border-color:var(--danger)}
+.btn-wa{background:#25D366;color:#fff;border-color:#25D366;font-weight:600}
+.btn-sm{min-height:30px;padding:0 9px;font-size:11px}
+input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--bdr);border-radius:8px;padding:8px 10px;background:#fff;color:var(--txt)}
+label.fl{font-size:11px;color:var(--mut);display:block;margin-bottom:4px;font-weight:600}
+.head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ttl{font-size:18px;font-weight:700}
+.sub{font-size:12px;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:32px;padding:0 11px;border-radius:16px;border:1px solid var(--bdr);background:#fff;font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--layer);color:#fff;border-color:var(--layer);font-weight:600}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto}
+/* month grid */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);border:.5px solid var(--bdr);border-radius:12px;overflow:hidden;background:var(--bdr);gap:.5px}
+.cal .dh{background:#FBFAF6;padding:6px;font-size:11px;font-weight:700;color:var(--mut);text-align:center}
+.cell{background:#fff;min-height:118px;padding:5px 5px 6px;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cell:hover{background:#FFFDF7}
+.cell.out{background:#FAFAF8}.cell.out .dn{color:var(--hint)}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--layer)}
+.cell.closed{background:#FFF7F7}
+.dn{font-weight:700;font-size:12px;display:flex;align-items:center;gap:4px}
+.dn .td{background:var(--layer);color:#fff;border-radius:10px;padding:0 6px;font-size:11px}
+.wkno{font-size:9px;color:var(--hint);font-weight:600;margin-left:auto}
+.hl{font-size:10px;font-weight:600;border-radius:5px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl.closed{background:#FCEBEB;color:var(--danger)}.hl.school{background:#EEF0F3;color:#666}.hl.extra{background:#E1F5EE;color:var(--ok)}
+.ev{font-size:11px;border-radius:5px;padding:1px 5px;overflow:hidden;border-left:3px solid;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+.ev.run{opacity:.85}
+.more{font-size:10px;color:var(--mut);padding-left:4px}
+.dots{display:none;flex-wrap:wrap;gap:3px}
+/* day panel */
+.daypanel{margin-top:14px}
+.grp{margin-top:10px}
+.grp-h{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.it{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;margin-bottom:6px;border-left:4px solid}
+.it-main{flex:1;min-width:0}
+.it-t{font-weight:600;font-size:13px}
+.pj{font-size:11px;color:var(--mut)}
+.lv{display:inline-block;background:#fff;border:1px solid var(--bdr);color:#6b5a2a;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle}
+.ticks{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tk{min-height:34px;padding:0 10px;border-radius:17px;border:1px solid var(--bdr);background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--txt);display:inline-flex;align-items:center;gap:5px}
+.tk.done{background:#E1F5EE;border-color:#9AD9C2;color:var(--ok)}
+.tk.miss{border-color:#E8A3A3;color:var(--danger);background:#FFF7F7}
+.tk small{font-weight:500;font-size:10px;opacity:.85}
+/* projects */
+.cat{margin-bottom:18px}
+.cat-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cat-h b{font-size:15px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.pcard{background:#fff;border:.5px solid var(--bdr);border-radius:12px;padding:12px;cursor:pointer;border-top:4px solid}
+.pcard:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.pcard .n{font-weight:700;font-size:14px}
+.pcard .m{font-size:11px;color:var(--mut);margin-top:4px}
+.pcard.add{border-style:dashed;border-top:1px dashed var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--mut);min-height:74px}
+table.st{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+table.st th{text-align:left;font-size:11px;color:var(--mut);background:#FBFAF6;padding:8px 10px;border-bottom:.5px solid var(--bdr)}
+table.st td{padding:9px 10px;border-bottom:.5px solid var(--bdr);vertical-align:top}
+table.st tr.r{cursor:pointer}
+table.st tr.r:hover td{background:#FFFDF7}
+table.st tr.g td{background:#F7F6F2;font-weight:700;font-size:12px;color:#555}
+.flag{font-size:10px;color:var(--mut);border:1px solid var(--bdr);border-radius:6px;padding:0 6px;white-space:nowrap}
+/* modal */
+.mb{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow:auto;padding:30px 10px}
+.mb.on{display:flex}
+.md{background:#fff;border-radius:14px;width:min(820px,96vw);padding:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid .s2{grid-column:span 2}.grid .s3{grid-column:span 3}
+.err{color:var(--danger);font-size:12px;margin-top:6px;display:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:12px;opacity:0;transition:.2s;z-index:200;pointer-events:none}
+.toast.show{opacity:1}
+pre.wa{white-space:pre-wrap;background:#F4FBF6;border:1px solid #CDEBD6;border-radius:10px;padding:12px;font-family:inherit;font-size:13px;max-height:460px;overflow:auto}
+@media (max-width:700px){
+  .page{padding:10px}
+  .cell{min-height:58px;padding:4px}
+  .cell .ev,.cell .hl,.cell .more,.wkno{display:none}
+  .dots{display:flex}
+  .cal .dh{font-size:10px;padding:4px 0}
+  .grid{grid-template-columns:1fr}.grid .s2,.grid .s3{grid-column:span 1}
+  .nav-r{width:100%;margin-left:0}
+  table.st .hide-m{display:none}
+}
+@media print{.nav,.no-print{display:none!important}.page{display:block!important}}
+</style>
+</head>
+<body>
+<div class="nav">
+  <button class="nav-home" onclick="location.href='../index.html'" title="Platform">←</button>
+  <div class="nav-logo">PlanGo <span class="ver" id="ver">v1</span></div>
+  <div class="tabs" id="tabs">
+    <button class="ntab" data-p="month">Calendar</button>
+    <button class="ntab ed" data-p="projects" style="display:none">Projects</button>
+    <button class="ntab ed" data-p="notdone" style="display:none">Not done <span class="n" id="nd-n" style="display:none"></span></button>
+    <button class="ntab ed" data-p="parents" style="display:none">Parents</button>
+  </div>
+  <div class="nav-r">
+    <span id="dpills"></span>
+    <button class="sync" id="sync" onclick="reload()"><span class="d"></span><span id="sync-t">Loading…</span></button>
+  </div>
+</div>
+<div id="gate"></div>
+<div class="page" id="p-month"></div>
+<div class="page" id="p-projects"></div>
+<div class="page" id="p-notdone"></div>
+<div class="page" id="p-parents"></div>
+<div class="mb" id="mb" onclick="if(event.target===this)closeModal()"><div class="md" id="md"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const APP_VERSION=1;   /* v1 · 四大类（课业 / 活动 / 行政 / Marketing）→ 项目 → 每年每一步的日期 → 月历；假期读 CORE-Calendar（Owner 11-03） */
+document.getElementById('ver').textContent='v'+APP_VERSION;
+document.title='PlanGo v'+APP_VERSION;
+
+const DEPTS=['SRK','GAK','ATC','SRT'];
+const CATS=[['academic','📚','Academic'],['activity','🎉','Activities'],['admin','🗂','Admin'],['marketing','📣','Marketing']];
+const CAT=Object.fromEntries(CATS.map(c=>[c[0],{e:c[1],l:c[2]}]));
+const WHO=[['class','Each class ticks'],['admin','Office ticks once'],['none','Reminder only']];
+const TRACK_FROM='2026-11-02';   /* 从 PlanGo 开始用的那一周才追「没做」；以前的只显示，不变红、不算数 */
+const S={me:null,dept:'',myDepts:[],month:'',sel:'',year:0,projects:[],items:[],done:[],cal:[],classes:[],week1:null,catOff:{},proj:null,pyear:0,loaded:{}};
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+function ymd(d){d=new Date(d);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return ymd(new Date());}
+function addDays(s,n){const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d);}
+function mondayOf(s){const d=new Date(s+'T12:00:00');d.setDate(d.getDate()-(d.getDay()+6)%7);return ymd(d);}
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dow=s=>new Date(s+'T12:00:00').getDay();
+function dDM(s){const d=new Date(s+'T12:00:00');return d.getDate()+' '+MON[d.getMonth()];}
+function dNum(s){const d=new Date(s+'T12:00:00');return d.getDate()+'/'+(d.getMonth()+1);}
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2200);}
+function setSync(t,c){$('sync-t').textContent=t;$('sync').className='sync'+(c?' '+c:'');}
+const canEdit=()=>!!(S.me&&S.me.edit);
+const due=it=>it.date_to||it.date_from;
+const tracked=it=>it.who!=='none'&&due(it)>=TRACK_FROM;
+const projOf=it=>S.projects.find(p=>p.id===it.project_id)||{name:'?',category:'admin'};
+const catOf=it=>projOf(it).category;
+const levelOf=code=>String(code||'').split(/[ .]/)[0];
+function levels(){const out=[];S.classes.forEach(c=>{const l=levelOf(c.code);if(!out.includes(l))out.push(l);});return out;}
+function classesFor(it){return S.classes.filter(c=>!(it.levels||[]).length||(it.levels||[]).includes(levelOf(c.code)));}
+function doneOf(it){return S.done.filter(d=>d.item_id===it.id);}
+function missing(it){
+  if(it.who==='admin') return doneOf(it).length?[]:['Office'];
+  if(it.who==='class'){const dn=doneOf(it).map(d=>d.class_code);return classesFor(it).filter(c=>!dn.includes(c.id)).map(c=>c.code);}
+  return [];
+}
+function rangeTxt(it){return it.date_to?DOW[dow(it.date_from)]+' '+dDM(it.date_from)+' – '+DOW[dow(it.date_to)]+' '+dDM(it.date_to):DOW[dow(it.date_from)]+' '+dDM(it.date_from);}
+function cellLabel(it){const p=projOf(it).name, short=p==='Creative Art'?'CA':p, t=(it.grp?it.grp+' · ':'')+it.title;
+  const words=p.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>2);
+  return words.some(w=>it.title.toLowerCase().includes(w))?t:short+' · '+t;}
+function stepName(it){return (it.grp?it.grp+' · ':'')+it.title;}
+function lvTag(it){return (it.levels||[]).length?'<span class="lv">'+esc(it.levels.join(' · '))+'</span>':'';}
+function weekNo(day){if(!S.week1)return null;const n=Math.floor((new Date(mondayOf(day)+'T12:00:00')-new Date(S.week1+'T12:00:00'))/86400000/7)+1;return n>=1&&n<=53?n:null;}
+const live=it=>it.status==='active'&&!it.voided_at;
+const onDay=(it,day)=>it.date_from<=day&&due(it)>=day;
+
+/* ══ tabs ══ */
+let CUR='month';
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('.ntab');if(b)go(b.dataset.p);});
+function go(p){if(p!=='month'&&!canEdit())p='month';CUR=p;if(p!=='projects')S.proj=null;document.querySelectorAll('.ntab').forEach(b=>b.classList.toggle('on',b.dataset.p===p));document.querySelectorAll('.page').forEach(x=>x.classList.toggle('on',x.id==='p-'+p));try{localStorage.setItem('plango_tab',p);}catch(e){}render();window.scrollTo(0,0);}
+function render(){({month:renderMonth,projects:renderProjects,notdone:renderNotDone,parents:renderParents})[CUR]();updCounts();}
+
+/* ══ auth + load ══ */
+async function boot(){
+  setSync('Loading…','busy');
+  const {data:{session}}=await _sb.auth.getSession();
+  if(!session){$('gate').innerHTML='<div class="card" style="max-width:420px;margin:60px auto;text-align:center"><b style="font-size:15px">Please sign in on the Platform first</b><div class="tip">PlanGo uses your Academee Platform login.</div><br><button class="btn btn-pri" onclick="location.href=\'../index.html\'">← Go to Platform</button></div>';$('tabs').style.display='none';setSync('Not signed in','err');return;}
+  const r=await _sb.rpc('plango_me');
+  if(r.error||!r.data||!r.data.see){$('gate').innerHTML='<div class="card" style="max-width:420px;margin:60px auto;text-align:center"><div style="font-size:40px">🔒</div><b style="font-size:15px">No Access</b><div class="tip">Ask the office to give you PlanGo.</div></div>';$('tabs').style.display='none';setSync(r.error?'Could not load':'No access','err');return;}
+  S.me=r.data;
+  S.myDepts=canEdit()?DEPTS:DEPTS.filter(d=>(S.me.depts||[]).includes(d));
+  if(!S.myDepts.length){$('gate').innerHTML='<div class="card" style="max-width:420px;margin:60px auto;text-align:center"><b>You are not in any department yet.</b><div class="tip">Ask the office to add your department.</div></div>';setSync('No department','err');return;}
+  let d='';try{d=localStorage.getItem('plango_dept')||'';}catch(e){}
+  S.dept=S.myDepts.includes(d)?d:S.myDepts[0];
+  S.sel=today(); S.month=S.sel.slice(0,7);
+  document.querySelectorAll('.ntab.ed').forEach(b=>b.style.display=canEdit()?'':'none');
+  drawPills();
+  let t='month';try{t=localStorage.getItem('plango_tab')||'month';}catch(e){}
+  await load(+S.month.slice(0,4));
+  go(['month','projects','notdone','parents'].includes(t)?t:'month');
+}
+function drawPills(){$('dpills').innerHTML=S.myDepts.length>1?S.myDepts.map(d=>'<button class="dpill'+(d===S.dept?' on':'')+'" onclick="setDept(\''+d+'\')">'+d+'</button>').join(' '):'<span class="dpill on" style="cursor:default">'+esc(S.dept)+'</span>';}
+async function setDept(d){S.dept=d;S.proj=null;try{localStorage.setItem('plango_dept',d);}catch(e){}drawPills();await load(S.year);render();}
+async function reload(){await load(S.year);render();}
+
+async function load(year){
+  setSync('Loading…','busy');
+  try{
+    const [pj,it,cal,cls,yr]=await Promise.all([
+      _sb.from('plango_project').select('*').eq('dept',S.dept).is('voided_at',null).order('sort').order('name'),
+      _sb.from('plango_item').select('*').eq('dept',S.dept).in('year',[year-1,year,year+1]).is('voided_at',null).order('date_from').order('created_at'),
+      _sb.from('calendar_days').select('day,kind,name,depts').gte('day',(year-1)+'-12-01').lte('day',(year+1)+'-01-31'),
+      _sb.from('hub_classes').select('id,code,dept,status,sort_order').eq('dept',S.dept).eq('status','active'),
+      _sb.from('plango_year').select('*').eq('dept',S.dept).eq('year',year)]);
+    for(const x of [pj,it,cal,cls,yr]) if(x.error) throw x.error;
+    S.projects=pj.data||[]; S.items=it.data||[]; S.cal=cal.data||[];
+    S.classes=(cls.data||[]).filter(c=>!/RSVP/i.test(c.code)).sort((a,b)=>(a.sort_order??999)-(b.sort_order??999)||String(a.code).localeCompare(b.code,undefined,{numeric:true}));
+    S.week1=(yr.data&&yr.data[0])?yr.data[0].week1:null; S.year=year;
+    const ids=S.items.filter(i=>i.who!=='none').map(i=>i.id); S.done=[];
+    for(let k=0;k<ids.length;k+=80){const d=await _sb.from('plango_done').select('item_id,class_code,done_by,done_at').in('item_id',ids.slice(k,k+80)).is('voided_at',null);if(d.error)throw d.error;S.done=S.done.concat(d.data||[]);}
+    setSync('Up to date');
+  }catch(e){console.error(e);setSync('Could not load — nothing has been changed','err');toast('Could not load. Nothing has been changed.');}
+}
+
+/* ══ holidays from CORE-Calendar ══ */
+function holsOn(day){
+  return S.cal.filter(c=>c.day===day&&(!(c.depts||[]).length||(c.depts||[]).includes(S.dept))).map(c=>{
+    const k=c.kind; const cls=['OFF','PH1','PH2','SUB'].includes(k)?'closed':k==='EXTRA'?'extra':'school';
+    return {cls,label:cls==='closed'?c.name:k==='EXTRA'?'Extra class':'Govt school holiday'};
+  }).filter((h,i,a)=>a.findIndex(x=>x.label===h.label)===i);
+}
+
+/* ══ Month ══ */
+function itemsOn(day){return S.items.filter(i=>live(i)&&onDay(i,day)&&!S.catOff[catOf(i)]&&!(i.date_to&&(dow(day)===0||dow(day)===6)));}
+function renderMonth(){
+  const [y,m]=S.month.split('-').map(Number);
+  const first=S.month+'-01', start=mondayOf(first);
+  const last=ymd(new Date(y,m,0)); const end=addDays(mondayOf(last),6);
+  const tdy=today();
+  let h='<div class="head"><button class="btn" onclick="moveMonth(-1)">‹</button><div><div class="ttl">'+MONL[m-1]+' '+y+'</div><div class="sub">'+esc(S.dept)+' · tap a day to see what to do</div></div><button class="btn" onclick="moveMonth(1)">›</button>'+(S.month!==tdy.slice(0,7)?'<button class="btn btn-sm" onclick="toToday()">Today</button>':'')+'<span style="flex:1"></span>'+
+    '<div class="chips">'+CATS.map(([k,e,l])=>'<button class="chip'+(S.catOff[k]?'':' on')+'" style="'+(S.catOff[k]?'':'background:var(--c-'+k+');border-color:var(--c-'+k+')')+'" onclick="S.catOff.'+k+'=!S.catOff.'+k+';renderMonth()">'+e+' '+l+'</button>').join('')+'</div></div>';
+  h+='<div class="cal">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>'<div class="dh">'+d+'</div>').join('');
+  for(let day=start;day<=end;day=addDays(day,1)){
+    const out=day.slice(0,7)!==S.month, its=itemsOn(day), hs=holsOn(day), closed=hs.some(x=>x.cls==='closed');
+    const wn=dow(day)===1?weekNo(day):null;
+    h+='<div class="cell'+(out?' out':'')+(day===S.sel?' sel':'')+(closed?' closed':'')+'" onclick="pickDay(\''+day+'\')"><div class="dn">'+(day===tdy?'<span class="td">'+(+day.slice(8))+'</span>':+day.slice(8))+(wn?'<span class="wkno">Wk '+wn+'</span>':'')+'</div>';
+    hs.forEach(x=>{h+='<div class="hl '+x.cls+'" title="'+esc(x.label)+'">'+esc(x.label)+'</div>';});
+    const gs=[];its.forEach(it=>{const k=it.project_id+'|'+(it.grp||'');const g=gs.find(x=>x.k===k);if(g)g.l.push(it);else gs.push({k,l:[it]});});
+    gs.slice(0,4).forEach(g=>{const it=g.l[0],c=catOf(it),p=projOf(it).name,short=p==='Creative Art'?'CA':p;
+      const lab=g.l.length>1?short+(it.grp?' · '+it.grp:'')+' ('+g.l.length+')':cellLabel(it);
+      h+='<div class="ev'+(it.date_to?' run':'')+'" style="background:var(--b-'+c+');border-color:var(--c-'+c+')" title="'+esc(g.l.map(x=>projOf(x).name+' · '+stepName(x)).join('\n'))+'">'+(it.date_to?'↔ ':'')+esc(lab)+'</div>';});
+    if(gs.length>4) h+='<div class="more">+'+(gs.length-4)+' more</div>';
+    h+='<div class="dots">'+(closed?'<span class="dot" style="background:var(--danger)"></span>':'')+its.slice(0,6).map(it=>'<span class="dot" style="background:var(--c-'+catOf(it)+')"></span>').join('')+'</div></div>';
+  }
+  h+='</div><div class="daypanel" id="daypanel">'+dayPanel(S.sel)+'</div>';
+  $('p-month').innerHTML=h;
+}
+function dayPanel(day){
+  const its=S.items.filter(i=>live(i)&&onDay(i,day)&&!S.catOff[catOf(i)]), hs=holsOn(day), wn=weekNo(day);
+  let h='<div class="card"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:16px">'+DOW[dow(day)]+', '+dDM(day)+' '+day.slice(0,4)+'</b>'+(wn?'<span class="sub">Week '+wn+'</span>':'')+(day===today()?'<span class="dn"><span class="td">Today</span></span>':'')+hs.map(x=>'<span class="hl '+x.cls+'" style="font-size:12px;padding:2px 8px">'+(x.cls==='closed'?'Closed · ':'')+esc(x.label)+'</span>').join('')+'</div>';
+  if(!its.length) h+='<div class="tip">Nothing planned on this day.</div>';
+  CATS.forEach(([k,e,l])=>{const list=its.filter(i=>catOf(i)===k); if(!list.length) return;
+    h+='<div class="grp"><div class="grp-h" style="color:var(--c-'+k+')">'+e+' '+l+'</div>';
+    list.forEach(it=>{const p=projOf(it);
+      h+='<div class="it" style="background:var(--b-'+k+');border-color:var(--c-'+k+')"><div class="it-main"><div class="pj">'+esc(p.name)+(it.grp?' · '+esc(it.grp):'')+(it.date_to?' · '+rangeTxt(it):'')+'</div><div class="it-t">'+esc(it.title)+lvTag(it)+'</div>'+(it.note?'<div class="pj">'+esc(it.note)+'</div>':'')+tickBtns(it)+'</div>'+(canEdit()?'<button class="btn btn-sm no-print" onclick="openStep(\''+it.id+'\')">Edit</button>':'')+'</div>';});
+    h+='</div>';});
+  return h+'</div>';
+}
+function pickDay(day){S.sel=day;if(day.slice(0,7)!==S.month){S.month=day.slice(0,7);}renderMonth();if(innerWidth<700)$('daypanel').scrollIntoView({behavior:'smooth'});}
+async function moveMonth(n){let [y,m]=S.month.split('-').map(Number);m+=n;if(m<1){m=12;y--;}if(m>12){m=1;y++;}S.month=y+'-'+pad(m);S.sel=S.month===today().slice(0,7)?today():S.month+'-01';if(y!==S.year)await load(y);renderMonth();}
+async function toToday(){S.sel=today();S.month=S.sel.slice(0,7);if(+S.month.slice(0,4)!==S.year)await load(+S.month.slice(0,4));renderMonth();}
+
+/* ══ ticks ══ */
+function tickBtns(it){
+  if(it.who==='none') return '';
+  const dn=doneOf(it); const past=tracked(it)&&due(it)<today();
+  if(it.who==='admin'){const d=dn[0];
+    if(!canEdit()) return '<div class="ticks"><span class="tk'+(d?' done':(past?' miss':''))+'" style="cursor:default">'+(d?'✓ Done <small>'+esc(d.done_by)+'</small>':'Office to do')+'</span></div>';
+    return '<div class="ticks"><button class="tk'+(d?' done':(past?' miss':''))+'" onclick="tick(\''+it.id+'\',null,'+(!d)+')">'+(d?'✓ Done <small>'+esc(d.done_by)+'</small>':'☐ Office done')+'</button></div>';}
+  const cls=classesFor(it); if(!cls.length) return '';
+  return '<div class="ticks">'+cls.map(c=>{const d=dn.find(x=>x.class_code===c.id);
+    return '<button class="tk'+(d?' done':(past?' miss':''))+'" onclick="tick(\''+it.id+'\',\''+c.id+'\','+(!d)+')" title="'+(d?'Tap to undo':'Tap when this class has done it')+'">'+(d?'✓ ':'')+esc(c.code)+(d?' <small>'+esc(d.done_by)+'</small>':'')+'</button>';}).join('')+'</div>';
+}
+async function tick(id,cls,done){
+  setSync('Saving…','busy');
+  const r=await _sb.rpc('plango_tick',{p_item:id,p_class:cls,p_done:done});
+  if(r.error){console.error(r.error);setSync('Not saved','err');toast('Not saved: '+(r.error.message||'error'));return;}
+  S.done=S.done.filter(d=>d.item_id!==id).concat((r.data||[]).map(d=>({item_id:id,...d})));
+  setSync('Saved');toast(done?'✓ Done':'Undone');render();
+}
+
+/* ══ Projects ══ */
+function renderProjects(){ if(S.proj) return renderProject();
+  const y=S.year;
+  let h='<div class="head"><div><div class="ttl">'+esc(S.dept)+' projects</div><div class="sub">Each year, open a project and fill in its dates. They show on the Calendar.</div></div><span style="flex:1"></span><button class="btn" onclick="setYear(-1)">‹</button><b>'+y+'</b><button class="btn" onclick="setYear(1)">›</button></div>';
+  h+='<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-weight:600">Academic week 1 of '+y+' starts</span><input type="date" id="w1" value="'+esc(S.week1||'')+'"><button class="btn btn-sm" onclick="saveWeek1()">Save</button><span class="tip" style="margin:0">The Calendar shows “Wk N” from this date.</span></div>';
+  CATS.forEach(([k,e,l])=>{const ps=S.projects.filter(p=>p.category===k);
+    h+='<div class="cat"><div class="cat-h"><span class="dot" style="background:var(--c-'+k+');width:14px;height:14px"></span><b>'+e+' '+l+'</b><span class="sub">'+ps.length+' projects</span></div><div class="pgrid">';
+    ps.forEach(p=>{const st=S.items.filter(i=>live(i)&&i.project_id===p.id&&i.year===y).sort((a,b)=>a.date_from.localeCompare(b.date_from));
+      const nx=st.find(i=>due(i)>=today()), ly=S.items.filter(i=>live(i)&&i.project_id===p.id&&i.year===y-1).length;
+      h+='<div class="pcard" style="border-top-color:var(--c-'+k+')" onclick="openProject(\''+p.id+'\')"><div class="n">'+esc(p.name)+'</div><div class="m">'+(st.length?st.length+' dates in '+y:'<span style="color:var(--warn)">No dates for '+y+' yet'+(ly?' · '+ly+' last year':'')+'</span>')+'</div>'+(nx?'<div class="m">Next: '+dDM(nx.date_from)+' · '+esc(nx.title)+'</div>':'')+'</div>';});
+    h+='<div class="pcard add" onclick="openProjForm(null,\''+k+'\')">+ New project</div></div></div>';});
+  $('p-projects').innerHTML=h;
+}
+function openProject(id){S.proj=id;renderProjects();window.scrollTo(0,0);}
+function renderProject(){
+  const p=S.projects.find(x=>x.id===S.proj); if(!p){S.proj=null;return renderProjects();}
+  const y=S.year, k=p.category;
+  const st=S.items.filter(i=>live(i)&&i.project_id===p.id&&i.year===y).sort((a,b)=>a.date_from.localeCompare(b.date_from)||String(a.grp||'').localeCompare(String(b.grp||'')));
+  const ly=S.items.filter(i=>live(i)&&i.project_id===p.id&&i.year===y-1);
+  let h='<div class="head"><button class="btn" onclick="S.proj=null;renderProjects()">← Projects</button><span class="dot" style="background:var(--c-'+k+');width:14px;height:14px"></span><div><div class="ttl">'+esc(p.name)+'</div><div class="sub">'+CAT[k].e+' '+CAT[k].l+' · '+esc(S.dept)+'</div></div><span style="flex:1"></span><button class="btn" onclick="setYear(-1)">‹</button><b>'+y+'</b><button class="btn" onclick="setYear(1)">›</button></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-pri" onclick="openStep(null)">+ Add a date</button>'+(!st.length&&ly.length?'<button class="btn" onclick="copyLastYear()">Copy '+ly.length+' steps from '+(y-1)+'</button>':'')+'<span style="flex:1"></span><button class="btn btn-sm" onclick="openProjForm(\''+p.id+'\')">Rename / remove project</button></div>';
+  if(!st.length){h+='<div class="card" style="text-align:center;color:var(--mut)">No dates for '+y+' yet.'+(ly.length?' Tap “Copy from '+(y-1)+'” to start from last year, then change the dates.':' Tap “+ Add a date”.')+'</div>';$('p-projects').innerHTML=h;return;}
+  h+='<table class="st"><tr><th>Date</th><th>Step</th><th class="hide-m">Classes</th><th class="hide-m">Tick</th><th class="hide-m">Parents</th></tr>';
+  let g='§';
+  const grps=[...new Set(st.map(i=>i.grp||''))];
+  const useG=grps.length>1;
+  (useG?grps:['']).forEach(gr=>{ if(useG) h+='<tr class="g"><td colspan="5">'+esc(gr||'Other')+'</td></tr>';
+    st.filter(i=>!useG||(i.grp||'')===gr).forEach(it=>{const miss=missing(it), past=tracked(it)&&due(it)<today();
+      h+='<tr class="r" onclick="openStep(\''+it.id+'\')"><td style="white-space:nowrap;font-weight:600">'+rangeTxt(it)+'</td><td>'+esc(it.title)+(it.note?'<div class="pj">'+esc(it.note)+'</div>':'')+'</td><td class="hide-m">'+((it.levels||[]).length?esc(it.levels.join(', ')):'All')+'</td><td class="hide-m">'+(it.who==='class'?'<span class="flag">Each class'+(past&&miss.length?' · <b style="color:var(--danger)">'+miss.length+' not done</b>':'')+'</span>':it.who==='admin'?'<span class="flag">Office'+(past&&miss.length?' · <b style="color:var(--danger)">not done</b>':'')+'</span>':'—')+'</td><td class="hide-m">'+(it.for_parents?'👪':'')+'</td></tr>';});});
+  h+='</table>';
+  $('p-projects').innerHTML=h;
+}
+async function setYear(n){await load(S.year+n);render();}
+async function saveWeek1(){const v=$('w1').value;if(!v){toast('Pick a date');return;}
+  const r=await _sb.from('plango_year').upsert({dept:S.dept,year:S.year,week1:v},{onConflict:'dept,year'});
+  if(r.error){toast('Not saved: '+r.error.message);return;}S.week1=v;toast('✓ Saved');}
+async function copyLastYear(){
+  const p=S.projects.find(x=>x.id===S.proj), y=S.year;
+  const ly=S.items.filter(i=>live(i)&&i.project_id===p.id&&i.year===y-1);
+  const shift=s=>s?addDays(s,364):null;   /* 52 周后 = 同一个星期几 */
+  const rows=ly.map(i=>({project_id:p.id,year:y,dept:S.dept,grp:i.grp,title:i.title,date_from:shift(i.date_from),date_to:shift(i.date_to),levels:i.levels,who:i.who,for_parents:i.for_parents,note:i.note}));
+  setSync('Saving…','busy');
+  const r=await _sb.from('plango_item').insert(rows).select();
+  if(r.error){setSync('Not saved','err');toast('Not saved: '+r.error.message);return;}
+  await load(y);render();toast('✓ Copied '+rows.length+' — now check each date');
+}
+
+/* project form */
+let PFm=null;
+function openProjForm(id,cat){const p=id?S.projects.find(x=>x.id===id):null;PFm=p?{...p}:{id:null,name:'',category:cat||'academic'};
+  let h='<div style="display:flex;align-items:center;margin-bottom:12px"><b style="font-size:15px">'+(PFm.id?'Project':'New project')+' · '+esc(S.dept)+'</b><span style="flex:1"></span><button class="btn btn-sm" onclick="closeModal()">✕</button></div>';
+  h+='<label class="fl">Name <b style="color:var(--danger)">*</b></label><input id="pf-n" style="width:100%" value="'+esc(PFm.name)+'"><div style="margin-top:12px"><label class="fl">Group</label><div class="chips">'+CATS.map(([k,e,l])=>'<button class="chip'+(PFm.category===k?' on':'')+'" onclick="setPfCat(\''+k+'\')">'+e+' '+l+'</button>').join('')+'</div></div>';
+  h+='<div class="err" id="f-err"></div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn btn-pri" onclick="saveProj()">Save</button><button class="btn" onclick="closeModal()">Cancel</button><span style="flex:1"></span>'+(PFm.id?'<input id="f-why" placeholder="Why remove?" style="min-width:160px"><button class="btn btn-dng" onclick="voidProj()">Remove project</button>':'')+'</div>';
+  $('md').innerHTML=h;$('mb').classList.add('on');}
+function setPfCat(k){PFm.category=k;document.querySelectorAll('#md .chip').forEach((c,i)=>c.classList.toggle('on',CATS[i][0]===k));}
+async function saveProj(){const n=($('pf-n').value||'').trim();if(!n)return ferr('Write the project name.');
+  const row={dept:S.dept,category:PFm.category,name:n};
+  const r=PFm.id?await _sb.from('plango_project').update(row).eq('id',PFm.id).select():await _sb.from('plango_project').insert({...row,sort:100+S.projects.length}).select();
+  if(r.error)return ferr(/duplicate|unique/i.test(r.error.message)?'There is already a project with this name.':'Not saved: '+r.error.message);
+  closeModal();await load(S.year);if(!PFm||!PFm.id)S.proj=r.data&&r.data[0]?r.data[0].id:null;render();toast('✓ Saved');}
+async function voidProj(){const why=($('f-why').value||'').trim();if(!why)return ferr('Write why you remove it.');
+  if(S.items.some(i=>live(i)&&i.project_id===PFm.id&&i.year>=S.year))return ferr('This project still has dates this year or later. Remove those dates first.');
+  const r=await _sb.from('plango_project').update({voided_at:new Date().toISOString(),void_reason:why}).eq('id',PFm.id).select();
+  if(r.error)return ferr('Not removed: '+r.error.message);closeModal();S.proj=null;await load(S.year);render();toast('Removed');}
+
+/* step form */
+let F=null;
+function openStep(id){
+  const it=id?S.items.find(i=>i.id===id):null;
+  F=it?{...it,levels:[...(it.levels||[])]}:{id:null,project_id:S.proj,grp:'',title:'',date_from:CUR==='month'?S.sel:'',date_to:null,levels:[],who:'none',for_parents:false,note:''};
+  drawStep();$('mb').classList.add('on');
+}
+function drawStep(){
+  const p=S.projects.find(x=>x.id===F.project_id), lv=levels();
+  const grps=[...new Set(S.items.filter(i=>i.project_id===F.project_id&&i.grp).map(i=>i.grp))];
+  let h='<div style="display:flex;align-items:center;margin-bottom:12px"><b style="font-size:15px">'+(F.id?'Edit date':'Add a date')+'</b><span style="flex:1"></span><button class="btn btn-sm" onclick="closeModal()">✕</button></div><div class="grid">';
+  h+='<div class="s3"><label class="fl">Project</label>'+(F.id||S.proj?'<b>'+esc(p?p.name:'?')+'</b>':'<select id="f-p" style="width:100%"><option value="">— pick a project —</option>'+CATS.map(([k,e,l])=>'<optgroup label="'+e+' '+l+'">'+S.projects.filter(x=>x.category===k).map(x=>'<option value="'+x.id+'"'+(x.id===F.project_id?' selected':'')+'>'+esc(x.name)+'</option>').join('')+'</optgroup>').join('')+'</select>')+'</div>';
+  h+='<div class="s2"><label class="fl">Step — what happens / what to do <b style="color:var(--danger)">*</b></label><input id="f-t" style="width:100%" value="'+esc(F.title)+'" placeholder="e.g. Receive / Game 1 practice / Photo day"></div>';
+  h+='<div><label class="fl">Part (optional)</label><input id="f-g" list="grps" style="width:100%" value="'+esc(F.grp||'')+'" placeholder="e.g. MOM / Rehearsal"><datalist id="grps">'+grps.map(g=>'<option value="'+esc(g)+'">').join('')+'</datalist></div>';
+  h+='<div><label class="fl">Day <b style="color:var(--danger)">*</b> (or first day)</label><input type="date" id="f-a" style="width:100%" value="'+esc(F.date_from||'')+'"></div>';
+  h+='<div><label class="fl">Last day (only if it runs many days)</label><input type="date" id="f-b" style="width:100%" value="'+esc(F.date_to||'')+'"></div><div></div>';
+  h+='<div class="s3"><label class="fl">Which classes (none picked = whole '+esc(S.dept)+')</label><div class="chips">'+lv.map(l=>'<button class="chip'+(F.levels.includes(l)?' on':'')+'" onclick="togLv(\''+l+'\')">'+esc(l)+'</button>').join('')+'</div></div>';
+  h+='<div class="s3"><label class="fl">Tick when done?</label><div class="chips">'+WHO.map(([k,l])=>'<button class="chip'+(F.who===k?' on':'')+'" onclick="syncF();F.who=\''+k+'\';drawStep()">'+l+'</button>').join('')+'</div></div>';
+  h+='<div class="s3"><label class="fl">Parents</label><div class="chips"><button class="chip'+(F.for_parents?' on':'')+'" onclick="syncF();F.for_parents=!F.for_parents;drawStep()">👪 Put in the parents’ WhatsApp plan</button></div></div>';
+  h+='<div class="s3"><label class="fl">Note (optional)</label><input id="f-n" style="width:100%" value="'+esc(F.note||'')+'"></div>';
+  h+='</div><div class="err" id="f-err"></div><div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn btn-pri" onclick="saveStep()">Save</button><button class="btn" onclick="closeModal()">Cancel</button><span style="flex:1"></span>'+(F.id?'<input id="f-why" placeholder="Why remove?" style="min-width:160px"><button class="btn btn-dng" onclick="voidStep()">Remove</button>':'')+'</div>';
+  $('md').innerHTML=h;
+}
+function syncF(){const g=id=>$(id)?$(id).value:null;if($('f-t'))F.title=g('f-t');if($('f-g'))F.grp=g('f-g');if($('f-a'))F.date_from=g('f-a');if($('f-b'))F.date_to=g('f-b')||null;if($('f-n'))F.note=g('f-n');if($('f-p'))F.project_id=g('f-p')||null;}
+function togLv(l){syncF();F.levels=F.levels.includes(l)?F.levels.filter(x=>x!==l):F.levels.concat(l);drawStep();}
+function closeModal(){$('mb').classList.remove('on');}
+function ferr(t){const e=$('f-err');if(e){e.textContent=t;e.style.display='block';}}
+async function saveStep(){
+  syncF(); const t=(F.title||'').trim();
+  if(!F.project_id) return ferr('Pick the project.');
+  if(!t) return ferr('Write the step.');
+  if(!F.date_from) return ferr('Pick the day.');
+  if(F.date_to&&F.date_to<F.date_from) return ferr('Last day is before the first day.');
+  if(F.date_to===F.date_from) F.date_to=null;
+  const row={project_id:F.project_id,year:new Date(F.date_from+'T12:00:00').getFullYear(),dept:S.dept,grp:(F.grp||'').trim()||null,title:t,date_from:F.date_from,date_to:F.date_to,levels:F.levels,who:F.who,for_parents:!!F.for_parents,note:(F.note||'').trim()||null};
+  setSync('Saving…','busy');
+  const r=F.id?await _sb.from('plango_item').update(row).eq('id',F.id).select():await _sb.from('plango_item').insert(row).select();
+  if(r.error){setSync('Not saved','err');return ferr('Not saved: '+r.error.message);}
+  closeModal(); await load(S.year); render(); toast('✓ Saved');
+}
+async function voidStep(){
+  const why=($('f-why').value||'').trim(); if(!why) return ferr('Write why you remove it.');
+  const r=await _sb.from('plango_item').update({voided_at:new Date().toISOString(),void_reason:why}).eq('id',F.id).select();
+  if(r.error) return ferr('Not removed: '+r.error.message);
+  closeModal(); await load(S.year); render(); toast('Removed');
+}
+
+/* ══ Not done ══ */
+function notDoneList(){const t=today();return S.items.filter(i=>live(i)&&tracked(i)&&due(i)<t&&missing(i).length).sort((a,b)=>due(b).localeCompare(due(a)));}
+function updCounts(){const n=canEdit()?notDoneList().length:0;$('nd-n').style.display=n?'':'none';$('nd-n').textContent=n;}
+function renderNotDone(){
+  const late=notDoneList(), t=today();
+  const soon=S.items.filter(i=>live(i)&&i.who!=='none'&&due(i)>=t&&due(i)<=addDays(t,14)).sort((a,b)=>due(a).localeCompare(due(b)));
+  let h='<div class="head"><div><div class="ttl">Not done</div><div class="sub">'+esc(S.dept)+' · steps that need a tick, past their day, still missing (counted from '+dDM(TRACK_FROM)+')</div></div></div>';
+  const row=(it,isLate)=>{const miss=missing(it), dn=doneOf(it), k=catOf(it);
+    return '<div class="card" style="border-left:4px solid '+(isLate?'var(--danger)':'var(--c-'+k+')')+'"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div class="pj">'+CAT[k].e+' '+esc(projOf(it).name)+(it.grp?' · '+esc(it.grp):'')+'</div><div class="it-t">'+esc(it.title)+lvTag(it)+'</div><div class="pj">'+rangeTxt(it)+' · '+(it.who==='admin'?'Office':'Each class')+'</div>'+
+    '<div class="ticks">'+miss.map(m=>'<span class="tk miss" style="cursor:default">'+esc(m)+'</span>').join('')+dn.map(d=>'<span class="tk done" style="cursor:default">✓ '+esc(d.class_code?(S.classes.find(c=>c.id===d.class_code)||{code:d.class_code}).code:'Office')+' <small>'+esc(d.done_by)+'</small></span>').join('')+'</div></div>'+
+    '<button class="btn btn-sm" onclick="jumpTo(\''+it.date_from+'\')">Open day</button></div></div>';};
+  h+=late.length?late.map(it=>row(it,true)).join(''):'<div class="card" style="text-align:center;color:var(--ok)">✓ Nothing overdue</div>';
+  if(soon.length) h+='<div class="sub" style="font-weight:700;margin:16px 0 6px">DUE IN THE NEXT 2 WEEKS</div>'+soon.map(it=>row(it,false)).join('');
+  $('p-notdone').innerHTML=h;
+}
+async function jumpTo(day){S.sel=day;S.month=day.slice(0,7);if(+day.slice(0,4)!==S.year)await load(+day.slice(0,4));go('month');}
+
+/* ══ Parents WhatsApp ══ */
+let PR={from:'',to:'',off:{}};
+function renderParents(){
+  if(!PR.from){PR.from=today();PR.to=addDays(today(),60);}
+  const list=S.items.filter(i=>live(i)&&i.for_parents&&due(i)>=PR.from&&i.date_from<=PR.to).sort((a,b)=>a.date_from.localeCompare(b.date_from));
+  let h='<div class="head"><div><div class="ttl">Parents’ plan</div><div class="sub">'+esc(S.dept)+' · steps marked 👪 become one WhatsApp message</div></div></div>';
+  h+='<div class="card"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><div><label class="fl">From</label><input type="date" value="'+PR.from+'" onchange="PR.from=this.value;renderParents()"></div><div><label class="fl">To</label><input type="date" value="'+PR.to+'" onchange="PR.to=this.value;renderParents()"></div></div>';
+  h+='<div style="margin-top:10px">'+(list.length?list.map(it=>'<label style="display:flex;gap:8px;align-items:center;padding:4px 0;cursor:pointer"><input type="checkbox" '+(PR.off[it.id]?'':'checked')+' onchange="PR.off[\''+it.id+'\']=!this.checked;renderParents()"> <span style="min-width:120px;font-size:12px;color:var(--mut)">'+rangeTxt(it)+'</span> <span class="dot" style="background:var(--c-'+catOf(it)+')"></span> '+esc(projOf(it).name)+' · '+esc(stepName(it))+lvTag(it)+'</label>').join(''):'<div class="tip">Nothing marked 👪 in these dates. Open a step and turn on “Put in the parents’ WhatsApp plan”.</div>')+'</div></div>';
+  h+='<div class="card"><pre class="wa" id="wa">'+esc(parentMsg(list.filter(i=>!PR.off[i.id])))+'</pre><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-pri" onclick="copyWa()">Copy text</button><button class="btn btn-wa" onclick="window.open(\'https://wa.me/?text=\'+encodeURIComponent($(\'wa\').textContent))">Open WhatsApp</button></div></div>';
+  $('p-parents').innerHTML=h;
+}
+function parentMsg(list){
+  if(!list.length) return '(nothing picked)';
+  let m='🔥🔥 *'+S.dept+' Planner — mark your calendars!* 📌\n=================';
+  CATS.forEach(([k,e,l])=>{
+    const ps=S.projects.filter(p=>p.category===k&&list.some(i=>i.project_id===p.id));
+    ps.forEach(p=>{m+='\n\n*'+e+' '+p.name+'*';
+      list.filter(i=>i.project_id===p.id).forEach(it=>{const when=it.date_to?dNum(it.date_from)+' '+DOW[dow(it.date_from)]+' – '+dNum(it.date_to)+' '+DOW[dow(it.date_to)]:dNum(it.date_from)+' '+DOW[dow(it.date_from)];
+        m+='\n• '+stepName(it)+((it.levels||[]).length?' ('+it.levels.join(', ')+')':'')+': _'+when+'_';});});
+  });
+  return m+'\n\n=================\n⚠️ _Stay tuned for more updates!_';
+}
+async function copyWa(){try{await navigator.clipboard.writeText($('wa').textContent);toast('✓ Copied');}catch(e){const r=document.createRange();r.selectNodeContents($('wa'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Selected — press Copy');}}
+
+_sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')location.href='../index.html';});
+boot();
+</script>
+</body>
+</html>
