@@ -241,6 +241,9 @@ const LIVE={
   // 2026-10-07：v69 → v71（v70 进度页三个真数字 · v71 迟到 / 早退标「没参与」的项目，分数只算有参与的）。线上 APP_VERSION = 71。
   // 2026-10-16：v71 → v72（旧式「错在哪个小题」纪录不再当成答对；报告层答对率跟老师画面一致）。线上 APP_VERSION = 72。
   'RPT-EvalGo-ATC':    {href:'academee-tools/EvalGo_ATC.html',name:'EvalGo_ATC', ver:'v72',   group:'RPT — Reports', color:'#5A6470', order:0},
+  // 2026-11-03：SchoolExamGo 首页上架（EvalGo_ATC 线，Owner「推上线＋首页加卡片」）· ATC 学校考试（UASA）成绩＋扫描考卷；
+  //             权限码 RPT-SchoolExamGo（role_access 照 RPT-EvalGo-ATC：OWNER / ADMIN / TOP_MGMT / MGMT / TEACHER 看得到，MARKETING 不可）。
+  'RPT-SchoolExamGo':  {href:'academee-tools/SchoolExamGo.html',name:'SchoolExamGo', ver:'v2', group:'RPT — Reports', color:'#5A6470', order:2},
   // 2026-10-26：PTMGo 首页上架（PTMGo 线交办 26-10，取代 22-10 那份）· 键名用权限库的 EVT-PTM（role_access：OWNER / TOP_MGMT / ADMIN / MGMT 看得到，老师 / Marketing 看不到）；放 RPT 区。
   'EVT-PTM':           {href:'academee-tools/PTMGo.html',  name:'PTMGo',    ver:'v13', group:'RPT — Reports',  color:'#5A6470', order:1},
   // 2026-10-26：卡片版本号对齐线上（PTMGo 线请求「顺便对一下」）：AttendanceGo v28→v49、MiscGo v11→v16、LoveGo v105→v113、MarketingCRM v23→v31。
