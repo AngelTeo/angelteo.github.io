@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SpellTrack v1</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  /* ══ LAYER ══ LIB（跟 SpellGo 同一层） */
+  --layer:#6B6B3A;
+  --sur:#ffffff; --sur2:#f7f6f2; --bdr:#e0ddd6;
+  --txt:#1a1a1a; --mut:#888888; --hint:#bbbbbb;
+  --ok:#0F6E56; --ok-bg:#E3F3EC; --good:#5A9E47; --good-bg:#EEF6E8;
+  --warn:#854F0B; --warn-bg:#FBF0DC; --danger:#A32D2D; --danger-bg:#FBEAEA; --info:#236FAD; --info-bg:#E8F0FA;
+  /* SpellGo 三种听写的颜色（照 SpellGo SUBJ_META） */
+  --sp:#185FA5; --sp-bg:#E8F0FA; --ej:#1B5E20; --ej-bg:#E8F4EA; --tx:#8B0000; --tx-bg:#FBF0F0;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--sur2);color:var(--txt);font-size:14px;line-height:1.4}
+button{font-family:inherit}
+/* ══════ NAV (TOPBAR) ══════ */
+.nav{background:var(--layer);display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:50;overflow-x:auto;min-height:56px}
+.nav-home{background:none;border:none;color:rgba(255,255,255,.75);font-size:18px;cursor:pointer;min-width:44px;min-height:44px;padding:0 10px 0 0;flex-shrink:0}
+.nav-home:hover{color:#fff}
+.nav-logo{font-size:14px;font-weight:700;padding:12px 14px 12px 0;border-right:.5px solid rgba(255,255,255,.25);margin-right:4px;white-space:nowrap;flex-shrink:0;color:#fff}
+.ver{background:#F9CB42;color:var(--layer);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle}
+.ntab{padding:0 14px;min-height:56px;font-size:13px;color:rgba(255,255,255,.75);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;white-space:nowrap;flex-shrink:0}
+.ntab:hover{color:#fff}.ntab.on{color:#fff;border-bottom-color:#fff;font-weight:700}
+.nav-r{margin-left:auto;display:flex;gap:6px;align-items:center;padding-left:20px;flex-shrink:0}
+.saved{font-size:11px;color:rgba(255,255,255,.65);white-space:nowrap}
+.btn-nav{min-height:40px;padding:0 12px;border-radius:8px;border:.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.sync{min-height:40px;padding:0 14px;border-radius:20px;border:.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sync .d{width:8px;height:8px;border-radius:50%;background:#7fd6b7}
+.sync.busy .d{background:#F9CB42}.sync.err{background:#C62828;border-color:#fff}.sync.err .d{background:#fff}
+/* ══════ PAGE ══════ */
+.page{display:none;max-width:1180px;margin:0 auto;padding:16px}
+.page.on{display:block}
+.h1{font-size:20px;font-weight:800;margin:4px 0 2px}
+.sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:14px}
+.tip{color:var(--mut);font-size:12px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+.pill{min-height:40px;padding:0 16px;border-radius:20px;border:1px solid var(--bdr);background:var(--sur);cursor:pointer;font-size:14px;font-weight:600;color:#444}
+.pill.on{background:var(--layer);border-color:var(--layer);color:#fff}
+.pill small{font-weight:500;opacity:.75;margin-left:4px}
+.btn{min-height:40px;padding:0 14px;border-radius:9px;border:1px solid var(--bdr);background:var(--sur);cursor:pointer;font-size:13px;font-weight:600;color:#333}
+.btn:hover{border-color:#bbb}
+.btn-pri{background:var(--layer);border-color:var(--layer);color:#fff}
+.btn-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn-sm{min-height:34px;padding:0 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:default}
+.alert{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.alert.warn{background:var(--warn-bg);border:1px solid #E9C98C;color:#5C3A06}
+.alert.err{background:var(--danger-bg);border:1px solid #E3A3A3;color:#6B1414}
+.alert.info{background:var(--info-bg);border:1px solid #A8C4E8;color:#163F66}
+.alert b{font-weight:700}
+.alert .btn{min-height:32px}
+/* week cards */
+.tests{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.tcard{background:var(--sur);border:1px solid var(--bdr);border-left:6px solid var(--c);border-radius:12px;padding:14px;cursor:pointer;position:relative;transition:box-shadow .15s}
+.tcard:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.tcard .k{font-size:12px;font-weight:700;color:var(--c);text-transform:uppercase;letter-spacing:.3px}
+.tcard .when{font-size:13px;color:#444;margin:2px 0 8px}
+.tcard .when b{font-weight:800}
+.tcard .words{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.wchip{background:var(--cb);color:var(--c);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:600}
+.bar{height:8px;background:#eee;border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.tcard .prog{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:6px}
+.tcard.done{opacity:.72}
+.tcard.done::after{content:'✓';position:absolute;right:12px;bottom:10px;width:26px;height:26px;border-radius:50%;background:#1BA39C;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.tcard.today{box-shadow:0 0 0 2px var(--c)}
+.tag{display:inline-block;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:700}
+.tag.today{background:var(--c);color:#fff}
+.tag.future{background:#eee;color:#777}
+.empty{padding:40px;text-align:center;color:var(--mut)}
+/* record screen */
+.rec-hdr{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
+.rec-hdr .t{flex:1;min-width:240px}
+.rec-hdr .t .k{font-weight:800;font-size:18px;color:var(--c)}
+.rec-sum{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+.stat{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:8px 12px;min-width:92px}
+.stat b{display:block;font-size:20px;font-weight:800}
+.stat span{font-size:11px;color:var(--mut)}
+.srow{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:grid;grid-template-columns:minmax(170px,230px) 1fr auto;gap:10px;align-items:center}
+.srow.rec{border-color:#bfe0cf;background:#FBFEFC}
+.srow.abs{background:#f4f4f4}
+.srow .nm{font-weight:700;font-size:14px}
+.srow .nm .no{display:inline-block;min-width:24px;color:var(--mut);font-weight:600}
+.srow .nm .cn{color:#666;font-weight:500;margin-left:4px}
+.srow .st{font-size:12px;color:var(--mut);margin-top:2px}
+.units{display:flex;flex-wrap:wrap;gap:6px}
+.u{min-width:40px;min-height:40px;padding:0 10px;border-radius:9px;border:1.5px solid var(--bdr);background:#fff;font-size:16px;font-weight:600;cursor:pointer;color:#333;display:inline-flex;align-items:center;justify-content:center;user-select:none}
+.u.x{background:var(--danger-bg);border-color:#D86B6B;color:var(--danger);text-decoration:line-through;text-decoration-thickness:2px}
+.u.ok{border-color:#9FD3B8}
+.u.off{opacity:.35;cursor:default}
+.u.punct{min-width:auto;border:none;padding:0 2px;cursor:default;color:#aaa}
+.u.br{flex-basis:100%;height:0;min-height:0;padding:0;border:none}
+.acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.score{min-width:64px;text-align:center;font-weight:800;font-size:18px;border-radius:9px;padding:6px 8px}
+.ob{min-height:40px;padding:0 10px;border-radius:9px;border:1px solid var(--bdr);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#555}
+.ob.on.full{background:var(--ok);border-color:var(--ok);color:#fff}
+.ob.on.absent{background:#666;border-color:#666;color:#fff}
+.ob.on.nd{background:var(--warn);border-color:var(--warn);color:#fff}
+.lnk{background:none;border:none;color:var(--mut);font-size:12px;text-decoration:underline;cursor:pointer;padding:4px}
+/* colours by percentage */
+.p100{background:var(--ok);color:#fff}.p75{background:#9FD08C;color:#16380c}.p50{background:#F2C46B;color:#4d3205}.p0{background:#E57373;color:#fff}
+.pA{background:#d9d9d9;color:#444}.pN{background:#F3D9B1;color:#6b4206}.pE{background:repeating-linear-gradient(45deg,#f1f1f1,#f1f1f1 4px,#e6e6e6 4px,#e6e6e6 8px);color:#888}
+/* overview grid */
+.gwrap{overflow:auto;border:1px solid var(--bdr);border-radius:12px;background:#fff;max-height:70vh}
+table.g{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+table.g th,table.g td{border-bottom:1px solid #eee;border-right:1px solid #f2f2f2;padding:0;text-align:center;white-space:nowrap}
+table.g thead th{position:sticky;top:0;background:#faf9f6;z-index:2;font-weight:700;padding:6px 4px;cursor:pointer}
+table.g thead th.fut{color:#bbb;cursor:default}
+table.g thead th .d{display:block;font-size:10px;font-weight:500;color:var(--mut)}
+table.g th.nm,table.g td.nm{position:sticky;left:0;background:#fff;z-index:1;text-align:left;padding:6px 10px;font-weight:600;min-width:190px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+table.g thead th.nm{z-index:3;background:#faf9f6}
+table.g td.c{min-width:46px;height:34px;font-weight:700;cursor:pointer}
+table.g td.c.miss{box-shadow:inset 0 0 0 2px #F1B3B3;color:#C77}
+table.g td.c.fut{background:#fafafa;cursor:default}
+table.g td.avg{font-weight:800;padding:0 8px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#555;margin:8px 0}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+/* follow-up */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sec{font-size:15px;font-weight:800;margin:4px 0 8px}
+.fu{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #f0f0f0}
+.fu:last-child{border-bottom:none}
+.fu .who{flex:1;min-width:0}
+.fu .who b{font-weight:700}
+.fu .why{font-size:12px;color:var(--danger)}
+.spark{display:flex;gap:3px}
+.spark i{display:block;width:22px;height:22px;border-radius:5px;font-size:10px;font-style:normal;font-weight:700;display:flex;align-items:center;justify-content:center}
+.mw{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f3f3}
+.mw .w{font-weight:700;min-width:120px;font-size:15px}
+.mw .b{flex:1;height:10px;background:#f1f1f1;border-radius:5px;overflow:hidden}
+.mw .b i{display:block;height:100%;background:#E57373}
+.mw .n{font-size:12px;color:var(--mut);min-width:90px;text-align:right}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;padding:12px}
+.kpi b{display:block;font-size:24px;font-weight:800}
+.kpi span{font-size:12px;color:var(--mut)}
+/* manage */
+table.ex{border-collapse:collapse;width:100%;font-size:13px}
+table.ex th,table.ex td{border-bottom:1px solid #eee;padding:7px 8px;text-align:left}
+table.ex td.t{text-align:center}
+.tg{min-width:64px;min-height:34px;border-radius:8px;border:1px solid var(--bdr);background:#fff;cursor:pointer;font-weight:700;font-size:12px;color:#555}
+.tg.on{background:#666;border-color:#666;color:#fff}
+/* modal + toast */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:18px}
+.modal h3{margin:0 0 8px;font-size:17px}
+.modal .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200;max-width:92vw;text-align:center}
+.toast.show{opacity:1}
+.loading{padding:60px;text-align:center;color:var(--mut)}
+@media (max-width:760px){
+  .page{padding:12px}
+  .srow{grid-template-columns:1fr;gap:8px}
+  .acts{justify-content:flex-start}
+  .cols{grid-template-columns:1fr}
+  .nav{padding:0 8px;flex-wrap:wrap;overflow-x:visible}
+  .ntab{padding:0 10px;min-height:44px}
+  .nav-r{width:100%;justify-content:flex-end;padding:0 0 6px}
+  .saved{display:none}
+}
+@media print{ .nav,.no-print{display:none!important} body{background:#fff} .page{max-width:none;padding:0} .gwrap{max-height:none;overflow:visible;border:none} }
+</style>
+</head>
+<body>
+
+<!-- ══════ NAV (TOPBAR) ══════ -->
+<div class="nav" id="nav">
+  <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
+  <div class="nav-logo">✏️ SpellTrack <span class="ver" id="ver-badge">v1</span></div>
+  <button class="ntab on" data-p="week" onclick="goPage('week')">This Week</button>
+  <button class="ntab" data-p="overview" onclick="goPage('overview')">Overview</button>
+  <button class="ntab" data-p="follow" onclick="goPage('follow')">Follow-up</button>
+  <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')" style="display:none">Manage</button>
+  <div class="nav-r">
+    <span class="saved" id="last-saved"></span>
+    <button class="sync" id="sync" onclick="flushPending(true)" title="Upload status"><span class="d"></span><span id="sync-t">Connecting…</span></button>
+    <button class="btn-nav" onclick="exportData()">↓ Export</button>
+  </div>
+</div>
+
+<div id="gate" class="page on"><div class="loading">Loading…</div></div>
+
+<!-- ══════ PAGE: THIS WEEK ══════ -->
+<div class="page" id="page-week"></div>
+<!-- ══════ PAGE: RECORD (one test) ══════ -->
+<div class="page" id="page-record"></div>
+<!-- ══════ PAGE: OVERVIEW ══════ -->
+<div class="page" id="page-overview"></div>
+<!-- ══════ PAGE: FOLLOW-UP ══════ -->
+<div class="page" id="page-follow"></div>
+<!-- ══════ PAGE: MANAGE ══════ -->
+<div class="page" id="page-manage"></div>
+
+<div class="modal-bg" id="modal"><div class="modal"><h3 id="m-title"></h3><div id="m-body"></div><div class="foot" id="m-foot"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   SpellTrack · 老师记录 SRK 每周 Spelling / Ejaan / 听写 的成绩
+   - 考哪一天、考哪一组词：照 SpellGo 的算法，读 SpellGo 的班级 / 学期 / 词表（只读，不写 SpellGo）
+   - 假期：读行事历 calendar_events（跟 SpellGo 同一套）
+   - 学生名单：读 MasterHub hub_*（只读）
+   - 写入：只写 spelltrack_result / spelltrack_exempt；一点就上云，不用按 Save
+   ════════════════════════════════════════════════════════════════════ */
+const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
+const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const APP_VERSION = 1;
+const SYSTEM_CODE='LIB-SpellTrack';
+const UI_KEY='spelltrack_ui_v1';          // 只存画面偏好（选了哪一班、哪一科）
+const PENDING_KEY='spelltrack_pending_v1'; // 还没上云的纪录（断线时先存这台机器）
+const STREAMS=['sp','ej','tx'];
+const SM={
+  sp:{label:'Spelling',full:'Spelling (English)',c:'var(--sp)',cb:'var(--sp-bg)'},
+  ej:{label:'Ejaan',full:'Ejaan (BM)',c:'var(--ej)',cb:'var(--ej-bg)'},
+  tx:{label:'听写',full:'听写 (Chinese)',c:'var(--tx)',cb:'var(--tx-bg)'},
+};
+const OUT={scored:'Recorded',absent:'Absent',not_done:'Not done',exempt:'Does not take'};
+
+let S={
+  perm:{see:false,edit:false,approve:false}, me:{email:''},
+  sgClasses:[], settings:{}, words:{}, holidays:new Set(),
+  hubClasses:{}, students:{}, mem:[],
+  results:{},      // key → row（key = student|level|stream|grp）
+  exempt:{},       // student|stream → row
+  tests:[],        // 全年所有考试（每班每科每组一笔，有日期的）
+  ok:false, loadError:'', pending:0, syncErr:null, lastSaved:null,
+  ui:{page:'week',cls:null,stream:'sp',test:null,ovStream:'sp',fuCls:'all'}
+};
+try{ const u=JSON.parse(localStorage.getItem(UI_KEY)||'null'); if(u) Object.assign(S.ui,u,{page:'week',test:null}); }catch(e){}
+function saveUI(){ try{ localStorage.setItem(UI_KEY,JSON.stringify({cls:S.ui.cls,stream:S.ui.stream,ovStream:S.ui.ovStream,fuCls:S.ui.fuCls})); }catch(e){} }
+
+/* ══ helpers ══ */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(m,ms){ const el=document.getElementById('toast'); el.textContent=m; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),ms||2200); }
+function toISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fromISO(s){ return new Date(s+'T12:00:00'); }
+function today(){ return toISO(new Date()); }
+function monOf(ds){ const d=fromISO(ds); const w=d.getDay()||7; d.setDate(d.getDate()-(w-1)); return toISO(d); }
+function addDays(ds,n){ const d=fromISO(ds); d.setDate(d.getDate()+n); return toISO(d); }
+function ddmm(ds){ return ds?ds.slice(8)+'-'+ds.slice(5,7):''; }
+function ddmmyyyy(ds){ return ds?ds.slice(8)+'-'+ds.slice(5,7)+'-'+ds.slice(0,4):''; }
+function dow(ds){ return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][fromISO(ds).getDay()]; }
+function hhmm(d){ return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+function uid(){ return (crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);})); }
+function canEdit(){ return S.ok && S.perm.edit; }
+function pctCls(p){ return p>=1?'p100':p>=.75?'p75':p>=.5?'p50':'p0'; }
+function openModal(title,body,btns){ document.getElementById('m-title').textContent=title; document.getElementById('m-body').innerHTML=body; const f=document.getElementById('m-foot'); f.innerHTML=''; btns.forEach(b=>{ const x=document.createElement('button'); x.className='btn '+(b.cls||''); x.textContent=b.t; x.onclick=()=>{ closeModal(); b.fn&&b.fn(); }; f.appendChild(x); }); document.getElementById('modal').classList.add('on'); }
+function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+
+/* ══ 把一组词拆成「可以点的格子」 ══
+   英文 / 国文：一个词一格；句子按空格拆，每个词一格（标点不算分）
+   中文：一个字一格（标点不算分） */
+const CJK=/[㐀-鿿豈-﫿\u{20000}-\u{3134f}]/u;
+function unitsOf(words){
+  const out=[]; // {t:'显示', s:true=算分 / false=标点, br:true=换行}
+  (words||[]).forEach((w,wi)=>{
+    if(wi>0) out.push({br:true});
+    const str=String(w||'').trim();
+    if(CJK.test(str)){
+      for(const ch of Array.from(str)){ if(CJK.test(ch)) out.push({t:ch,s:true}); else if(ch.trim()) out.push({t:ch,s:false}); }
+    } else if(/\s/.test(str)){
+      str.split(/\s+/).forEach(tok=>{ const core=tok.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,''); if(core) out.push({t:tok,s:true,core}); else out.push({t:tok,s:false}); });
+    } else if(str){ out.push({t:str,s:true}); }
+  });
+  let i=0; out.forEach(u=>{ if(u.s) u.i=i++; });
+  return out;
+}
+function unitTotal(words){ return unitsOf(words).filter(u=>u.s).length; }
+
+/* ══ SpellGo 排程（照 SpellGo v15 _buildDates / _recomputeSchedule，一字不改逻辑） ══ */
+function buildDates(dayNum, level){
+  const st=S.settings[level]; if(!st) return [];
+  const t1s=fromISO(st.yearStart), t1e=fromISO(st.term1End), t2s=new Date(t1e.getTime()+86400000*2), t2e=fromISO(st.term2End);
+  const out=[];
+  for(const [ts,te,term] of [[t1s,t1e,1],[t2s,t2e,2]]){
+    let d=new Date(ts); d.setDate(d.getDate()+(((dayNum-(d.getDay()||7))+7)%7));
+    let k=0; while(d<=te && k++<500){ const iso=toISO(d); if(!S.holidays.has(iso)) out.push({date:iso,term}); d.setDate(d.getDate()+7); }
+  }
+  return out;
+}
+function buildTests(){
+  const tests=[];
+  for(const c of S.sgClasses){
+    const w=S.words[c.level]||{}; const day={sp:c.sp_day,ej:c.ej_day,tx:c.tx_day};
+    for(const st of STREAMS){
+      const slots=buildDates(day[st],c.level);
+      (w[st]||[]).forEach((words,i)=>{ if(!words||!slots[i]) return;
+        tests.push({id:c.id+'|'+st+'|'+i, sg:c.id, hub:c.hub, level:c.level, stream:st, grp:i, words, date:slots[i].date, term:slots[i].term});
+      });
+    }
+  }
+  tests.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:STREAMS.indexOf(a.stream)-STREAMS.indexOf(b.stream));
+  S.tests=tests;
+}
+function holidaysFrom(rows){
+  const h=new Set();
+  for(const r of rows||[]){
+    if(!r.start_date) continue;
+    if(Array.isArray(r.depts)&&r.depts.length>0&&!r.depts.includes('SRK')) continue;
+    if(['public_holiday','school_holiday','special_holiday'].includes(r.type)){
+      let cur=new Date(r.start_date+'T12:00:00'); const end=new Date((r.end_date||r.start_date)+'T12:00:00');
+      while(cur<=end){ if(cur.getDay()!==0) h.add(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); }
+    } else if(r.type==='festival'&&r.details&&r.details.days){
+      for(const ds in r.details.days){ if(['PH1','PH2','OFF'].includes(r.details.days[ds])) h.add(ds); }
+    }
+  }
+  return h;
+}
+
+/* ══ 名单：那一天在这一班的学生 ══ */
+function rosterFor(test){
+  const out=[];
+  for(const m of S.mem){
+    if(m.class_id!==test.hub) continue;
+    if(m.start_date && m.start_date>test.date) continue;
+    if(m.end_date && m.end_date<test.date) continue;
+    const s=S.students[m.student_id]; if(!s) continue;
+    const nn=+m.num; out.push({id:s.id,name:s.name,cn:s.name_cn||'',num:(nn>0&&nn<99)?nn:999});
+  }
+  const seen=new Set(); return out.filter(x=>!seen.has(x.id)&&seen.add(x.id)).sort((a,b)=>a.num-b.num||a.name.localeCompare(b.name));
+}
+function rkey(sid,t){ return sid+'|'+t.level+'|'+t.stream+'|'+t.grp; }
+function resOf(sid,t){ return S.results[rkey(sid,t)]||null; }
+function isExempt(sid,st){ const e=S.exempt[sid+'|'+st]; return !!(e&&!e.voided_at); }
+/* 一次考试的进度：要记几位、记了几位 */
+function progress(t){
+  const ro=rosterFor(t); let need=0, done=0;
+  for(const s of ro){ if(isExempt(s.id,t.stream)) continue; need++; if(resOf(s.id,t)) done++; }
+  return {need,done,roster:ro};
+}
+
+/* ══ sync badge ══ */
+function pendingMap(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY)||'{}')||{}; }catch(e){ return {}; } }
+function setPendingMap(m){ try{ localStorage.setItem(PENDING_KEY,JSON.stringify(m)); }catch(e){} }
+function setSync(){
+  const b=document.getElementById('sync'), t=document.getElementById('sync-t'); b.classList.remove('busy','err');
+  const n=Object.keys(pendingMap()).length;
+  if(S.loadError){ b.classList.add('err'); t.textContent='Could not load'; return; }
+  if(n>0 && (S.syncErr||!navigator.onLine)){ b.classList.add('err'); t.textContent='⚠ '+n+' not uploaded — only on this device'; return; }
+  if(S.pending>0||n>0){ b.classList.add('busy'); t.textContent='Uploading…'; return; }
+  t.textContent='☁ All uploaded';
+  if(S.lastSaved) document.getElementById('last-saved').textContent='Saved '+hhmm(S.lastSaved);
+}
+
+/* ══ 写入：先放进「待上传」（这台机器），再送云端；送成功才拿掉 ══ */
+function rowFor(r){ return {id:r.id,student_id:r.student_id,class_id:r.class_id,sg_class:r.sg_class,level:r.level,stream:r.stream,grp_idx:r.grp_idx,test_date:r.test_date,
+  words:r.words,wrong:r.wrong,score:r.score,total:r.total,outcome:r.outcome,note:r.note||null,client_uid:r.client_uid,updated_by:S.me.email||null,voided_at:r.voided_at||null,void_reason:r.void_reason||null}; }
+function queue(r){ const m=pendingMap(); m[r.id]={t:'result',row:rowFor(r)}; setPendingMap(m); setSync(); scheduleFlush(); }
+function queueEx(r){ const m=pendingMap(); m['ex:'+r.id]={t:'exempt',row:{id:r.id,student_id:r.student_id,stream:r.stream,reason:r.reason||null,updated_by:S.me.email||null,voided_at:r.voided_at||null,void_reason:r.void_reason||null}}; setPendingMap(m); setSync(); scheduleFlush(); }
+let _ft=null, _busy=false;
+function scheduleFlush(){ clearTimeout(_ft); _ft=setTimeout(()=>flushPending(),600); }
+async function flushPending(manual){
+  if(_busy) return; const m=pendingMap(); const keys=Object.keys(m); if(!keys.length){ setSync(); return; }
+  if(!navigator.onLine){ setSync(); if(manual) toast('No internet. Your marks are kept on this device and will upload when the internet is back.',3500); return; }
+  _busy=true; S.pending=keys.length; setSync();
+  for(const k of keys){
+    const it=m[k];
+    try{
+      const tbl=it.t==='exempt'?'spelltrack_exempt':'spelltrack_result';
+      let {error}=await _sb.from(tbl).upsert(it.row,{onConflict:'id'});
+      if(error && error.code==='23505' && it.t==='result'){
+        /* 另一位老师先建了同一位学生同一次考试 → 改成更新那一笔 */
+        const r=it.row; const {data:ex}=await _sb.from('spelltrack_result').select('id').eq('student_id',r.student_id).eq('level',r.level).eq('stream',r.stream).eq('grp_idx',r.grp_idx).is('voided_at',null).limit(1);
+        if(ex&&ex[0]){ const old=r.id; r.id=ex[0].id; const k2=r.student_id+'|'+r.level+'|'+r.stream+'|'+r.grp_idx; if(S.results[k2]) S.results[k2].id=r.id; ({error}=await _sb.from('spelltrack_result').update(r).eq('id',r.id)); }
+      }
+      if(error) throw error;
+      const cur=pendingMap(); if(cur[k] && JSON.stringify(cur[k].row)===JSON.stringify(it.row)) { delete cur[k]; setPendingMap(cur); }
+      S.syncErr=null; S.lastSaved=new Date();
+    }catch(e){ console.error('[SpellTrack] upload failed',e); S.syncErr=e; if(manual) toast('Could not upload yet. Your marks are kept on this device. We will keep trying.',3500); break; }
+  }
+  S.pending=0; _busy=false; setSync();
+  if(Object.keys(pendingMap()).length && !S.syncErr) scheduleFlush();
+}
+window.addEventListener('online',()=>flushPending());
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPending(); });
+window.addEventListener('pagehide',()=>flushPending());
+setInterval(()=>{ if(Object.keys(pendingMap()).length) flushPending(); },60000);
+window.addEventListener('beforeunload',e=>{ if(Object.keys(pendingMap()).length){ e.preventDefault(); e.returnValue=''; } });
+
+/* ══ auth + load ══ */
+async function boot(){
+  const {data:{session}}=await _sb.auth.getSession();
+  if(!session){ gate('Please sign in on the Platform first','SpellTrack uses your Academee Platform login.'); setSyncText('Not signed in'); return; }
+  S.me.email=session.user.email||'';
+  const {data:perm,error:pe}=await _sb.rpc('can_access',{p_system:SYSTEM_CODE});
+  const p=(perm&&perm[0])||{};
+  S.perm={see:!!p.can_see,edit:!!p.can_edit,approve:!!p.can_approve};
+  if(pe||!S.perm.see){ gate('🔒 No Access','You do not have permission to use SpellTrack.'); setSyncText('No access'); return; }
+  if(S.perm.approve) document.getElementById('ntab-manage').style.display='';
+  await loadAll();
+  flushPending();
+}
+function gate(t,m){ document.getElementById('gate').innerHTML='<div class="card" style="max-width:420px;margin:60px auto;text-align:center"><b style="font-size:16px">'+esc(t)+'</b><div class="tip" style="margin:6px 0 14px">'+esc(m)+'</div><button class="btn btn-pri" onclick="location.href=\'../index.html\'">← Back to Platform</button></div>'; }
+function setSyncText(t){ document.getElementById('sync-t').textContent=t; }
+
+async function loadAll(){
+  S.loadError='';
+  try{
+    const q=await Promise.all([
+      _sb.from('spellgo_classes').select('id,level,num,sp_day,ej_day,tx_day'),
+      _sb.from('spellgo_settings').select('level,year_start,term1_end,term2_end'),
+      _sb.from('spellgo_words').select('level,stream,grp_idx,words').order('grp_idx'),
+      _sb.from('calendar_events').select('type,start_date,end_date,details,depts'),
+      _sb.from('hub_classes').select('id,dept,class_name,status').eq('dept','SRK'),
+      _sb.from('hub_student_memberships').select('student_id,class_id,num,start_date,end_date,status').like('class_id','SRK%'),
+      _sb.from('hub_students').select('id,name,name_cn,status'),
+      _sb.from('spelltrack_result').select('*').is('voided_at',null),
+      _sb.from('spelltrack_exempt').select('*').is('voided_at',null)
+    ]);
+    const names=['SpellGo classes','SpellGo terms','SpellGo word lists','Calendar','Classes','Class lists','Students','Saved marks','Students who do not take a test'];
+    q.forEach((r,i)=>{ if(r.error) throw new Error(names[i]+': '+r.error.message); });
+    const [cl,st,wd,cal,hc,mem,stu,res,ex]=q.map(r=>r.data||[]);
+    /* 读到 0 笔就停，不画、不让改 */
+    if(!cl.length||!st.length||!wd.length) throw new Error('SpellGo has no classes / terms / word lists yet');
+    if(!stu.length||!mem.length) throw new Error('Student list is empty');
+    S.settings={}; st.forEach(r=>S.settings[r.level]={yearStart:r.year_start,term1End:r.term1_end,term2End:r.term2_end});
+    S.words={}; wd.forEach(r=>{ const L=(S.words[r.level]=S.words[r.level]||{}); (L[r.stream]=L[r.stream]||[])[r.grp_idx]=r.words; });
+    S.holidays=holidaysFrom(cal);
+    S.hubClasses={}; hc.forEach(c=>S.hubClasses[c.id]=c);
+    /* SpellGo 班 → MasterHub 班：SR + 1 → SRK_SR_1 */
+    S.sgClasses=cl.map(c=>({...c,hub:c.num?('SRK_'+c.level+'_'+c.num):null})).filter(c=>c.hub&&S.hubClasses[c.hub])
+      .sort((a,b)=>['JR','IN','SR'].indexOf(a.level)-['JR','IN','SR'].indexOf(b.level)||String(a.num).localeCompare(String(b.num)));
+    S.students={}; stu.forEach(s=>{ const x=String(s.status||'').toLowerCase(); if(x==='active'||x==='paused') S.students[s.id]=s; });
+    S.mem=mem.filter(m=>String(m.status||'Enrolled')!=='Cancelled');
+    S.results={}; res.forEach(r=>{ S.results[r.student_id+'|'+r.level+'|'+r.stream+'|'+r.grp_idx]=r; });
+    S.exempt={}; ex.forEach(r=>{ S.exempt[r.student_id+'|'+r.stream]=r; });
+    /* 这台机器还没上云的，盖在上面（不准被云端盖掉） */
+    const pm=pendingMap();
+    for(const k in pm){ const it=pm[k]; if(it.t==='result'){ const r=it.row; const kk=r.student_id+'|'+r.level+'|'+r.stream+'|'+r.grp_idx; if(r.voided_at) delete S.results[kk]; else S.results[kk]=r; } else { const r=it.row; S.exempt[r.student_id+'|'+r.stream]=r; } }
+    buildTests();
+    if(!S.ui.cls||!S.sgClasses.find(c=>c.id===S.ui.cls)) S.ui.cls=S.sgClasses[0]&&S.sgClasses[0].id;
+    S.ok=true;
+  }catch(e){ S.ok=false; S.loadError=String(e.message||e); console.error(e); }
+  document.getElementById('gate').classList.remove('on');
+  setSync();
+  if(!S.ok){ document.getElementById('gate').classList.add('on'); document.getElementById('gate').innerHTML='<div class="alert err" style="max-width:640px;margin:40px auto"><div><b>Could not load SpellTrack.</b> Nothing has been changed.<div class="tip">'+esc(S.loadError)+'</div></div><button class="btn" onclick="location.reload()">Try again</button></div>'; return; }
+  goPage(S.ui.page||'week');
+}
+
+/* ══ NAV ══ */
+function goPage(p){
+  if(!S.ok){ return; }
+  S.ui.page=p;
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(x=>x.classList.toggle('on',x.dataset.p===p||(p==='record'&&x.dataset.p==='week')));
+  document.getElementById('page-'+p).classList.add('on');
+  ({week:renderWeek,record:renderRecord,overview:renderOverview,follow:renderFollow,manage:renderManage})[p]();
+  window.scrollTo(0,0);
+}
+function classPills(sel,fn){
+  return '<div class="pills">'+S.sgClasses.map(c=>'<button class="pill'+(c.id===sel?' on':'')+'" onclick="'+fn+'(\''+c.id+'\')">'+esc(clsName(c))+'</button>').join('')+'</div>';
+}
+function clsName(c){ const h=S.hubClasses[c.hub]; return h?String(h.class_name||'').replace(/^SRK-/,''):c.id; }
+function setCls(id){ S.ui.cls=id; saveUI(); goPage(S.ui.page==='record'?'week':S.ui.page); }
+
+/* ══════ PAGE: THIS WEEK ══════ */
+function renderWeek(){
+  const el=document.getElementById('page-week'); const c=S.sgClasses.find(x=>x.id===S.ui.cls);
+  const td=today(), mon=monOf(td), sun=addDays(mon,6);
+  let h='<div class="h1">This week</div><div class="sub">'+ddmmyyyy(mon)+' to '+ddmmyyyy(sun)+' · Tap a test to record each child\'s marks</div>';
+  h+=classPills(S.ui.cls,'setCls');
+  if(!c){ el.innerHTML=h+'<div class="empty">No class set up in SpellGo yet.</div>'; return; }
+  const mine=S.tests.filter(t=>t.sg===c.id);
+  /* 前 3 周还没记完的 → 橘色提醒 */
+  const late=mine.filter(t=>t.date<mon && t.date>=addDays(mon,-21)).map(t=>({t,p:progress(t)})).filter(x=>x.p.done<x.p.need);
+  if(late.length){
+    h+='<div class="alert warn"><div style="flex:1"><b>'+late.length+' earlier test'+(late.length>1?'s are':' is')+' not fully recorded</b> (last 3 weeks)</div>'+
+      late.map(x=>'<button class="btn btn-sm" onclick="openTest(\''+x.t.id+'\')">'+SM[x.t.stream].label+' · '+dow(x.t.date)+' '+ddmm(x.t.date)+' ('+x.p.done+'/'+x.p.need+')</button>').join('')+'</div>';
+  }
+  const wk=mine.filter(t=>t.date>=mon && t.date<=sun);
+  if(!wk.length){
+    const nx=mine.find(t=>t.date>sun);
+    h+='<div class="empty card">No test this week for '+esc(clsName(c))+'.'+(nx?'<div class="tip" style="margin-top:6px">Next test: '+SM[nx.stream].label+' on '+dow(nx.date)+' '+ddmmyyyy(nx.date)+'</div>':'<div class="tip" style="margin-top:6px">All tests for this year are finished.</div>')+'</div>';
+  } else {
+    h+='<div class="tests">'+wk.map(t=>testCard(t,td)).join('')+'</div>';
+  }
+  /* 下一周 */
+  const nxt=mine.filter(t=>t.date>sun && t.date<=addDays(sun,7));
+  if(nxt.length) h+='<div class="sec" style="margin-top:20px">Next week</div><div class="tests">'+nxt.map(t=>testCard(t,td)).join('')+'</div>';
+  el.innerHTML=h;
+}
+function testCard(t,td){
+  const p=progress(t); const pct=p.need?Math.round(p.done/p.need*100):0; const done=p.need&&p.done>=p.need; const fut=t.date>td;
+  return '<div class="tcard'+(done?' done':'')+(t.date===td?' today':'')+'" style="--c:'+SM[t.stream].c+';--cb:'+SM[t.stream].cb+'" onclick="openTest(\''+t.id+'\')">'+
+    '<div class="k">'+SM[t.stream].full+'</div>'+
+    '<div class="when"><b>'+dow(t.date)+' '+ddmm(t.date)+'</b> · Week '+(t.grp+1)+' '+(t.date===td?'<span class="tag today">Today</span>':fut?'<span class="tag future">Coming</span>':'')+'</div>'+
+    '<div class="words">'+t.words.map(w=>'<span class="wchip">'+esc(w)+'</span>').join('')+'</div>'+
+    '<div class="bar"><i style="width:'+pct+'%"></i></div><div class="prog"><span>'+p.done+' / '+p.need+' recorded</span><span>'+(done?'Done':fut?'':'Tap to record')+'</span></div></div>';
+}
+function openTest(id,from){ S.ui.test=id; S.ui.from=from||'week'; goPage('record'); }
+
+/* ══════ PAGE: RECORD ══════ */
+function renderRecord(){
+  const el=document.getElementById('page-record'); const t=S.tests.find(x=>x.id===S.ui.test);
+  if(!t){ goPage('week'); return; }
+  const c=S.sgClasses.find(x=>x.id===t.sg); const p=progress(t); const units=unitsOf(t.words); const tot=units.filter(u=>u.s).length;
+  let sum=0,n=0,abs=0,full=0;
+  p.roster.forEach(s=>{ const r=resOf(s.id,t); if(!r) return; if(r.outcome==='scored'){ sum+=r.score/r.total; n++; if(r.score===r.total) full++; } else if(r.outcome==='absent') abs++; });
+  let h='<div class="no-print" style="margin-bottom:8px"><button class="btn btn-sm" onclick="goPage(\''+(S.ui.from||'week')+'\')">← Back</button></div>';
+  h+='<div class="rec-hdr" style="--c:'+SM[t.stream].c+'"><div class="t"><div class="k">'+SM[t.stream].full+' · '+esc(clsName(c))+'</div>'+
+     '<div class="sub" style="margin:2px 0 0">'+dow(t.date)+' '+ddmmyyyy(t.date)+' · Week '+(t.grp+1)+' · Term '+t.term+' · '+tot+' mark'+(tot>1?'s':'')+'</div></div>'+
+     (canEdit()&&p.done<p.need?'<button class="btn btn-ok" onclick="fillRest(\''+t.id+'\')">✓ Everyone not yet marked got full marks</button>':'')+'</div>';
+  h+='<div class="rec-sum"><div class="stat"><b>'+p.done+' / '+p.need+'</b><span>recorded</span></div><div class="stat"><b>'+(n?Math.round(sum/n*100)+'%':'—')+'</b><span>class average</span></div><div class="stat"><b>'+full+'</b><span>full marks</span></div><div class="stat"><b>'+abs+'</b><span>absent</span></div></div>';
+  h+='<div class="tip" style="margin-bottom:10px">Tap a '+(t.stream==='tx'?'character':'word')+' the child got <b style="color:var(--danger)">wrong</b>. The mark is counted for you and saved straight away.</div>';
+  if(!p.roster.length) h+='<div class="empty card">No students found in this class on '+ddmmyyyy(t.date)+'.</div>';
+  p.roster.forEach(s=>{ h+=studentRow(s,t,units,tot); });
+  el.innerHTML=h;
+}
+function studentRow(s,t,units,tot){
+  const r=resOf(s.id,t); const ex=isExempt(s.id,t.stream); const out=r?r.outcome:(ex?'exempt':null);
+  const wrong=new Set((r&&r.wrong)||[]); const ed=canEdit()&&!ex;
+  let cls='srow'+(r?' rec':'')+(out==='absent'||out==='exempt'?' abs':'');
+  let st=ex?'Does not take '+SM[t.stream].label:!r?'Not recorded yet':out==='scored'?(r.score===r.total?'All correct':(r.total-r.score)+' wrong'):OUT[out];
+  let h='<div class="'+cls+'" id="row-'+s.id+'"><div><div class="nm"><span class="no">'+(s.num<999?s.num:'')+'</span>'+esc(s.name)+(s.cn?'<span class="cn">'+esc(s.cn)+'</span>':'')+'</div><div class="st">'+st+(r&&r.updated_by?' · '+esc(String(r.updated_by).split('@')[0]):'')+'</div></div>';
+  h+='<div class="units">';
+  if(!ex){ units.forEach(u=>{ if(u.br) h+='<span class="u br"></span>'; else if(!u.s) h+='<span class="u punct">'+esc(u.t)+'</span>';
+    else { const isx=wrong.has(u.i); const off=out==='absent'||out==='not_done'; h+='<button class="u'+(isx?' x':(out==='scored'?' ok':''))+(off?' off':'')+'" '+(ed&&!off?'onclick="tapUnit(\''+s.id+'\',\''+t.id+'\','+u.i+')"':'disabled')+'>'+esc(u.t)+'</button>'; } }); }
+  h+='</div><div class="acts">';
+  if(!ex){
+    const sc=r&&r.outcome==='scored'?'<span class="score '+pctCls(r.score/r.total)+'">'+r.score+'/'+r.total+'</span>':'<span class="score" style="color:#bbb">–/'+tot+'</span>';
+    h+=sc;
+    if(ed){
+      h+='<button class="ob full'+(out==='scored'&&r.score===r.total?' on':'')+'" onclick="setOut(\''+s.id+'\',\''+t.id+'\',\'full\')">✓ All correct</button>';
+      h+='<button class="ob absent'+(out==='absent'?' on':'')+'" onclick="setOut(\''+s.id+'\',\''+t.id+'\',\'absent\')">Absent</button>';
+      h+='<button class="ob nd'+(out==='not_done'?' on':'')+'" onclick="setOut(\''+s.id+'\',\''+t.id+'\',\'not_done\')">Not done</button>';
+      if(r) h+='<button class="lnk" onclick="clearRes(\''+s.id+'\',\''+t.id+'\')">Clear</button>';
+    }
+  } else h+='<span class="score pE">–</span>';
+  h+='</div></div>';
+  return h;
+}
+function newRes(s,t){ return {id:uid(),client_uid:uid(),student_id:s,class_id:t.hub,sg_class:t.sg,level:t.level,stream:t.stream,grp_idx:t.grp,test_date:t.date,words:t.words,wrong:[],score:0,total:unitTotal(t.words),outcome:'scored'}; }
+function saveRes(r){ r.updated_by=S.me.email; S.results[r.student_id+'|'+r.level+'|'+r.stream+'|'+r.grp_idx]=r; queue(r); }
+function tapUnit(sid,tid,i){
+  if(!canEdit()) return; const t=S.tests.find(x=>x.id===tid);
+  let r=resOf(sid,t); r=r?{...r}:newRes(sid,t);
+  const w=new Set(r.wrong||[]); if(r.outcome!=='scored'){ r.outcome='scored'; w.clear(); }
+  w.has(i)?w.delete(i):w.add(i); r.wrong=[...w].sort((a,b)=>a-b); r.total=unitTotal(t.words); r.words=t.words; r.score=r.total-r.wrong.length;
+  saveRes(r); refreshRow(sid,t);
+}
+function setOut(sid,tid,k){
+  if(!canEdit()) return; const t=S.tests.find(x=>x.id===tid);
+  let r=resOf(sid,t); r=r?{...r}:newRes(sid,t);
+  if(k==='full'){ r.outcome='scored'; r.wrong=[]; r.total=unitTotal(t.words); r.score=r.total; }
+  else { r.outcome=k; r.wrong=[]; r.score=0; r.total=unitTotal(t.words); }
+  r.words=t.words; saveRes(r); refreshRow(sid,t);
+}
+function clearRes(sid,tid){
+  const t=S.tests.find(x=>x.id===tid); const r=resOf(sid,t); if(!r) return;
+  const v={...r,voided_at:new Date().toISOString(),void_reason:'Cleared by teacher'}; queue(v);
+  delete S.results[rkey(sid,t)]; refreshRow(sid,t); toast('Cleared');
+}
+function fillRest(tid){
+  const t=S.tests.find(x=>x.id===tid); const p=progress(t);
+  const left=p.roster.filter(s=>!isExempt(s.id,t.stream)&&!resOf(s.id,t));
+  openModal('Give full marks to '+left.length+' child'+(left.length>1?'ren':'')+'?','<div>'+left.map(s=>esc(s.name)).join('<br>')+'</div><div class="tip" style="margin-top:10px">Only children not marked yet. Anyone absent should be marked Absent first.</div>',
+    [{t:'Cancel'},{t:'✓ Yes, full marks',cls:'btn-ok',fn:()=>{ left.forEach(s=>{ const r=newRes(s.id,t); r.score=r.total; saveRes(r); }); renderRecord(); toast('Saved '+left.length+' full marks'); }}]);
+}
+function refreshRow(sid,t){
+  const old=document.getElementById('row-'+sid); if(!old){ renderRecord(); return; }
+  const s=progress(t).roster.find(x=>x.id===sid); const units=unitsOf(t.words);
+  const tmp=document.createElement('div'); tmp.innerHTML=studentRow(s,t,units,units.filter(u=>u.s).length); old.replaceWith(tmp.firstChild);
+  /* 上面的统计也要跟着变 */
+  const y=window.scrollY; const keep=document.getElementById('page-record').querySelector('.rec-sum');
+  if(keep){ const p=progress(t); let sum=0,n=0,abs=0,full=0; p.roster.forEach(x=>{ const r=resOf(x.id,t); if(!r) return; if(r.outcome==='scored'){ sum+=r.score/r.total; n++; if(r.score===r.total) full++; } else if(r.outcome==='absent') abs++; });
+    keep.innerHTML='<div class="stat"><b>'+p.done+' / '+p.need+'</b><span>recorded</span></div><div class="stat"><b>'+(n?Math.round(sum/n*100)+'%':'—')+'</b><span>class average</span></div><div class="stat"><b>'+full+'</b><span>full marks</span></div><div class="stat"><b>'+abs+'</b><span>absent</span></div>'; }
+  window.scrollTo(0,y);
+}
+
+/* ══════ PAGE: OVERVIEW ══════ */
+function setOvSt(s){ S.ui.ovStream=s; saveUI(); renderOverview(); }
+function renderOverview(){
+  const el=document.getElementById('page-overview'); const c=S.sgClasses.find(x=>x.id===S.ui.cls); const st=S.ui.ovStream; const td=today();
+  let h='<div class="h1">Overview</div><div class="sub">Every child, every test this year — newest on the left. Tap a date to record or fix that test.</div>';
+  h+=classPills(S.ui.cls,'setCls');
+  h+='<div class="pills">'+STREAMS.map(x=>'<button class="pill'+(x===st?' on':'')+'" onclick="setOvSt(\''+x+'\')">'+SM[x].full+'</button>').join('')+'</div>';
+  if(!c){ el.innerHTML=h; return; }
+  const tests=S.tests.filter(t=>t.sg===c.id&&t.stream===st);
+  const shown=tests.filter(t=>t.date<=addDays(td,6)).reverse();   // 最新的放最左边，一打开就看到
+  const ro=new Map(); shown.forEach(t=>rosterFor(t).forEach(s=>{ if(!ro.has(s.id)) ro.set(s.id,s); }));
+  const kids=[...ro.values()].sort((a,b)=>a.num-b.num);
+  h+='<div class="legend"><span><i class="p100"></i>All correct</span><span><i class="p75"></i>75%+</span><span><i class="p50"></i>50–74%</span><span><i class="p0"></i>Below 50%</span><span><i class="pA"></i>A = Absent</span><span><i class="pN"></i>ND = Not done</span><span><i style="box-shadow:inset 0 0 0 2px #F1B3B3"></i>Not recorded (last 3 weeks)</span></div>';
+  if(!shown.length){ el.innerHTML=h+'<div class="empty card">No '+SM[st].label+' test yet this year.</div>'; return; }
+  h+='<div class="gwrap"><table class="g"><thead><tr><th class="nm">Student</th><th>Avg</th>';
+  shown.forEach(t=>{ h+='<th onclick="openTest(\''+t.id+'\',\'overview\')" title="'+esc(t.words.join(' · '))+'">W'+(t.grp+1)+'<span class="d">'+ddmm(t.date)+'</span></th>'; });
+  h+='</tr></thead><tbody>';
+  kids.forEach(s=>{
+    let sum=0,n=0; let row='';
+    shown.forEach(t=>{
+      const inCls=rosterFor(t).some(x=>x.id===s.id); const r=resOf(s.id,t); const ex=isExempt(s.id,st);
+      if(!inCls){ row+='<td class="c fut"></td>'; return; }
+      if(ex){ row+='<td class="c pE">–</td>'; return; }
+      if(!r){ row+='<td class="c'+(t.date>td?' fut':t.date>=addDays(monOf(td),-21)?' miss':'')+'" onclick="openTest(\''+t.id+'\',\'overview\')"></td>'; return; }
+      if(r.outcome==='scored'){ sum+=r.score/r.total; n++; row+='<td class="c '+pctCls(r.score/r.total)+'" title="'+esc(wrongText(r))+'" onclick="openTest(\''+t.id+'\',\'overview\')">'+r.score+'/'+r.total+'</td>'; }
+      else row+='<td class="c '+(r.outcome==='absent'?'pA':'pN')+'" onclick="openTest(\''+t.id+'\',\'overview\')">'+(r.outcome==='absent'?'A':'ND')+'</td>';
+    });
+    const avg=n?sum/n:null;
+    h+='<tr><td class="nm">'+(s.num<999?'<span style="color:#999;display:inline-block;width:22px">'+s.num+'</span>':'')+esc(s.name)+'</td><td class="avg">'+(avg==null?'—':'<span class="tag '+pctCls(avg)+'">'+Math.round(avg*100)+'%</span>')+'</td>'+row+'</tr>';
+  });
+  h+='</tbody></table></div><div class="no-print" style="margin-top:10px"><button class="btn btn-sm" onclick="window.print()">🖨 Print</button></div>';
+  el.innerHTML=h;
+}
+function wrongText(r){ if(!r||!r.wrong||!r.wrong.length) return 'All correct'; const u=unitsOf(r.words).filter(x=>x.s); return 'Wrong: '+r.wrong.map(i=>u[i]?u[i].t:'?').join(', '); }
+
+/* ══════ PAGE: FOLLOW-UP ══════ */
+function setFuCls(id){ S.ui.fuCls=id; saveUI(); renderFollow(); }
+function renderFollow(){
+  const el=document.getElementById('page-follow'); const td=today();
+  const cls=S.ui.fuCls==='all'?S.sgClasses:S.sgClasses.filter(c=>c.id===S.ui.fuCls);
+  let h='<div class="h1">Follow-up</div><div class="sub">Children who need help, and the words most children get wrong</div>';
+  h+='<div class="pills"><button class="pill'+(S.ui.fuCls==='all'?' on':'')+'" onclick="setFuCls(\'all\')">All classes</button>'+S.sgClasses.map(c=>'<button class="pill'+(c.id===S.ui.fuCls?' on':'')+'" onclick="setFuCls(\''+c.id+'\')">'+esc(clsName(c))+'</button>').join('')+'</div>';
+  /* 每位孩子 × 每一科：最近 3 次有分数的平均 < 60%，或最近 2 次都 < 50%，或最近 4 次缺 2 次以上 */
+  const flags=[]; let recN=0, recSum=0, missing=0;
+  for(const c of cls){
+    for(const st of STREAMS){
+      const tests=S.tests.filter(t=>t.sg===c.id&&t.stream===st&&t.date<=td);
+      const kids=new Map(); tests.forEach(t=>rosterFor(t).forEach(s=>kids.set(s.id,s)));
+      for(const s of kids.values()){
+        if(isExempt(s.id,st)) continue;
+        const seq=tests.filter(t=>rosterFor(t).some(x=>x.id===s.id)).map(t=>({t,r:resOf(s.id,t)}));
+        seq.forEach(x=>{ if(!x.r && x.t.date>=addDays(monOf(td),-21)) missing++; if(x.r&&x.r.outcome==='scored'){ recN++; recSum+=x.r.score/x.r.total; } });
+        const rec=seq.filter(x=>x.r);
+        const sc=rec.filter(x=>x.r.outcome==='scored'); const l3=sc.slice(-3); const l2=sc.slice(-2);
+        const avg3=l3.length?l3.reduce((a,x)=>a+x.r.score/x.r.total,0)/l3.length:null;
+        const why=[];
+        if(l3.length>=2 && avg3<.6) why.push('Average '+Math.round(avg3*100)+'% in the last '+l3.length+' tests');
+        if(l2.length===2 && l2.every(x=>x.r.score/x.r.total<.5)) why.push('Below half in the last 2 tests');
+        const l4=rec.slice(-4); const ab=l4.filter(x=>x.r.outcome!=='scored').length; if(ab>=2) why.push(ab+' of the last '+l4.length+' tests absent / not done');
+        if(why.length) flags.push({s,c,st,why,last:rec.slice(-6),avg3});
+      }
+    }
+  }
+  /* 一个孩子一行（同一个孩子几科都有问题 → 合在一起） */
+  const byKid=new Map(); flags.forEach(f=>{ const k=f.c.id+'|'+f.s.id; if(!byKid.has(k)) byKid.set(k,{s:f.s,c:f.c,items:[],worst:1}); const o=byKid.get(k); o.items.push(f); o.worst=Math.min(o.worst,f.avg3==null?1:f.avg3); });
+  const kids=[...byKid.values()].sort((a,b)=>a.worst-b.worst||b.items.length-a.items.length);
+  h+='<div class="kpis"><div class="kpi"><b>'+kids.length+'</b><span>children need follow-up</span></div><div class="kpi"><b>'+(recN?Math.round(recSum/recN*100)+'%':'—')+'</b><span>average mark (all recorded tests)</span></div><div class="kpi"><b>'+missing+'</b><span>marks not recorded (last 3 weeks)</span></div></div>';
+  h+='<div class="cols"><div class="card"><div class="sec">Children to follow up</div>';
+  if(!kids.length) h+='<div class="empty" style="padding:24px">Nobody needs follow-up right now. 🎉</div>';
+  kids.forEach(k=>{ h+='<div class="fu" style="display:block"><div class="who"><b>'+esc(k.s.name)+'</b>'+(k.s.cn?' <span class="tip">'+esc(k.s.cn)+'</span>':'')+' <span class="tip">· '+esc(clsName(k.c))+'</span></div>';
+    k.items.sort((a,b)=>STREAMS.indexOf(a.st)-STREAMS.indexOf(b.st)).forEach(f=>{ h+='<div style="display:flex;gap:8px;align-items:center;margin-top:5px"><span class="tag" style="background:'+SM[f.st].cb+';color:'+SM[f.st].c+';min-width:64px;text-align:center">'+SM[f.st].label+'</span><span class="why" style="flex:1">'+f.why.map(esc).join(' · ')+'</span><span class="spark">'+
+      f.last.map(x=>{ const r=x.r; if(r.outcome!=='scored') return '<i class="'+(r.outcome==='absent'?'pA':'pN')+'" title="'+ddmm(x.t.date)+'">'+(r.outcome==='absent'?'A':'ND')+'</i>'; return '<i class="'+pctCls(r.score/r.total)+'" title="'+ddmm(x.t.date)+' · '+r.score+'/'+r.total+' · '+esc(wrongText(r))+'">'+r.score+'</i>'; }).join('')+'</span></div>'; });
+    h+='</div>'; });
+  h+='</div><div class="card"><div class="sec">Most often wrong</div>';
+  /* 每个字 / 词：做错的人数 ÷ 考过的人数 */
+  const cnt={};
+  for(const c of cls){ for(const t of S.tests.filter(t=>t.sg===c.id&&t.date<=td)){ const u=unitsOf(t.words).filter(x=>x.s);
+    for(const s of rosterFor(t)){ const r=resOf(s.id,t); if(!r||r.outcome!=='scored') continue; const ws=new Set(r.wrong||[]);
+      u.forEach(x=>{ const key=t.stream+'|'+(x.core||x.t); const o=(cnt[key]=cnt[key]||{st:t.stream,w:x.core||x.t,n:0,x:0}); o.n++; if(ws.has(x.i)) o.x++; }); } } }
+  const top=Object.values(cnt).filter(o=>o.x>0&&o.n>=3).sort((a,b)=>b.x/b.n-a.x/a.n||b.x-a.x).slice(0,15);
+  if(!top.length) h+='<div class="empty" style="padding:24px">Not enough marks yet.</div>';
+  top.forEach(o=>{ h+='<div class="mw"><span class="tag" style="background:'+SM[o.st].cb+';color:'+SM[o.st].c+'">'+SM[o.st].label+'</span><span class="w">'+esc(o.w)+'</span><span class="b"><i style="width:'+Math.round(o.x/o.n*100)+'%"></i></span><span class="n">'+o.x+' of '+o.n+' wrong</span></div>'; });
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+
+/* ══════ PAGE: MANAGE（管理层） ══════ */
+function renderManage(){
+  const el=document.getElementById('page-manage');
+  let h='<div class="h1">Manage</div><div class="sub">Children who do not take a test (for example, Malay children do not take 听写). They are left out of marks and follow-up.</div>';
+  h+='<div class="alert info"><div>Test days, terms and word lists come from <b>SpellGo</b>. Holidays come from the <b>Calendar</b>. To change them, change them there — SpellTrack follows automatically.</div></div>';
+  h+='<div class="card"><table class="ex"><thead><tr><th>Class</th><th>Student</th>'+STREAMS.map(s=>'<th style="text-align:center">'+SM[s].label+'</th>').join('')+'</tr></thead><tbody>';
+  const td=today();
+  for(const c of S.sgClasses){ const ro=rosterFor({hub:c.hub,date:td});
+    ro.forEach(s=>{ h+='<tr><td>'+esc(clsName(c))+'</td><td>'+esc(s.name)+(s.cn?' <span class="tip">'+esc(s.cn)+'</span>':'')+'</td>'+STREAMS.map(st=>{ const on=isExempt(s.id,st); return '<td class="t"><button class="tg'+(on?' on':'')+'" onclick="toggleEx(\''+s.id+'\',\''+st+'\')">'+(on?'Does not take':'Takes')+'</button></td>'; }).join('')+'</tr>'; }); }
+  h+='</tbody></table></div><div class="tip" style="margin-top:10px">System: SpellTrack · Version: '+APP_VERSION+'</div>';
+  el.innerHTML=h;
+}
+function toggleEx(sid,st){
+  if(!S.perm.approve) return; const k=sid+'|'+st; const cur=S.exempt[k];
+  if(cur&&!cur.voided_at){ const v={...cur,voided_at:new Date().toISOString(),void_reason:'Takes the test again'}; S.exempt[k]=v; queueEx(v); }
+  else { const r={id:uid(),student_id:sid,stream:st,reason:'Set in SpellTrack'}; S.exempt[k]=r; queueEx(r); }
+  renderManage();
+}
+
+/* ══ export ══ */
+function exportData(){
+  const rows=Object.values(S.results);
+  const blob=new Blob([JSON.stringify({system:'SpellTrack',version:APP_VERSION,exported_at:new Date().toISOString(),results:rows,exempt:Object.values(S.exempt)},null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='SpellTrack_'+today()+'.json'; a.click();
+}
+
+document.getElementById('ver-badge').textContent='v'+APP_VERSION;
+boot();
+</script>
+</body>
+</html>
