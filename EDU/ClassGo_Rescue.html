@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClassGo Backup</title>
+<style>
+:root{--bg:#f7f5f0;--card:#fff;--ink:#222;--mut:#666;--pri:#1f6f5c;--warn:#b25a00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1b1b;--card:#262626;--ink:#eee;--mut:#aaa;--pri:#4fb39a;--warn:#e0a050}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,Segoe UI,sans-serif}
+.box{max-width:520px;margin:40px auto;padding:24px 16px}
+.card{background:var(--card);border-radius:14px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+h1{font-size:22px;margin:0 0 8px}
+p{margin:8px 0;color:var(--mut)}
+button{width:100%;padding:16px;margin-top:16px;border:0;border-radius:10px;background:var(--pri);color:#fff;font-size:18px;cursor:pointer}
+#msg{margin-top:16px;font-weight:600}
+.warn{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="box"><div class="card">
+  <h1>ClassGo Backup</h1>
+  <p>This page saves a copy of the ClassGo data stored on this device. It does not change anything.</p>
+  <p>Please do <b>not</b> open ClassGo before you finish this.</p>
+  <button id="go">Download backup</button>
+  <div id="msg"></div>
+</div></div>
+<script>
+// Read-only: copies every localStorage key that starts with "classgo" into one file. Never writes or deletes.
+document.getElementById('go').onclick=function(){
+  var msg=document.getElementById('msg'), out={keys:{},device:navigator.userAgent,taken_at:new Date().toISOString()}, n=0, bytes=0;
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k && k.toLowerCase().indexOf('classgo')===0){ var v=localStorage.getItem(k); out.keys[k]=v; n++; bytes+=(v||'').length; }
+    }
+  }catch(e){ msg.className='warn'; msg.textContent='This browser blocked the backup. Please send a screenshot of this page to Teo.'; return; }
+  if(!n){ msg.className='warn'; msg.textContent='No ClassGo data found on this device. Please tell Teo.'; return; }
+  var d=new Date(), p=function(x){return (x<10?'0':'')+x};
+  var name='classgo-device-backup-'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.json';
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download=name; a.click();
+  msg.textContent='Done. File "'+name+'" ('+n+' items, '+Math.round(bytes/1024)+' KB) is in your Downloads. Please send it to Teo.';
+};
+</script>
+</body>
+</html>
