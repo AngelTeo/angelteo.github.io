@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DutyQ v3</title>
+<title>DutyQ v4</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
@@ -185,6 +185,9 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 .line.h .card-s i{writing-mode:horizontal-tb}
 .line.h .card-s .rm{writing-mode:horizontal-tb}
 .tail{color:#C0452A;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:2px}
+.rdrop{position:absolute;border:2px dashed #C9A54A;border-radius:8px;background:rgba(249,203,66,.08);color:#8A6D1F;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px;z-index:1}
+.rdrop small{font-weight:400;font-size:11px;color:#8A867C;margin-top:4px}
+.rdrop .stu,.rdrop .tch{display:none}
 .drop-hint{border:1px dashed #B5B0A5;border-radius:6px;color:#8A867C;font-size:11px;display:flex;align-items:center;justify-content:center;padding:6px;flex-shrink:0}
 .sortable-ghost{opacity:.35}
 .sortable-chosen{box-shadow:0 2px 8px rgba(0,0,0,.2)}
@@ -242,7 +245,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══════ NAV (TOPBAR) ══════ -->
 <div class="nav" id="nav">
   <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
-  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v3</span></div>
+  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v4</span></div>
   <button class="ntab on" data-p="arrange" onclick="goPage('arrange')">Arrange</button>
   <button class="ntab" data-p="print" onclick="goPage('print')">Print</button>
   <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')">Manage</button>
@@ -348,7 +351,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=3;   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
+const APP_VERSION=4;   /* v4 · 房间还没有队伍时，整个房间就是放的地方：拖学生或老师进去，自动开 Line 1（Owner 11-04：学生、老师拖不进去） */ /* v3 */ //   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
 const SYSTEM_CODE='OPR-DutyQ';
 const UI_KEY='dutyq_ui_v1';           // 只存画面偏好（部门、时段、楼层、缩放）；资料一律在云端
 const PLAN_W=2000, PLAN_H=2600;       // 平面图画布（Room SSOT 的位置是百分比）
@@ -725,6 +728,8 @@ function planHTML(forPrint){
     const ls=linesInRoom(r.id);
     const add=(!forPrint&&canEdit())?'<button class="add" title="Add line" onclick="openAddLine(\''+esc(r.id)+'\')">'+(R.w<260?'+':'+ Add line')+'</button>':'';
     h+='<div class="room'+(r.kind==='walkway'?' walkway':'')+(ls.length?' has':'')+'" style="left:'+R.x+'px;top:'+R.y+'px;width:'+R.w+'px;height:'+R.h+'px"><div class="rh">'+esc(r.id)+add+'</div></div>';
+    /* v4 · 这个房间还没有队伍 → 整个房间身体可以直接放学生 / 老师，自动开第一条队伍 */
+    if(!ls.length&&!forPrint&&canEdit()&&R.h>90) h+='<div class="rdrop" data-room="'+esc(r.id)+'" style="left:'+(R.x+6)+'px;top:'+(R.y+40)+'px;width:'+(R.w-12)+'px;height:'+(R.h-46)+'px">Drag students or a teacher here<small>A new line starts in '+esc(r.id)+'</small></div>';
     const g=S.gaps[r.id];
     if(g&&r.kind==='walkway') h+='<div class="gap" style="left:'+R.x+'px;width:'+R.w+'px;top:'+(R.y+R.h*g.from/100)+'px;height:'+(R.h*(g.to-g.from)/100)+'px"></div>';
     const L=layoutRoom(r);
@@ -762,6 +767,11 @@ function renderPlan(){
       onAdd:ev=>{ const tid=ev.item.dataset.tid; const sid=tid?'T:'+tid:ev.item.dataset.sid; const idx=[...el.querySelectorAll('.card-s,.tch')].indexOf(ev.item); ev.item.remove(); placeStudent(sid,el.dataset.lb,idx,!!tid); },
       onEnd:ev=>{ if(ev.from===ev.to && ev.oldIndex!==ev.newIndex){ const ids=[...el.querySelectorAll('.card-s')].map(x=>x.dataset.sid); reorderLine(el.dataset.lb,ids); } }});
   });
+  plan.querySelectorAll('.rdrop').forEach(el=>{   /* v4 */
+    Sortable.create(el,{...SORT_OPTS,group:{name:'rd',pull:false,put:['stu','tch']},sort:false,animation:0,
+      onAdd:ev=>{ const tid=ev.item.dataset.tid, sid=ev.item.dataset.sid; ev.item.remove(); const lid=quickLine(el.dataset.room); if(!lid) return;
+        if(tid) addTeacher(lid,tid); else if(sid) placeStudent(sid,lid,0,false); }});
+  });
   plan.querySelectorAll('.tslot').forEach(el=>{
     Sortable.create(el,{...SORT_OPTS,emptyInsertThreshold:10,group:{name:'tch',pull:false,put:['tch']},sort:false,animation:120,
       onAdd:ev=>{ const tid=ev.item.dataset.tid; ev.item.remove(); addTeacher(el.dataset.tslot,tid); }});
@@ -777,7 +787,7 @@ function renderOrder(){
   const box=document.getElementById('order');
   const ls=floorLines(S.ui.floor);
   const t=document.getElementById('order-floor'); if(t) t.textContent=floorName(S.ui.floor);
-  if(!ls.length){ box.innerHTML='<div class="tip">No lines on this floor yet. Tap “+ Add line” on a room.</div>'; return; }
+  if(!ls.length){ box.innerHTML='<div class="tip">No lines on this floor yet. Drag a student or teacher onto a room — a line starts there. Or tap “+ Add line” on a room.</div>'; return; }
   box.innerHTML=ls.map((l,i)=>'<div class="ord" data-lid="'+l.id+'"><span class="g">≡</span><span class="no" style="width:24px;height:24px;border-radius:50%;background:var(--layer);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+(i+1)+'</span><div class="t"><b>'+esc(l.label||'Line')+'</b><small>'+esc(l.room_id)+((l.teacher_ids||[]).length?' · '+esc(l.teacher_ids.join(' · ')):'')+'</small></div></div>').join('');
   { const o=Sortable.get(box); if(o) o.destroy(); }  /* 同一个框只挂一个拖拉，不然一次拖会存好几次 */
   if(canEdit()) Sortable.create(box,{...SORT_OPTS,animation:120,onEnd:()=>{ const ids=[...box.querySelectorAll('.ord')].map(x=>x.dataset.lid); saveReleaseOrder(ids); }});
@@ -919,6 +929,17 @@ async function saveNewLine(rid){
   closeModal(); S.lines.push(row); refresh();
   const ok=await write('add line',()=>_sb.from('dutyq_line').insert({id:row.id,session_code:row.session_code,room_id:rid,direction:dir,label,sort_in_room:row.sort_in_room,release_order:row.release_order}));
   if(ok) toast('✓ Line added'); else { S.lines=S.lines.filter(l=>l.id!==row.id); refresh(); }
+}
+/* v4 · 拖到还没有队伍的房间：马上开一条（名字 Line N、方向跟这个部门别的队伍一样，没有就往下），之后可按 ⋯ 改 */
+function quickLine(rid){
+  if(!canEdit()) return null;
+  const same=sessLines(); const dir=(same[0]&&same[0].direction)||'down';
+  const maxRel=Math.max(0,...same.map(l=>l.release_order||0));
+  const label='Line '+(linesInRoom(rid).length+1);
+  const row={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),session_code:S.ui.session,room_id:rid,direction:dir,label,sort_in_room:linesInRoom(rid).length+1,release_order:maxRel+1,teacher_ids:[],status:'active',created_at:new Date().toISOString()};
+  S.lines.push(row);
+  write('add line',()=>_sb.from('dutyq_line').insert({id:row.id,session_code:row.session_code,room_id:rid,direction:dir,label,sort_in_room:row.sort_in_room,release_order:row.release_order})).then(ok=>{ if(ok) toast('✓ '+label+' started in '+rid+' — tap ⋯ to change name or direction',3500); else { S.lines=S.lines.filter(l=>l.id!==row.id); S.members=S.members.filter(m=>m.line_id!==row.id); refresh(); } });
+  return row.id;
 }
 function openEditLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
