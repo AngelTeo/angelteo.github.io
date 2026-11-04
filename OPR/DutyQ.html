@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DutyQ v3</title>
+<title>DutyQ v5</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
@@ -145,6 +145,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 .room.walkway .rh{background:#C0452A}
 .room.structure{background:#CFCBC3;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:#55524B}
 .gap{position:absolute;left:0;right:0;background:#EFEDE8}
+.add2{position:absolute;height:26px;white-space:nowrap;font-size:11px;font-weight:600;color:#1E1E1C;background:#F9CB42;border:none;border-radius:13px;padding:0 10px;cursor:pointer;font-family:inherit;z-index:3}
 .line{position:absolute;z-index:2;display:flex;border:2px dashed var(--layer);border-radius:8px;background:rgba(255,253,246,.95)}
 .line.wide{z-index:3;box-shadow:0 2px 10px rgba(0,0,0,.18);background:#FFFDF6}
 .line .lh{display:flex;gap:6px;align-items:center;padding:4px 6px;background:#F3ECDD;flex-shrink:0;flex-wrap:wrap}
@@ -242,7 +243,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══════ NAV (TOPBAR) ══════ -->
 <div class="nav" id="nav">
   <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
-  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v3</span></div>
+  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v5</span></div>
   <button class="ntab on" data-p="arrange" onclick="goPage('arrange')">Arrange</button>
   <button class="ntab" data-p="print" onclick="goPage('print')">Print</button>
   <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')">Manage</button>
@@ -348,7 +349,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=3;   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
+const APP_VERSION=5;   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
 const SYSTEM_CODE='OPR-DutyQ';
 const UI_KEY='dutyq_ui_v1';           // 只存画面偏好（部门、时段、楼层、缩放）；资料一律在云端
 const PLAN_W=2000, PLAN_H=2600;       // 平面图画布（Room SSOT 的位置是百分比）
@@ -669,6 +670,9 @@ function renderTeachers(){
 
 /* ── plan geometry ── */
 function roomRect(r){ return {x:r.plan_x/100*PLAN_W,y:r.plan_y/100*PLAN_H,w:r.plan_w/100*PLAN_W,h:r.plan_h/100*PLAN_H}; }
+/* v5 · 有出入口空位的走廊分上段 / 下段：在哪段按 + Line 就放哪段（part）；旧队伍没有 part 的照箭头（往上=上段） */
+function partOf(l){ return l.part==='top'||l.part==='bottom'?l.part:(l.direction==='up'?'top':'bottom'); }
+function hasParts(rid){ const r=S.rooms.find(x=>x.id===rid); return !!(r&&r.kind==='walkway'&&S.gaps[rid]); }
 function linesInRoom(rid){ return sessLines().filter(l=>l.room_id===rid).sort((a,b)=>a.sort_in_room-b.sort_in_room||String(a.created_at).localeCompare(String(b.created_at))); }
 /* 房间里的队伍自动排位：横的队伍一条一条叠；直的队伍并排。走廊有出入口空位：往上的排在空位上方，往下的排在下方 */
 function layoutRoom(r){
@@ -691,7 +695,7 @@ function layoutRoom(r){
       arr.forEach((l,i)=>{ const h=Math.min(y1-y0,Math.max(170,vLen(l))); const y=l.direction==='up'?y1-h:y0; out[l.id]={x:vArea.x+i*(cw+8),y,w:cw,h}; }); };
     if(gap && r.kind==='walkway'){
       const gy0=R.y+R.h*gap.from/100, gy1=R.y+R.h*gap.to/100;
-      place(vs.filter(l=>l.direction==='up'),vArea.y,gy0-8); place(vs.filter(l=>l.direction==='down'),gy1+8,R.y+R.h-pad);
+      place(vs.filter(l=>partOf(l)==='top'),vArea.y,gy0-8); place(vs.filter(l=>partOf(l)==='bottom'),gy1+8+30,R.y+R.h-pad);
     }else place(vs,vArea.y,vArea.y+vArea.h);
   }
   /* 走廊很窄（平面图上只有约 130px）：队伍框加宽到 280px、盖在旁边的楼梯/房间上面，名字才看得清楚 */
@@ -723,10 +727,11 @@ function planHTML(forPrint){
     const R=roomRect(r);
     if(r.kind==='structure'){ h+='<div class="room structure" style="left:'+R.x+'px;top:'+R.y+'px;width:'+R.w+'px;height:'+R.h+'px">'+esc(r.id)+'</div>'; return; }
     const ls=linesInRoom(r.id);
-    const add=(!forPrint&&canEdit())?'<button class="add" title="Add line" onclick="openAddLine(\''+esc(r.id)+'\')">'+(R.w<260?'+':'+ Add line')+'</button>':'';
-    h+='<div class="room'+(r.kind==='walkway'?' walkway':'')+(ls.length?' has':'')+'" style="left:'+R.x+'px;top:'+R.y+'px;width:'+R.w+'px;height:'+R.h+'px"><div class="rh">'+esc(r.id)+add+'</div></div>';
     const g=S.gaps[r.id];
+    const add=(!forPrint&&canEdit())?'<button class="add" title="Add line" onclick="openAddLine(\''+esc(r.id)+'\''+(g&&r.kind==='walkway'?',\'top\'':'')+')">'+(g&&r.kind==='walkway'?(R.w<260?'+ Line':'+ Add line'):(R.w<260?'+':'+ Add line'))+'</button>':'';
+    h+='<div class="room'+(r.kind==='walkway'?' walkway':'')+(ls.length?' has':'')+'" style="left:'+R.x+'px;top:'+R.y+'px;width:'+R.w+'px;height:'+R.h+'px"><div class="rh">'+esc(r.id)+add+'</div></div>';
     if(g&&r.kind==='walkway') h+='<div class="gap" style="left:'+R.x+'px;width:'+R.w+'px;top:'+(R.y+R.h*g.from/100)+'px;height:'+(R.h*(g.to-g.from)/100)+'px"></div>';
+    if(g&&r.kind==='walkway'&&!forPrint&&canEdit()) h+='<button class="add2" title="Add line (lower part)" style="left:'+(R.x+R.w-6)+'px;transform:translateX(-100%);top:'+(R.y+R.h*g.to/100+6)+'px" onclick="openAddLine(\''+esc(r.id)+'\',\'bottom\')">'+(R.w<260?'+ Line':'+ Add line')+'</button>';
     const L=layoutRoom(r);
     ls.forEach(l=>{ const b=L[l.id]; if(!b) return; h+=lineHTML(l,b,forPrint); });
   });
@@ -902,29 +907,34 @@ function putTogether(sid,lid,sibs){
 function dirPicker(cur){ return '<div class="pills" id="dir-pick">'+['up','down','left','right'].map(d=>'<button class="pill'+(d===cur?' on':'')+'" data-d="'+d+'" onclick="pickDir(this)" style="font-size:18px;min-width:56px">'+ARROW[d]+'</button>').join('')+'</div><div class="tip">Arrow = the line grows this way. Student 1 stands at the start of the arrow.</div>'; }
 function pickDir(b){ document.querySelectorAll('#dir-pick .pill').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }
 function curDir(){ const b=document.querySelector('#dir-pick .pill.on'); return b?b.dataset.d:null; }
-function openAddLine(rid){
+function partPicker(cur){ return '<div style="margin-top:12px"><label class="form-label">Part of corridor</label><div class="pills" id="part-pick">'+[['top','Upper part'],['bottom','Lower part']].map(([k,t])=>'<button class="pill'+(k===cur?' on':'')+'" data-p="'+k+'" onclick="pickPart(this)">'+t+'</button>').join('')+'</div></div>'; }
+function pickPart(b){ document.querySelectorAll('#part-pick .pill').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }
+function curPart(){ const b=document.querySelector('#part-pick .pill.on'); return b?b.dataset.p:null; }
+function openAddLine(rid,part){
   if(!canEdit()) return;
   const n=linesInRoom(rid).length+1;
-  openModal('Add line · '+esc(rid),
+  const inPart=part?linesInRoom(rid).filter(l=>partOf(l)===part):linesInRoom(rid);
+  openModal('Add line · '+esc(rid)+(part?' · '+(part==='top'?'upper part':'lower part'):''),
     '<div style="margin-bottom:12px"><label class="form-label">Line name <span style="color:var(--danger)">*</span></label><input type="text" id="ln-label" style="width:100%" value="Line '+n+'"></div>'+
-    '<label class="form-label">Direction <span style="color:var(--danger)">*</span></label>'+dirPicker(linesInRoom(rid)[0]?linesInRoom(rid)[0].direction:'down'),
-    '<button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveNewLine(\''+esc(rid)+'\')">Add</button>');
+    '<label class="form-label">Direction <span style="color:var(--danger)">*</span></label>'+dirPicker(inPart[0]?inPart[0].direction:(part==='top'?'up':'down')),
+    '<button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveNewLine(\''+esc(rid)+'\''+(part?',\''+part+'\'':'')+')">Add</button>');
   setTimeout(()=>{ const i=document.getElementById('ln-label'); if(i){ i.focus(); i.select(); } },50);
 }
-async function saveNewLine(rid){
+async function saveNewLine(rid,part){
   const label=(document.getElementById('ln-label').value||'').trim(), dir=curDir();
   if(!label){ toast('Enter a line name'); return; }
   const maxRel=Math.max(0,...sessLines().map(l=>l.release_order||0));
   const row={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),session_code:S.ui.session,room_id:rid,direction:dir,label,sort_in_room:linesInRoom(rid).length+1,release_order:maxRel+1,teacher_ids:[],status:'active',created_at:new Date().toISOString()};
+  if(part) row.part=part;
   closeModal(); S.lines.push(row); refresh();
-  const ok=await write('add line',()=>_sb.from('dutyq_line').insert({id:row.id,session_code:row.session_code,room_id:rid,direction:dir,label,sort_in_room:row.sort_in_room,release_order:row.release_order}));
+  const ok=await write('add line',()=>_sb.from('dutyq_line').insert({id:row.id,session_code:row.session_code,room_id:rid,direction:dir,label,sort_in_room:row.sort_in_room,release_order:row.release_order,...(part?{part}:{})}));
   if(ok) toast('✓ Line added'); else { S.lines=S.lines.filter(l=>l.id!==row.id); refresh(); }
 }
 function openEditLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
   openModal('Edit line',
     '<div style="margin-bottom:12px"><label class="form-label">Line name <span style="color:var(--danger)">*</span></label><input type="text" id="ln-label" style="width:100%" value="'+esc(l.label||'')+'"></div>'+
-    '<label class="form-label">Direction</label>'+dirPicker(l.direction)+
+    '<label class="form-label">Direction</label>'+dirPicker(l.direction)+(hasParts(l.room_id)?partPicker(partOf(l)):'')+
     '<div style="margin-top:12px"><label class="form-label">Room</label><select id="ln-room" style="width:100%">'+S.rooms.filter(r=>r.kind!=='structure').map(r=>'<option'+(r.id===l.room_id?' selected':'')+'>'+esc(r.id)+'</option>').join('')+'</select></div>',
     '<button class="btn btn-dng btn-sm" style="margin-right:auto" onclick="deleteLine(\''+lid+'\')">Delete</button><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveEditLine(\''+lid+'\')">Save</button>');
 }
@@ -932,8 +942,9 @@ function saveEditLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
   const label=(document.getElementById('ln-label').value||'').trim(); if(!label){ toast('Enter a line name'); return; }
   l.label=label; l.direction=curDir()||l.direction; l.room_id=document.getElementById('ln-room').value||l.room_id;
+  const pp=curPart(); if(pp&&hasParts(l.room_id)) l.part=pp;
   closeModal(); refresh();
-  write('edit line',()=>_sb.from('dutyq_line').update({label:l.label,direction:l.direction,room_id:l.room_id,updated_at:new Date().toISOString()}).eq('id',lid)).then(ok=>ok&&toast('✓ Saved'));
+  write('edit line',()=>_sb.from('dutyq_line').update({label:l.label,direction:l.direction,room_id:l.room_id,...(pp&&hasParts(l.room_id)?{part:pp}:{}),updated_at:new Date().toISOString()}).eq('id',lid)).then(ok=>ok&&toast('✓ Saved'));
 }
 function deleteLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
