@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DutyQ v5</title>
+<title>DutyQ v6</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
@@ -155,6 +155,9 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 .line .no{width:24px;height:24px;border-radius:50%;background:var(--layer);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .line .ll{font-size:13px;font-weight:700;color:#5C4718}
 .line .lc{font-size:11px;color:var(--mut)}
+.line .lmove,.line .lrot{border:none;background:transparent;font-size:15px;min-width:26px;min-height:26px;color:#5C4718;padding:0;font-family:inherit}
+.line .lmove{cursor:move;touch-action:none}.line .lrot{cursor:pointer}
+.line.moving{opacity:.85;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:20}
 .line .lmenu{border:none;background:transparent;cursor:pointer;font-size:16px;min-width:28px;min-height:28px;color:#5C4718}
 .tslot{display:flex;gap:4px;flex-wrap:wrap;min-height:26px;min-width:60px;border:1px dashed var(--layer);border-radius:6px;padding:2px 4px;align-items:center}
 .tslot:empty::before{content:'+ Teacher';font-size:10px;color:var(--mut)}
@@ -243,7 +246,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 <!-- ══════ NAV (TOPBAR) ══════ -->
 <div class="nav" id="nav">
   <button class="nav-home" onclick="location.href='../index.html'" title="Back to Platform Home">←</button>
-  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v5</span></div>
+  <div class="nav-logo">🚸 DutyQ <span class="ver" id="ver-badge">v6</span></div>
   <button class="ntab on" data-p="arrange" onclick="goPage('arrange')">Arrange</button>
   <button class="ntab" data-p="print" onclick="goPage('print')">Print</button>
   <button class="ntab" data-p="manage" id="ntab-manage" onclick="goPage('manage')">Manage</button>
@@ -349,7 +352,7 @@ input:focus,select:focus{outline:none;border-color:var(--layer)}
 const SUPABASE_URL='https://qnpvqsvvsgsantekgfbz.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucHZxc3Z2c2dzYW50ZWtnZmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzg4MzIsImV4cCI6MjA5MTc1NDgzMn0.8rfv0BQpWNNSD8yrhHNwCOkcG9q5_uMD7B7z_Y324a0';
 const _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const APP_VERSION=5;   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
+const APP_VERSION=6;   /* v3 · 今天的家长通知：换人接、晚接、早走（AttendanceGo Notices 登记）—— 放学时看得到 */
 const SYSTEM_CODE='OPR-DutyQ';
 const UI_KEY='dutyq_ui_v1';           // 只存画面偏好（部门、时段、楼层、缩放）；资料一律在云端
 const PLAN_W=2000, PLAN_H=2600;       // 平面图画布（Room SSOT 的位置是百分比）
@@ -691,12 +694,16 @@ function layoutRoom(r){
     if(vs.length) vArea={x:inner.x,y:inner.y+hs.length*(rowH+10),w:inner.w,h:inner.h-hs.length*(rowH+10)};
   }
   if(vs.length){
-    const place=(arr,y0,y1)=>{ if(!arr.length) return; const cw=Math.min(r.kind==='walkway'?vArea.w:260,(vArea.w-(arr.length-1)*8)/arr.length);
+    const place=(arr,y0,y1)=>{ if(!arr.length) return; const nn=ls.some(l=>l.pos_x!=null)?ls.length:arr.length; /* 有自己拖过的：宽度固定，不因转方向变 */ const cw=Math.min(r.kind==='walkway'?vArea.w:260,(vArea.w-(nn-1)*8)/nn);
       arr.forEach((l,i)=>{ const h=Math.min(y1-y0,Math.max(170,vLen(l))); const y=l.direction==='up'?y1-h:y0; out[l.id]={x:vArea.x+i*(cw+8),y,w:cw,h}; }); };
+    /* v6 · 走廊很窄：同一段有几条队伍就上下叠，一条一格（以前并排，加宽后会把第二条盖住） */
+    const stack=(arr,y0,y1)=>{ if(!arr.length) return; const n=arr.length, room=(y1-y0-(n-1)*8)/n;
+      let y=y0; arr.forEach(l=>{ const h=Math.max(110,Math.min(vLen(l),room)); out[l.id]={x:vArea.x,y,w:vArea.w,h}; y+=h+8; }); };
     if(gap && r.kind==='walkway'){
       const gy0=R.y+R.h*gap.from/100, gy1=R.y+R.h*gap.to/100;
-      place(vs.filter(l=>partOf(l)==='top'),vArea.y,gy0-8); place(vs.filter(l=>partOf(l)==='bottom'),gy1+8+30,R.y+R.h-pad);
-    }else place(vs,vArea.y,vArea.y+vArea.h);
+      stack(vs.filter(l=>partOf(l)==='top'),vArea.y,gy0-8); stack(vs.filter(l=>partOf(l)==='bottom'),gy1+8+30,R.y+R.h-pad);
+    }else if(r.kind==='walkway') stack(vs,vArea.y,vArea.y+vArea.h);
+    else place(vs,vArea.y,vArea.y+vArea.h);
   }
   /* 走廊很窄（平面图上只有约 130px）：队伍框加宽到 280px、盖在旁边的楼梯/房间上面，名字才看得清楚 */
   if(r.kind==='walkway') vs.forEach(l=>{ const b=out[l.id]; if(!b||b.w>=280||!lineMembers(l.id).length) return;
@@ -706,6 +713,9 @@ function layoutRoom(r){
       if(!hit(box,Q)) return true; if(linesInRoom(o.id).length) return false; return !hit(box,{x:Q.x,y:Q.y,w:Q.w,h:40}); });
     const R1={x:b.x,y:b.y,w:280,h:b.h}, L1={x:b.x+b.w-280,y:b.y,w:280,h:b.h};
     if(ok(R1)){ b.w=280; b.wide=true; } else if(ok(L1)){ b.x=L1.x; b.w=280; b.wide=true; } });
+  /* v6 · 自己拖过的队伍：用存下来的位置（房间里的百分比），不出房间 */
+  ls.forEach(l=>{ const b=out[l.id]; if(!b||l.pos_x==null||l.pos_y==null) return;
+    b.x=Math.max(R.x,Math.min(R.x+R.w*l.pos_x/100,R.x+R.w-Math.min(b.w,R.w))); b.y=Math.max(R.y+34,Math.min(R.y+R.h*l.pos_y/100,R.y+R.h-Math.min(b.h,R.h-34))); });
   return out;
 }
 function floorRooms(){ return S.rooms.filter(r=>r.floor===S.ui.floor); }
@@ -742,7 +752,7 @@ function lineHTML(l,b,forPrint){
   const ms=lineMembers(l.id);
   const no=releaseNo(l.id);
   const tp=(l.teacher_ids||[]).map(t=>'<span class="tpin">'+esc(t)+(forPrint||!canEdit()?'':'<button onclick="removeTeacher(\''+l.id+'\',\''+esc(t)+'\')" title="Remove">×</button>')+'</span>').join('');
-  const menu=(forPrint||!canEdit())?'':'<button class="lmenu" onclick="openEditLine(\''+l.id+'\')" title="Edit line">⋯</button>';
+  const menu=(forPrint||!canEdit())?'':'<button class="lmove" data-move="'+l.id+'" title="Drag to move this line">✥</button><button class="lrot" onclick="rotateLine(\''+l.id+'\')" title="Turn the arrow">↻</button><button class="lmenu" onclick="openEditLine(\''+l.id+'\')" title="Edit line">⋯</button>';
   let k=0;
   const cards=ms.map(m=>isTch(m.student_id)
     ? '<div class="card-s tmark" data-sid="'+esc(m.student_id)+'" title="Teacher in the line"><span class="nm">👤 '+esc(stuName(m.student_id))+'</span>'+(forPrint||!canEdit()?'':'<button class="rm" onclick="removeFromLine(\''+esc(m.student_id)+'\')" title="Take out">×</button>')+'</div>'
@@ -762,6 +772,7 @@ function renderPlan(){
   sc.style.width=vb.w+'px'; sc.style.height=vb.h+'px'; sc.style.zoom=z;
   if(!floorRooms().length) plan.innerHTML='<div class="empty" style="position:absolute;left:'+vb.x+'px;top:'+vb.y+'px;width:600px">No rooms with floor plan positions on this floor (Room SSOT)</div>';
   if(!canEdit()) return;
+  plan.querySelectorAll('.lmove').forEach(h=>h.addEventListener('pointerdown',ev=>startMoveLine(ev,h.dataset.move,z)));
   plan.querySelectorAll('.lb').forEach(el=>{
     Sortable.create(el,{...SORT_OPTS,group:{name:'stu',pull:true,put:['stu','tch']},animation:120,filter:'.tail,.drop-hint,.wd,.rm',preventOnFilter:false,draggable:'.card-s',
       onAdd:ev=>{ const tid=ev.item.dataset.tid; const sid=tid?'T:'+tid:ev.item.dataset.sid; const idx=[...el.querySelectorAll('.card-s,.tch')].indexOf(ev.item); ev.item.remove(); placeStudent(sid,el.dataset.lb,idx,!!tid); },
@@ -930,21 +941,57 @@ async function saveNewLine(rid,part){
   const ok=await write('add line',()=>_sb.from('dutyq_line').insert({id:row.id,session_code:row.session_code,room_id:rid,direction:dir,label,sort_in_room:row.sort_in_room,release_order:row.release_order,...(part?{part}:{})}));
   if(ok) toast('✓ Line added'); else { S.lines=S.lines.filter(l=>l.id!==row.id); refresh(); }
 }
+/* v6 · 拖 ✥ 移动队伍、按 ↻ 转箭头。动过一条，这个房间其他队伍就固定在现在的位置，不会自己跑 */
+function freezeRoom(rid,skip){
+  const r=S.rooms.find(x=>x.id===rid); if(!r) return []; const R=roomRect(r), L=layoutRoom(r), rows=[];
+  linesInRoom(rid).forEach(l=>{ if(l.id===skip||l.pos_x!=null) return; const b=L[l.id]; if(!b) return;
+    l.pos_x=Math.round((b.x-R.x)/R.w*1000)/10; l.pos_y=Math.round((b.y-R.y)/R.h*1000)/10; rows.push(l); });
+  return rows;
+}
+async function savePos(rows){ for(const l of rows){ const r=await _sb.from('dutyq_line').update({pos_x:l.pos_x,pos_y:l.pos_y,updated_at:new Date().toISOString()}).eq('id',l.id); if(r.error) return r; } return {}; }
+function startMoveLine(ev,lid,z){
+  const el=document.querySelector('.line[data-lid="'+lid+'"]'), l=S.lines.find(x=>x.id===lid); if(!el||!l) return;
+  const r=S.rooms.find(x=>x.id===l.room_id); if(!r) return; const R=roomRect(r);
+  ev.preventDefault(); ev.stopPropagation();
+  const sx=ev.clientX, sy=ev.clientY, x0=parseFloat(el.style.left), y0=parseFloat(el.style.top), w=parseFloat(el.style.width), hh=parseFloat(el.style.height);
+  let nx=x0, ny=y0, moved=false; el.classList.add('moving');
+  const mv=e=>{ const dx=(e.clientX-sx)/z, dy=(e.clientY-sy)/z; if(Math.abs(dx)+Math.abs(dy)>3) moved=true;
+    nx=Math.max(R.x,Math.min(x0+dx,R.x+R.w-Math.min(w,R.w))); ny=Math.max(R.y+34,Math.min(y0+dy,R.y+R.h-Math.min(hh,R.h-34)));
+    el.style.left=nx+'px'; el.style.top=ny+'px'; };
+  const up=()=>{ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); el.classList.remove('moving');
+    if(!moved) return;
+    const others=freezeRoom(l.room_id,lid);
+    l.pos_x=Math.round((nx-R.x)/R.w*1000)/10; l.pos_y=Math.round((ny-R.y)/R.h*1000)/10; refresh();
+    write('move line',()=>savePos([l,...others])); };
+  document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
+}
+function rotateLine(lid){
+  const l=S.lines.find(x=>x.id===lid); if(!l||!canEdit()) return;
+  const frozen=freezeRoom(l.room_id,null);
+  const nxt={up:'right',right:'down',down:'left',left:'up'}; l.direction=nxt[l.direction]||'down'; refresh();
+  write('turn line',async()=>{ const r=await savePos(frozen); if(r.error) return r; return _sb.from('dutyq_line').update({direction:l.direction,updated_at:new Date().toISOString()}).eq('id',lid); });
+}
+function resetLinePos(lid){
+  const l=S.lines.find(x=>x.id===lid); if(!l) return; l.pos_x=null; l.pos_y=null; closeModal(); refresh();
+  write('auto position',()=>_sb.from('dutyq_line').update({pos_x:null,pos_y:null,updated_at:new Date().toISOString()}).eq('id',lid)).then(ok=>ok&&toast('✓ Back to auto position'));
+}
 function openEditLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
   openModal('Edit line',
     '<div style="margin-bottom:12px"><label class="form-label">Line name <span style="color:var(--danger)">*</span></label><input type="text" id="ln-label" style="width:100%" value="'+esc(l.label||'')+'"></div>'+
     '<label class="form-label">Direction</label>'+dirPicker(l.direction)+(hasParts(l.room_id)?partPicker(partOf(l)):'')+
     '<div style="margin-top:12px"><label class="form-label">Room</label><select id="ln-room" style="width:100%">'+S.rooms.filter(r=>r.kind!=='structure').map(r=>'<option'+(r.id===l.room_id?' selected':'')+'>'+esc(r.id)+'</option>').join('')+'</select></div>',
-    '<button class="btn btn-dng btn-sm" style="margin-right:auto" onclick="deleteLine(\''+lid+'\')">Delete</button><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveEditLine(\''+lid+'\')">Save</button>');
+    '<button class="btn btn-dng btn-sm" style="margin-right:auto" onclick="deleteLine(\''+lid+'\')">Delete</button>'+(l.pos_x!=null?'<button class="btn btn-sm" onclick="resetLinePos(\''+lid+'\')">Auto position</button>':'')+'<button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="saveEditLine(\''+lid+'\')">Save</button>');
 }
 function saveEditLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
   const label=(document.getElementById('ln-label').value||'').trim(); if(!label){ toast('Enter a line name'); return; }
+  const oldRoom=l.room_id;
   l.label=label; l.direction=curDir()||l.direction; l.room_id=document.getElementById('ln-room').value||l.room_id;
   const pp=curPart(); if(pp&&hasParts(l.room_id)) l.part=pp;
+  const roomMoved=l.room_id!==oldRoom; if(roomMoved){ l.pos_x=null; l.pos_y=null; }
   closeModal(); refresh();
-  write('edit line',()=>_sb.from('dutyq_line').update({label:l.label,direction:l.direction,room_id:l.room_id,...(pp&&hasParts(l.room_id)?{part:pp}:{}),updated_at:new Date().toISOString()}).eq('id',lid)).then(ok=>ok&&toast('✓ Saved'));
+  write('edit line',()=>_sb.from('dutyq_line').update({label:l.label,direction:l.direction,room_id:l.room_id,...(pp&&hasParts(l.room_id)?{part:pp}:{}),...(roomMoved?{pos_x:null,pos_y:null}:{}),updated_at:new Date().toISOString()}).eq('id',lid)).then(ok=>ok&&toast('✓ Saved'));
 }
 function deleteLine(lid){
   const l=S.lines.find(x=>x.id===lid); if(!l) return;
