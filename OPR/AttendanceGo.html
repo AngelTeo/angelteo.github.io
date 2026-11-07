@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1,user-scalable=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<title>OPR-AttendanceGo v51</title>
+<title>OPR-AttendanceGo v52</title>
 <style>
 :root{
   --layer:#8B6C2A;
@@ -182,7 +182,7 @@ body:not(.nt-on) .nt-only{display:none!important}   /* v32 · Notices：行政�
 <div id="app">
   <div class="nav">
     <button class="nav-home" onclick="location.href='/index.html'">←</button>
-    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v51</span></div>
+    <div class="nav-logo">OPR-AttendanceGo <span class="ver">v52</span></div>
     <button class="ntab on" onclick="goPage('dashboard')">Dashboard</button>
     <button class="ntab" onclick="goPage('mark')">Mark</button>
     <button class="ntab" onclick="goPage('monthly')">Monthly</button>
@@ -270,7 +270,7 @@ const _sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 /* v28 · 云端一次最多回 1000 行（Supabase 预设上限），超过的不报错、直接截掉。
    以前 Monthly / Tracker / 两个 Export 一次抓整批 → SRK 一个月有 1,100–2,200 行，月底那几天整片或半片看不到；
    Export 只有最早的 1,000 行。现在一律分批抓到完（Owner 10-19 GO）。 */
-const APP_VERSION=51;   /* v51 · 连续 2 个上课日无故缺席：Dashboard Contact Parents 列出来、Monthly 那两天右上角 ⚠️；行政写下联络结果后才消失（Owner 10-28，资料库 Step I） */ /* v50 */ //   /* v50 · 「Make one message」改成今天以后的全部（发过的也放）—— 行政每天重复发报告（Owner 10-28，配合资料库 Step H3） */ /* v49 */ //   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
+const APP_VERSION=52;   /* v52 · 补课可以改日期（学生延期）：取消旧的＋新增一笔在同一个交易（att_swap_move）（Owner 11-07） */ /* v51 */ //   /* v51 · 连续 2 个上课日无故缺席：Dashboard Contact Parents 列出来、Monthly 那两天右上角 ⚠️；行政写下联络结果后才消失（Owner 10-28，资料库 Step I） */ /* v50 */ //   /* v50 · 「Make one message」改成今天以后的全部（发过的也放）—— 行政每天重复发报告（Owner 10-28，配合资料库 Step H3） */ /* v49 */ //   /* v49 · Notices 清单：同一次登记、同一个孩子（SRK＋GAK 等多部门）合成一张卡；登记时同一孩子同一部门已有日子重叠的同类通知 → Review 红字提醒（LL 10-26） */ /* v48 */ //   /* v48 · 「Visitors」改名「Replacement / Change slot」（Owner 10-24：Visitors 会误会是外面的学生） */ /* v47 */ //   /* v47 · Monthly 标记（Owner 10-24 15:0x 定）：补课那格「R for 31/10」（补哪一天）、缺席已补那格「R on 24/10」、换课去的那班只打勾不写字 */ /* v46 */ //   /* v46 · 换 slot 在自己班月报的标签改成「去上的那班」→LV7.SAT.AM（v45 误写成自己的班）；来访的那班月报也列出 Visitors（补课 / 换 slot 来的孩子），标他自己的班，不算进这班出席率（Owner 10-24 14:1x） */ /* v45 */ //   /* v45 · 同一天自己也有课、又来补课（预补）→ 补课那堂另存一笔（session 1），两笔不互相盖；Monthly 本班那天不再误标 Rep；补课只认补课那班的纪录；标签：补课 = for 日期、已补 = Made up 日期、换 slot = 自己原本的班（Owner 10-24） */ /* v44 */ //   /* v44 · Notices：原因 / 时间 / 接送人每个孩子各自一格（之前整张表一个，最后打的盖掉前面的 · 10-24 行政回报）；Monthly 格子也显示早走 / 晚到 / 晚接 / 换人接；Late / Early 再按一次可以改时间或改回没点（Owner 10-24） */ /* v43 */ //   /* v43 · SRT 补课 / 换 slot 改成一个画面、一行一个孩子（照 MiscGo）：Absent 选日期（过去 / 未来都行）、去哪补 = 日期 + AM/NN/PM 班自动（跨级标黄）；换 slot「跳过哪天」系统自动算；存好写 MiscGo 纪录、马上出一则讯息；预补的那天 All ✓ 自动记缺席（Owner 10-23） */    /* v42 · 没有网课了：E-Class 纪录照一般出席显示 ✓ / 迟到，不再显示 E·NN；点名页不再挂 E-Class 标签（Owner 10-23） */   /* v41 · 照 MiscGo：按 Open WhatsApp / Copy text 就算送出（不用再按 I've sent it）；MiscGo 纪录跟着标已送出；换时间 / 换人接的 MiscGo 纪录不再自动关掉（MiscGo Dashboard 看得到）（Owner 10-23 16:3x） */
 /* v40   /* v40 · 卡片上直接「I've sent it」＋ 从 WhatsApp 回来自动问「送出了吗」；点名页换人接一律显示 🚗 Pick-up change（Owner 10-23 16:04） */
 /* v39   /* v39 · WhatsApp 照 MiscGo 开法（直接开 app，不留 Share on WhatsApp 网页）；合并发：部门不勾 = 全部部门（Owner 10-23） */
 /* v38   /* v38 · 全套（v33）＋ 线上 v34–v37 的修正：All ✓ 照固定例外（v34）、Follow-Up 必填（v35）、SRT 补课卡片＋日子 → 时段 → 班（v36 / v37） */
@@ -2225,12 +2225,14 @@ function swCheck(r){   /* {ok} 或 {bad:'…'}；还没填完 = {} */
   if(SW.kind==='replacement'){
     if(!r.abs) return {};
     if(!isClassDay('SRT',own,r.abs)) return {bad:swDot(own)+' has no class on '+fmtDate(r.abs)+'.'};
-    const mu=swMadeUp(r.stu,own,r.abs); if(mu) return {bad:'Already made up on '+fmtDate(mu.to_date)+' · '+swDot(mu.to_class)};
+    const mu=swMadeUp(r.stu,own,r.abs);
+    if(mu&&!(r.move&&r.move.id===mu.id)) return {bad:'Already made up on '+fmtDate(mu.to_date)+' · '+swDot(mu.to_class),move:mu};
   }
   if(!r.to||!r.slot||!r.cls) return {};
   if(SW.kind==='temp'){ skip=swSkipDay(r); if(!skip||!isClassDay('SRT',own,skip)) return {bad:'No '+swDot(own)+' class that week — nothing to change.'}; }
   if(r.cls===own&&r.to===(SW.kind==='temp'?skip:r.abs)) return {bad:'That is his own class on that day.'};
-  const same=allSwaps.find(w=>w.status==='active'&&w.student_id===r.stu&&w.to_date===r.to&&w.to_class===r.cls);
+  if(r.move&&r.move.to_date===r.to&&r.move.to_class===r.cls) return {bad:'That is the same day as now — pick the new date.'};
+  const same=allSwaps.find(w=>w.status==='active'&&w.student_id===r.stu&&w.to_date===r.to&&w.to_class===r.cls&&!(r.move&&w.id===r.move.id));
   if(same) return {bad:'Already arranged for '+fmtDate(r.to)+' · '+swDot(r.cls)};
   return {ok:true,own,skip};
 }
@@ -2261,6 +2263,9 @@ function swRenderBody(){
       swMiss(r.stu).filter(m=>m.cls===own).forEach(m=>{ h+=chip(r.abs===m.date,_escHtml(fmtDate(m.date)),`SW.rows[${i}].abs='${m.date}';swRenderBody()`); });
       h+=`</div>`;
       if(r.abs&&isClassDay('SRT',own,r.abs)&&!swMadeUp(r.stu,own,r.abs)) h+=ok(_escHtml(fmtDate(r.abs)+' · '+swDot(own)));
+      /* v52 · 已经排了补课 → 可以改日期 */
+      const mu0=r.abs?swMadeUp(r.stu,own,r.abs):null;
+      if(mu0&&r.move&&r.move.id===mu0.id) h+=`<div style="margin-top:8px;background:#F3F1FB;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#4B3FA8"><b>Changing the replacement date</b><br>Now: ${_escHtml(fmtDate(mu0.to_date)+' · '+swDot(mu0.to_class))} → pick the new date below. <button onclick="SW.rows[${i}].move=null;SW.rows[${i}].to='';SW.rows[${i}].slot='';SW.rows[${i}].cls='';swRenderBody()" style="border:none;background:none;color:var(--info);font-size:12px;cursor:pointer;padding:0 0 0 4px">Keep as it is</button></div>`;
     }
     h+=lab(SW.kind==='replacement'?'Replace (where he makes it up)':'Goes to (this week only)');
     if(SW.lock) h+=ok(_escHtml(fmtDate(r.to)+' · '+swDot(r.cls)));
@@ -2283,6 +2288,7 @@ function swRenderBody(){
     if(r.cls&&swLv(r.cls)!==swLv(own)) h+=`<div style="display:inline-block;margin-top:6px;background:#FFF6DD;color:#8A5A00;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700">Different level: LV${swLv(own)} → LV${swLv(r.cls)}</div>`;
     if(SW.kind==='temp'&&r.cls){ const sk=swSkipDay(r); if(sk) h+=`<div style="font-size:12.5px;color:var(--mut);margin-top:6px">Skips own class: <b>${_escHtml(fmtDate(sk)+' · '+swDot(own))}</b></div>`; }
     const c=swCheck(r); if(c.bad) h+=`<div style="font-size:12.5px;font-weight:600;color:var(--danger);margin-top:6px">✕ ${_escHtml(c.bad)}</div>`;
+    if(c.move&&!SW.lock) h+=`<button onclick="swStartMove(${i})" style="margin-top:6px;min-height:36px;padding:4px 14px;border-radius:18px;border:1px solid #7870CC;background:#fff;color:#7870CC;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">Change replace date</button>`;
     h+=`</div>`;
   });
   h+=`<button onclick="SW.rows.push(swNewRow());swRenderBody()" style="width:100%;min-height:42px;border-radius:12px;border:1.5px dashed #7870CC;background:transparent;color:#7870CC;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit">+ Add student</button>`;
@@ -2320,11 +2326,23 @@ async function swSave(){
   if(bi>=0){ swRenderBody(); toast('Row '+(SW.rows.indexOf(R[bi])+1)+': '+(C[bi].bad||'not finished yet'),4500); return; }
   const rows=R.map((r,k)=>({kind:SW.kind,student_id:r.stu,dept:'SRT',from_class:C[k].own,from_date:SW.kind==='temp'?C[k].skip:r.abs,to_class:r.cls,to_date:r.to,note:null,client_uid:ntUid()}));
   const btn=document.getElementById('sw-save'); btn.disabled=true;
-  const{data,error}=await _sb.from('attendance_swap').insert(rows).select();
+  /* v52 · 改日期的：一笔一笔走 att_swap_move（取消旧的＋新增，同一个交易）；其他照旧新增 */
+  const mv=[], add=[]; R.forEach((r,k)=>(r.move&&SW.kind==='replacement'?mv:add).push({r,row:rows[k]}));
+  const saved=[]; let fail='';
+  for(const x of mv){
+    const{data:d,error:e}=await _sb.rpc('att_swap_move',{p_id:x.r.move.id,p_to_class:x.row.to_class,p_to_date:x.row.to_date,p_client_uid:x.row.client_uid});
+    if(e){ console.error(e); const m=String(e.message||'');
+      fail=swStudent(x.r.stu).name+': '+(m.includes('ALREADY_ATTENDED')?'already came on '+fmtDate(x.r.move.to_date)+' — cannot change':m.includes('SWAP_GONE')?'this replacement was changed or cancelled — refresh':String(e.code)==='23505'?'already arranged on that day':'could not change'); break; }
+    const nw=Array.isArray(d)?d[0]:d; allSwaps=allSwaps.filter(w=>w.id!==x.r.move.id); if(nw){ allSwaps.push(nw); saved.push(nw); }
+  }
+  if(!fail&&add.length){
+    const{data,error}=await _sb.from('attendance_swap').insert(add.map(x=>x.row)).select();
+    if(error){ console.error(error); fail=String(error.code)==='23505'?'Already arranged for one of these children (same class and day, or the same missed class) — refresh to see it':'Save failed'; }
+    else{ const ad=(data&&data.length)?data:add.map(x=>({status:'active',...x.row})); ad.forEach(w=>{ allSwaps.push({status:'active',created_by:userEmail,...w}); saved.push(w); }); }
+  }
   btn.disabled=false;
-  if(error){ console.error(error); toast(String(error.code)==='23505'?'Already arranged for one of these children (same class and day, or the same missed class) — refresh to see it':'✕ Save failed',5000); return; }
-  const saved=(data&&data.length)?data:rows.map(x=>({status:'active',...x}));
-  saved.forEach(w=>allSwaps.push({status:'active',created_by:userEmail,...w}));
+  if(fail&&!saved.length){ toast('✕ '+fail,5000); swRenderBody(); return; }
+  if(fail) toast('✕ '+fail+' (the others are saved)',6000);
   /* MiscGo 纪录（MiscGo Dashboard 看得到；按了送出就标 wa_sent） */
   try{ const now=new Date().toISOString(), who=(markerNames&&markerNames[userEmail])||userEmail;
        const{error:re}=await _sb.from('records').insert(saved.map(w=>({student_name:swStudent(w.student_id).name,student_id:w.student_id,report_type:w.kind==='replacement'?'REPLACEMENT':'CHANGE_SLOT',
@@ -2378,6 +2396,14 @@ function swRecentAbsences(stuId){
   }
   return SW._abs.list;
 }
+/* v52 · 改补课日期 */
+function swStartMove(i){ const r=SW.rows[i], c=swCheck(r); if(!c.move) return; r.move=c.move; r.to=''; r.slot=''; r.cls=''; swRenderBody(); }
+function swMoveFromList(id){
+  const w=allSwaps.find(x=>x.id===id); if(!w||w.kind!=='replacement') return;
+  swOpen('manage',''); SW.kind='replacement';
+  Object.assign(SW.rows[0],{stu:w.student_id,own:w.from_class,abs:w.from_date,move:w});
+  swRenderBody();
+}
 async function swCancel(id){
   const w=allSwaps.find(x=>x.id===id); if(!w) return;
   if(!confirm('Cancel this arrangement? (A mark already saved stays.)')) return;
@@ -2402,7 +2428,7 @@ function swRenderAdmin(){
         <td style="padding:6px;border-bottom:.5px solid var(--bdr)"><span style="font-size:10px;background:#F3F1FB;color:#7870CC;border-radius:8px;padding:1px 7px;font-weight:600;white-space:nowrap">${SW_LABEL[w.kind]}</span></td>
         <td style="padding:6px;border-bottom:.5px solid var(--bdr);white-space:nowrap">${_escHtml(swCls(w.from_class))}${w.from_date?'<br><span style="color:var(--mut)">'+(w.kind==='replacement'?'missed ':'')+_escHtml(w.from_date)+'</span>':''}</td>
         <td style="padding:6px;border-bottom:.5px solid var(--bdr);font-size:10px;color:var(--mut)">${_escHtml(markerNames[w.created_by]||w.created_by||'')}</td>
-        <td style="padding:6px;border-bottom:.5px solid var(--bdr);text-align:right"><button onclick='swCancel(${swJ(w.id)})' style="padding:4px 10px;border-radius:6px;border:1px solid var(--bdr);background:#fff;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button></td></tr>`; });
+        <td style="padding:6px;border-bottom:.5px solid var(--bdr);text-align:right;white-space:nowrap">${w.kind==='replacement'?`<button onclick='swMoveFromList(${swJ(w.id)})' style="padding:4px 10px;border-radius:6px;border:1px solid #7870CC;background:#fff;color:#7870CC;font-size:11px;cursor:pointer;font-family:inherit;margin-right:4px">Change date</button>`:''}<button onclick='swCancel(${swJ(w.id)})' style="padding:4px 10px;border-radius:6px;border:1px solid var(--bdr);background:#fff;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button></td></tr>`; });
     h+=`</table></div>`;
   }
   box.innerHTML=h;
